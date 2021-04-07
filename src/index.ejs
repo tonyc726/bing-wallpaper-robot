@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bing Wallpaper Robot</title>
+
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/combine/npm/purecss/build/base-min.css,npm/purecss/build/grids-min.css"
+    />
+    <style>
+      .container {
+        text-align: center;
+        width: 60%;
+        min-width: 800px;
+        margin: 0 auto;
+      }
+      .wallpaper-title {
+        border-bottom: 1px solid#e0e0e0;
+        padding-bottom: 25px;
+      }
+      .wallpaper-list {
+        list-style: none;
+      }
+      .wallpaper-list-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 35px;
+        padding-top: 20px;
+      }
+      .wallpaper-links {
+      }
+      .wallpaper-link {
+      }
+      .wallpaper-thumb {
+        display: block;
+        margin: 0 auto;
+      }
+      .wallpaper-thumb-breathed {
+        /* IE10、Firefox and Opera，IE9以及更早的版本不支持 */
+        animation-name: breath; /* 动画名称 */
+        animation-duration: 1.8s; /* 动画时长3秒 */
+        animation-timing-function: ease-in-out; /* 动画速度曲线：以低速开始和结束 */
+        animation-iteration-count: infinite; /* 播放次数：无限 */
+
+        /* Safari and Chrome */
+        -webkit-animation-name: breath; /* 动画名称 */
+        -webkit-animation-duration: 1.8s; /* 动画时长3秒 */
+        -webkit-animation-timing-function: ease-in-out; /* 动画速度曲线：以低速开始和结束 */
+        -webkit-animation-iteration-count: infinite; /* 播放次数：无限 */
+      }
+      @keyframes breath {
+        from {
+          opacity: 0.68;
+        } /* 动画开始时的不透明度 */
+        50% {
+          opacity: 1;
+        } /* 动画50% 时的不透明度 */
+        to {
+          opacity: 0.68;
+        } /* 动画结束时的不透明度 */
+      }
+
+      @-webkit-keyframes breath {
+        from {
+          opacity: 0.68;
+        } /* 动画开始时的不透明度 */
+        50% {
+          opacity: 1;
+        } /* 动画50% 时的不透明度 */
+        to {
+          opacity: 0.68;
+        } /* 动画结束时的不透明度 */
+      }
+      .footer {
+        padding-top: 20px;
+        padding-bottom: 35px;
+      }
+    </style>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WZLJSKEG4Z"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', 'G-WZLJSKEG4Z');
+    </script>
+  </head>
+  <body class="container">
+    <h1 class="wallpaper-title">
+      Bing Wallpaper Robot - <a href="https://github.com/tonyc726/bing-wallpaper-robot">Github</a>
+    </h1>
+    <ul class="wallpaper-list">
+      <% wallpapers.forEach(function(wallpaper){ %>
+      <li class="wallpaper-list-item">
+        <h3>[<%= wallpaper.date %>] - <%= wallpaper.description %></h3>
+        <p class="wallpaper-links">
+          <a
+            class="wallpaper-link"
+            target="_blank"
+            href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg"
+            ><%= wallpaper.imagekitFileWidth %>*<%= wallpaper.imagekitFileHeight %></a
+          >
+          &nbsp;&#124;&nbsp;
+          <a
+            class="wallpaper-link"
+            target="_blank"
+            href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=1920&h=1080&rs=1&c=4"
+            >1920*1080</a
+          >
+        </p>
+        <img
+          class="lazy wallpaper-thumb wallpaper-thumb-breathed"
+          alt="<%= wallpaper.filename %>"
+          title="<%= wallpaper.description %>"
+          data-src="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&w=<%= wallpaper.width %>&c=1"
+          style="background-color: #<%= wallpaper.dominantColor %>"
+          width="<%= wallpaper.width %>"
+          height="<%= wallpaper.height %>"
+        />
+      </li>
+      <% }); %>
+    </ul>
+    <p class="footer">© 2017- 2021 - Made by Tony (<a href="//itony.net">Blog</a>)</p>
+    <script>
+      function logElementEvent(eventName, element) {
+        console.log(Date.now(), eventName, element.getAttribute('data-src'));
+      }
+
+      var callback_enter = function (element) {
+        logElementEvent('🔑 ENTERED', element);
+      };
+      var callback_exit = function (element) {
+        logElementEvent('🚪 EXITED', element);
+      };
+      var callback_loading = function (element) {
+        logElementEvent('⌚ LOADING', element);
+      };
+      var callback_loaded = function (element) {
+        element.className = element.className.replace(
+          new RegExp('(?:^|\\s)' + 'wallpaper-thumb-breathed' + '(?:\\s|$)'),
+          ' ',
+        );
+        logElementEvent('👍 LOADED', element);
+      };
+      var callback_error = function (element) {
+        logElementEvent('💀 ERROR', element);
+        element.src = 'https://via.placeholder.com/600x300/?text=IMAGE+LOAD+FAILED';
+      };
+      var callback_finish = function () {
+        logElementEvent('✔️ FINISHED', document.documentElement);
+      };
+      var callback_cancel = function (element) {
+        logElementEvent('🔥 CANCEL', element);
+      };
+
+      window.lazyLoadOptions = {
+        threshold: 0,
+        // Assign the callbacks defined above
+        callback_enter: callback_enter,
+        callback_exit: callback_exit,
+        callback_cancel: callback_cancel,
+        callback_loading: callback_loading,
+        callback_loaded: callback_loaded,
+        callback_error: callback_error,
+        callback_finish: callback_finish,
+      };
+      window.addEventListener(
+        'LazyLoad::Initialized',
+        function (e) {
+          console.log(e.detail.instance);
+        },
+        false,
+      );
+    </script>
+    <script src="//cdn.jsdelivr.net/combine/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script>
+  </body>
+</html>

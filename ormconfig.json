@@ -1,0 +1,14 @@
+{
+  "type": "sqlite",
+  "database": "database/bing-wallpaper.sqlite",
+  "synchronize": false,
+  "logging": false,
+  "entities": ["src/models/entities/**/*.ts"],
+  "migrations": ["src/models/migrations/**/*.ts"],
+  "subscribers": ["src/models/subscribers/**/*.ts"],
+  "cli": {
+    "entitiesDir": "src/models/entities",
+    "migrationsDir": "src/models/migrations",
+    "subscribersDir": "src/models/subscribers"
+  }
+}
