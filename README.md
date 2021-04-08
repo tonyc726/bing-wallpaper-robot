@@ -15,6 +15,7 @@
 
 - [Github.io](https://tonyc726.github.io/bing-wallpaper-robot) - https://tonyc726.github.io/bing-wallpaper-robot
 - [vercel.app](https://bing-wallpaper-robot.vercel.app) - https://bing-wallpaper-robot.vercel.app
+- [netlify.app](https://bing-wallpaper-robot.netlify.app) - https://bing-wallpaper-robot.netlify.app
 
 ## :rotating_light: 免则声明
 
