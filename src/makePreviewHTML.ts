@@ -36,6 +36,7 @@ const main = async (retry = 1) => {
             'imagekitFileHeight',
             'imagekitFileWidth',
           ]),
+          copyright: (Buffer.from(get(wallpaper, ['responseTxt']) || '', 'base64')).toString('utf8'),
           width: 600,
           height: Math.ceil((600 * get(wallpaper, ['imagekitFileHeight'])) / get(wallpaper, ['imagekitFileWidth'])),
         })),

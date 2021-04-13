@@ -115,7 +115,7 @@
     <ul class="wallpaper-list">
       <% wallpapers.forEach(function(wallpaper){ %>
       <li class="wallpaper-list-item">
-        <h3>[<%= wallpaper.date %>] - <%= wallpaper.description %></h3>
+        <h3>[<%= wallpaper.date %>] - <%= wallpaper.copyright %></h3>
         <p class="wallpaper-links">
           <a
             class="wallpaper-link"
@@ -134,7 +134,7 @@
         <img
           class="lazy wallpaper-thumb wallpaper-thumb-breathed"
           alt="<%= wallpaper.filename %>"
-          title="<%= wallpaper.description %>"
+          title="<%= wallpaper.copyright %>"
           data-src="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&w=<%= wallpaper.width %>&c=1"
           style="background-color: #<%= wallpaper.dominantColor %>"
           width="<%= wallpaper.width %>"
