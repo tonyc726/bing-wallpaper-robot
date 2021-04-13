@@ -2,6 +2,7 @@ import * as githubActionCore from '@actions/core';
 import 'reflect-metadata';
 import { createConnection, In } from 'typeorm';
 import { format } from 'date-fns';
+import { uniqBy } from 'lodash';
 
 import { Wallpaper } from './models/entities/Wallpaper';
 import makeRandomNumber from './utils/make-random-number';
@@ -18,7 +19,8 @@ const main = async (retry = 1) => {
 --------------------------------------------------`);
   let bingWallpaperData = null;
   try {
-    bingWallpaperData = await getMultipleBingWallpaperInfo();
+    const getMultipleBingWallpaperInfoResult = await getMultipleBingWallpaperInfo();
+    bingWallpaperData = uniqBy(getMultipleBingWallpaperInfoResult, 'hsh');
   } catch (error) {
     console.log(`>> 数据请求失败
 ==================================================

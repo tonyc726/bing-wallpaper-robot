@@ -23,9 +23,14 @@ export default (copyrightData: string): Array<string | undefined> => {
     return [];
   }
   // 挪威苔原上的北极光和野生驯鹿 (© Anton Petrus/Getty Images)
-  let [, description, copyright] = copyrightData.match(/(.*)\(©(.*)\)/);
+  let copyright = copyrightData;
+  let description;
+  let copyrightDataMath = copyrightData.match(/(.*)\(\s.©(.*)\)/);
+  if (copyrightDataMath !== null) {
+    [, description, copyright] = copyrightDataMath || [];
+  }
   let address = '';
-  if (/\，/.test(description)) {
+  if (description !== undefined && /\，/.test(description)) {
     [, description, address] = description.match(/(.*)\，(.*)/);
   }
   return [trim(description), trim(address), trim(copyright)];

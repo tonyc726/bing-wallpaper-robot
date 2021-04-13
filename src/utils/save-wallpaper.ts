@@ -33,7 +33,13 @@ export default (wallpaperRepository: any, wallpaper: any, isUpdate = false): Pro
         description,
         address,
         copyright,
-        lang: langEnum['zh-CN'],
+        lang: ((urlbase) => {
+          if (/zh-cn/gi.test(urlbase)) {
+            return langEnum['zh-CN'];
+          } else if (/en-us/gi.test(urlbase)) {
+            return langEnum['en-US'];
+          }
+        })(get(wallpaper, ['urlbase'])),
         date: isUpdate ? get(wallpaper, ['date']) : get(wallpaper, ['startdate']),
         responseTxt: isUpdate
           ? get(wallpaper, ['responseTxt'])
