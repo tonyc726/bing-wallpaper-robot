@@ -6,6 +6,7 @@ import { createConnection, IsNull, Not } from 'typeorm';
 import * as ejs from 'ejs';
 import * as htmlMinify from 'html-minifier';
 import { map, pick, get } from 'lodash';
+import { format } from 'date-fns';
 
 const writeFile = util.promisify(fs.writeFile);
 
@@ -36,10 +37,11 @@ const main = async (retry = 1) => {
             'imagekitFileHeight',
             'imagekitFileWidth',
           ]),
-          copyright: (Buffer.from(get(wallpaper, ['responseTxt']) || '', 'base64')).toString('utf8'),
+          copyright: Buffer.from(get(wallpaper, ['responseTxt']) || '', 'base64').toString('utf8'),
           width: 600,
           height: Math.ceil((600 * get(wallpaper, ['imagekitFileHeight'])) / get(wallpaper, ['imagekitFileWidth'])),
         })),
+        lastModifiedDate: format(new Date(), "yyyy年MM月dd日 HH:mm:ss"),
       },
       {
         rmWhitespace: true,
@@ -52,7 +54,7 @@ const main = async (retry = 1) => {
     minifyJS: true,
     minifyURLs: true,
     removeComments: true,
-    collapseWhitespace: true
+    collapseWhitespace: true,
   });
 
   writeFile(path.resolve(__dirname, '../docs/index.html'), previewHTMLMini);
