@@ -6,7 +6,7 @@ import { createConnection, IsNull, Not } from 'typeorm';
 import * as ejs from 'ejs';
 import * as htmlMinify from 'html-minifier';
 import { map, pick, get } from 'lodash';
-import { format } from 'date-fns';
+import { formatISO } from 'date-fns';
 
 const writeFile = util.promisify(fs.writeFile);
 
@@ -41,7 +41,7 @@ const main = async (retry = 1) => {
           width: 600,
           height: Math.ceil((600 * get(wallpaper, ['imagekitFileHeight'])) / get(wallpaper, ['imagekitFileWidth'])),
         })),
-        lastModifiedDate: format(new Date(), "yyyy年MM月dd日 HH:mm:ss"),
+        lastModifiedDate: formatISO(new Date()),
       },
       {
         rmWhitespace: true,
