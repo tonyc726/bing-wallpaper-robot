@@ -17,7 +17,7 @@ export default async(): Promise<Array<any>> => {
   let multipleResult = [];
   for (const idx of [0,1,2,3,4,5,6,7]) {
     try {
-      const getBingWallpaperResult = getBingWallpaperInfo(idx);
+      const getBingWallpaperResult = await getBingWallpaperInfo(idx);
       multipleResult = concat(multipleResult, getBingWallpaperResult);
     } catch (error) {
       console.error(error);
