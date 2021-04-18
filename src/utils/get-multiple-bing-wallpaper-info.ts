@@ -1,4 +1,4 @@
-import { flatten } from 'lodash';
+import { concat, uniqBy } from 'lodash';
 import getBingWallpaperInfo from './get-bing-wallpaper-info';
 
 /**
@@ -13,10 +13,15 @@ import getBingWallpaperInfo from './get-bing-wallpaper-info';
  * const bingWallpapers = await getBingWallpaperInfo();
  * ```
  */
-export default (): Promise<Array<any>> =>
-  Promise.all([0,1,2,3,4,5,6,7].map(
-    (idx) => getBingWallpaperInfo(idx)
-  )).then((data) => (
-    flatten(data)
-  ))
-;
+export default async(): Promise<Array<any>> => {
+  let multipleResult = [];
+  for (const idx of [0,1,2,3,4,5,6,7]) {
+    try {
+      const getBingWallpaperResult = getBingWallpaperInfo(idx);
+      multipleResult = concat(multipleResult, getBingWallpaperResult);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  return uniqBy(multipleResult, 'hsh');
+};
