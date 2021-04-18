@@ -14,7 +14,9 @@ import * as https from 'https';
  */
 export default (idx = 0, n = 8): Promise<Array<any>> =>
   new Promise((resolve, reject) => {
-    const req = https.get(`https://cn.bing.com/HPImageArchive.aspx?format=js&idx=${idx}&n=${n}`, (res) => {
+    const reqUrl = `https://www.bing.com/HPImageArchive.aspx?format=js&idx=${idx}&n=${n}`;
+    console.log(`> 正在请求 ${reqUrl}`);
+    const req = https.get(reqUrl, (res) => {
       if (res.statusCode !== 200) {
         reject(new Error('请求失败了'));
       }
@@ -33,6 +35,7 @@ export default (idx = 0, n = 8): Promise<Array<any>> =>
           reject(error);
         }
         if (data !== null && Array.isArray(data.images)) {
+          console.log(`> ✔️ 请求成功，共 ${data.images.length} 条数据`);
           resolve(data.images);
         } else {
           reject(new Error('数据异常'));
@@ -41,6 +44,8 @@ export default (idx = 0, n = 8): Promise<Array<any>> =>
     });
 
     req.on('error', (e) => {
+      console.log(`> ❌ 请求失败`);
+      console.error(e);
       reject(e);
     });
 
