@@ -36,8 +36,10 @@
         margin: 0 auto;
       }
       .wallpaper-title {
+      }
+      .wallpaper-mirrors {
         border-bottom: 1px solid#e0e0e0;
-        padding-bottom: 25px;
+        padding-bottom: 0.83em;
       }
       .wallpaper-list {
         list-style: none;
@@ -112,6 +114,12 @@
     <h1 class="wallpaper-title" title="Last Modified: <%= lastModifiedDate %>">
       Bing Wallpaper Robot - <a href="https://github.com/tonyc726/bing-wallpaper-robot">Github</a>
     </h1>
+    <h2 class="wallpaper-mirrors">
+      <a href="https://tonyc726.github.io/bing-wallpaper-robot">Github.io</a>&nbsp;|&nbsp;<a
+        href="https://bing-wallpaper-robot.vercel.app"
+        >vercel.app</a
+      >&nbsp;|&nbsp;<a href="https://bing-wallpaper-robot.netlify.app">netlify.app</a>
+    </h2>
     <ul class="wallpaper-list">
       <% wallpapers.forEach(function(wallpaper){ %>
       <li class="wallpaper-list-item">
