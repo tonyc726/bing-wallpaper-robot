@@ -16,20 +16,20 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^14.14.35",
-    "@typescript-eslint/eslint-plugin": "^4.19.0",
-    "@typescript-eslint/parser": "^4.19.0",
-    "eslint": "^7.22.0",
+    "@types/node": "^14.14.45",
+    "@typescript-eslint/eslint-plugin": "^4.23.0",
+    "@typescript-eslint/parser": "^4.23.0",
+    "eslint": "^7.26.0",
     "eslint-config-alloy": "^3.10.0",
-    "prettier": "^2.2.1"
+    "prettier": "^2.3.0"
   },
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@types/date-fns": "^2.6.0",
     "@types/ejs": "^3.0.6",
-    "@types/lodash": "^4.14.168",
-    "date-fns": "^2.20.0",
-    "dotenv": "^8.2.0",
+    "@types/lodash": "^4.14.169",
+    "date-fns": "^2.21.3",
+    "dotenv": "^8.6.0",
     "ejs": "^3.1.6",
     "html-minifier": "^4.0.0",
     "imagekit": "^3.1.2",
