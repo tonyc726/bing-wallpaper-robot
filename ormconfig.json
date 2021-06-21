@@ -1,14 +1,32 @@
-{
-  "type": "sqlite",
-  "database": "database/bing-wallpaper.sqlite",
-  "synchronize": false,
-  "logging": false,
-  "entities": ["src/models/entities/**/*.ts"],
-  "migrations": ["src/models/migrations/**/*.ts"],
-  "subscribers": ["src/models/subscribers/**/*.ts"],
-  "cli": {
-    "entitiesDir": "src/models/entities",
-    "migrationsDir": "src/models/migrations",
-    "subscribersDir": "src/models/subscribers"
+[
+  {
+    "name": "dbv1",
+    "type": "sqlite",
+    "database": "database/bing-wallpaper.v1.sqlite",
+    "synchronize": false,
+    "logging": false,
+    "entities": ["src/models.v1/entities/**/*.ts"],
+    "migrations": ["src/models.v1/migrations/**/*.ts"],
+    "subscribers": ["src/models.v1/subscribers/**/*.ts"],
+    "cli": {
+      "entitiesDir": "src/models.v1/entities",
+      "migrationsDir": "src/models.v1/migrations",
+      "subscribersDir": "src/models.v1/subscribers"
+    }
+  },
+  {
+    "name": "dbv2",
+    "type": "sqlite",
+    "database": "database/bing-wallpaper.sqlite",
+    "synchronize": true,
+    "logging": false,
+    "entities": ["src/models/entities/**/*.ts"],
+    "migrations": ["src/models/migrations/**/*.ts"],
+    "subscribers": ["src/models/subscribers/**/*.ts"],
+    "cli": {
+      "entitiesDir": "src/models/entities",
+      "migrationsDir": "src/models/migrations",
+      "subscribersDir": "src/models/subscribers"
+    }
   }
-}
+]

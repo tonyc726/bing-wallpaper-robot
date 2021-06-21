@@ -39,6 +39,21 @@ def findDominantMostCommonColorInAnImage(img_base64):
     return colour
 
 
+def findDominantMostCommonColorInAnImageFile(image):
+    NUM_CLUSTERS = 5
+    ar = np.asarray(image)
+    shape = ar.shape
+    ar = ar.reshape(scipy.product(shape[:2]), shape[2]).astype(float)
+    # print('finding clusters')
+    codes, dist = scipy.cluster.vq.kmeans(ar, NUM_CLUSTERS)
+    # print('cluster centres:\n', codes)
+    vecs, dist = scipy.cluster.vq.vq(ar, codes)         # assign codes
+    counts, bins = scipy.histogram(vecs, len(codes))    # count occurrences
+    index_max = scipy.argmax(counts)                    # find most frequent
+    peak = codes[index_max]
+    colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
+    return colour
+
 if __name__ == "__main__":
     currentFilePath = os.path.dirname(os.path.abspath(__file__))
     dbFilePath = os.path.join(
@@ -82,4 +97,3 @@ if __name__ == "__main__":
                 print(('[Success] 记录"%s"处理成功，更新图片主色为: #%s') % (
                     wallpaperFileName, dominant_color))
 
-print(('数据处理完成.'))
