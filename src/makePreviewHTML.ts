@@ -5,42 +5,56 @@ import * as fs from 'fs';
 import { createConnection, IsNull, Not } from 'typeorm';
 import * as ejs from 'ejs';
 import * as htmlMinify from 'html-minifier';
-import { map, pick, get } from 'lodash';
+import { map, get, find, sortBy } from 'lodash';
 import { formatISO } from 'date-fns';
 
 const writeFile = util.promisify(fs.writeFile);
 
-import { Wallpaper } from './models/entities/Wallpaper';
+import { Imagekit } from './models';
 
 const main = async (retry = 1) => {
   const databaseConnection = await createConnection();
-  const wallpaperRepository = databaseConnection.getRepository(Wallpaper);
-  const wallpapers = await wallpaperRepository.find({
+  const imagekitRepository = databaseConnection.getRepository(Imagekit);
+
+  const imagekits = await imagekitRepository.find({
     order: {
-      date: 'DESC',
+      id: 'DESC',
     },
-    where: {
-      hashImg: Not(IsNull()),
-    },
+    relations: ['wallpapers', 'wallpapers.analytics'],
   });
 
   const previewHTML = await ejs
     .renderFile(
       path.resolve(__dirname, './index.ejs'),
       {
-        wallpapers: map(wallpapers, (wallpaper) => ({
-          ...pick(wallpaper, [
-            'description',
-            'date',
-            'filename',
-            'dominantColor',
-            'imagekitFileHeight',
-            'imagekitFileWidth',
-          ]),
-          copyright: Buffer.from(get(wallpaper, ['responseTxt']) || '', 'base64').toString('utf8'),
-          width: 600,
-          height: Math.ceil((600 * get(wallpaper, ['imagekitFileHeight'])) / get(wallpaper, ['imagekitFileWidth'])),
-        })),
+        wallpapers: sortBy(
+          map(imagekits, (imagekit) => {
+            // const thumbImageSrc = `./thumbs/${imagekit.id}.`
+            const wallpapers = imagekit.wallpapers;
+            // 0 >> zh-cn
+            // 1 >> en-us
+            const zhCNData = find(wallpapers, (w) => w.lang === 0);
+            const enUSData = find(wallpapers, (w) => w.lang === 1);
+
+            return {
+              filename: get(zhCNData, ['filename'], get(enUSData, ['filename'])),
+              description: get(zhCNData, ['description'], get(enUSData, ['description'])),
+              date: get(zhCNData, ['date'], get(enUSData, ['date'])),
+              title: get(zhCNData, ['title'], get(enUSData, ['title'])),
+              copyright: get(zhCNData, ['copyright'], get(enUSData, ['copyright'])),
+              dominantColor: get(
+                zhCNData,
+                ['analytics', 'dominantColor'],
+                get(enUSData, ['analytics', 'dominantColor']),
+              ),
+              imagekitFileHeight: imagekit.height,
+              imagekitFileWidth: imagekit.width,
+              width: 600,
+              height: Math.ceil((600 * imagekit.height) / imagekit.width),
+            };
+          }),
+          [(a) => -a.date],
+        ),
         lastModifiedDate: formatISO(new Date()),
       },
       {

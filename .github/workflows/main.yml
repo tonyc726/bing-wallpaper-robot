@@ -31,18 +31,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@master
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14.x
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Fetch Data
-        id: fetch-message
-        run: npm run fetch-data
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -53,16 +41,21 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: update image hash & dominant color
-        run: |
-          python ./src/updateImageHash.py
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
 
-      - name: upload imagekit
-        run: npm run upload-imagekit
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch Data
+        id: fetch-message
         env:
           IMAGEKIT_PUBLIC_KEY: '${{ secrets.IMAGEKIT_PUBLIC_KEY }}'
           IMAGEKIT_PRIVATE_KEY: '${{ secrets.IMAGEKIT_PRIVATE_KEY }}'
           IMAGEKIT_URL_ENDPOINT: '${{ secrets.IMAGEKIT_URL_ENDPOINT }}'
+        run: npm run fetch-data
 
       - name: Make preview html
         run: npm run make-html
