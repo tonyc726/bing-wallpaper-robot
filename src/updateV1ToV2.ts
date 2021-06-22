@@ -1,22 +1,17 @@
 import 'reflect-metadata';
-import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
-import { createConnection, In, Not, IsNull } from 'typeorm';
-import { format } from 'date-fns';
-import { merge, get, pick } from 'lodash';
+import { createConnection, Not, IsNull } from 'typeorm';
+import { get, pick } from 'lodash';
 
 import { Wallpaper as WallpaperV1 } from './models.v1/entities/Wallpaper';
 import { Wallpaper } from './models/entities/Wallpaper';
 import { Analytics } from './models/entities/Analytics';
 import { Imagekit } from './models/entities/Imagekit';
 
-import downloadImage from './utils/download-image';
-import execPython from './utils/exec-python';
 import isSimilarImage from './utils/is-similar-image';
 
-const main = async (retry = 1) => {
+const main = async () => {
   console.log(`
 ==================================================
 >> 连接壁纸数据数据库
