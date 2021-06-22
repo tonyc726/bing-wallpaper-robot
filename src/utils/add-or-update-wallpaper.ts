@@ -247,8 +247,10 @@ export default async (
 
     // [STAGE.2] >> 更新壁纸对象
     console.log(`>>> [STAGE.2] >> 更新壁纸对象...`);
-    await wallpaperRepository.update(prevWallpaper, pickBy(nextWallpaperInfo, identity));
-    nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id);
+    await wallpaperRepository.update(prevWallpaper.id, pickBy(nextWallpaperInfo, identity));
+    nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id, {
+      relations: ['analytics', 'imagekit'],
+    });
 
     // [STAGE.3] >> 检查壁纸对象中的分析数据是否齐全
     // 获取`aHash`、`dHash`、`wHash`、`pHash`、`dominantColor`数据
@@ -305,11 +307,9 @@ export default async (
 
       // [STAGE.3-3] >> 新建分析数据的对象，并保存上一阶段的分析结果
       console.log(`>>> [STAGE.3-3] >> 新建分析数据的对象，并保存上一阶段的分析结果...`);
-      const analytics = await analyticsRepository.findOne(get(nextWallpaper, ['analytics', 'id']));
-
       console.log(`>>> [STAGE.3-4] >> 更新分析数据的对象...`);
       await analyticsRepository.update(
-        analytics,
+        get(nextWallpaper, ['analytics', 'id']),
         pickBy(
           {
             aHash: thumbImageAnalytics.aHash,

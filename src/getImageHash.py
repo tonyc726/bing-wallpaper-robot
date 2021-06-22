@@ -19,22 +19,22 @@ def main(wallpaperFilePath):
     dHash = imagehash.dhash(wallpaperFile)
     # print('dHash: ', dHash)
 
-    dominant_color = findDominantMostCommonColorInAnImageFile(
+    dominantColor = findDominantMostCommonColorInAnImageFile(
         wallpaperFile)
 
-    return [str(pHash), str(wHash), str(aHash), str(dHash), dominant_color]
-    # print(pHash, wHash, aHash, dHash, dominant_color)
+    return [str(pHash), str(wHash), str(aHash), str(dHash), dominantColor]
+    # print(pHash, wHash, aHash, dHash, dominantColor)
 
 
 if __name__ == "__main__":
-    [pHash, wHash, aHash, dHash, dominant_color] = main(sys.argv[1])
-    # [pHash, wHash, aHash, dHash, dominant_color] = main('/Users/tony/Playground/bing-wallpaper-robot/docs/thumbs/ddeefc7d40fc3a64cd3b6b28800b5bfa.256.jpg')
+    [pHash, wHash, aHash, dHash, dominantColor] = main(sys.argv[1])
+    # [pHash, wHash, aHash, dHash, dominantColor] = main('/Users/tony/Playground/bing-wallpaper-robot/docs/thumbs/ddeefc7d40fc3a64cd3b6b28800b5bfa.256.jpg')
     resultJSON = {
         'pHash': pHash,
         'wHash': wHash,
         'aHash': aHash,
         'dHash': dHash,
-        'dominant_color': dominant_color
+        'dominantColor': dominantColor
     }
 
     print(json.dumps(resultJSON, sort_keys=True))
