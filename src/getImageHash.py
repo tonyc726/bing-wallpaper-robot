@@ -4,7 +4,7 @@ import PIL
 import json
 import imagehash
 
-from updateImageDominantColor import findDominantMostCommonColorInAnImageFile
+from getImageDominantColor import findDominantMostCommonColorInAnImageFile
 
 
 def main(wallpaperFilePath):

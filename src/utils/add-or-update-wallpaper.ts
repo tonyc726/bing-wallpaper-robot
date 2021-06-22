@@ -72,7 +72,8 @@ export default async (
     // * >>> 新建 <<<
     // * 一共 5 个阶段
     // * ----------------
-    console.log(`>> 新增 ${wallpaperFilename}...`);
+    console.log(`
+>> 新增 ${wallpaperFilename}...`);
 
     // [STAGE.1] >> 下载缩率图
     console.log(`>>> [STAGE.1] >> 下载缩率图...`);
@@ -161,11 +162,25 @@ export default async (
     // 如果无相似图片，需要新建imagekit，同时上传图片
     if (similarWallpaperImageKit === null) {
       console.log(`>>> [STAGE.4] >> 检测无相似图片，开始上传imagekit...`);
-      // 上传图片至 imagekit
-      const imagekitUploadFile = await uploadToImagekit(
-        wallpaperFilename,
-        transfromFilenameToHashId(wallpaperFilename),
-      );
+
+      let imagekitUploadFile = null;
+      let imagekitUploadFileRetryCount = 0;
+
+      do {
+        try {
+          // 上传图片至 imagekit
+          imagekitUploadFile = await uploadToImagekit(wallpaperFilename, transfromFilenameToHashId(wallpaperFilename));
+        } catch (error) {
+          imagekitUploadFileRetryCount = imagekitUploadFileRetryCount + 1;
+        }
+      } while (imagekitUploadFile === null && imagekitUploadFileRetryCount < 5);
+
+      if (imagekitUploadFile === null) {
+        // 清理已经入库的分析数据
+        await analyticsRepository.remove(analytics);
+
+        throw new Error(`addOrUpdateWallpaper: upload image(${thumbImageUrl}) to imagekit failed.`);
+      }
 
       imagekit = new Imagekit();
       imagekit.fileId = imagekitUploadFile.fileId;
@@ -208,7 +223,8 @@ export default async (
     // * 更新壁纸的基本信息
     // * 以及检查是否有分析数据
     // * ----------------
-    console.log(`>> 更新 ${wallpaperFilename}...`);
+    console.log(`
+>> 更新 ${wallpaperFilename}...`);
 
     // [STAGE.1] >> 依据请求数据，重组壁纸基本信息
     console.log(`>>> [STAGE.1] >> 依据请求数据，重组壁纸基本信息...`);
@@ -231,8 +247,8 @@ export default async (
 
     // [STAGE.2] >> 更新壁纸对象
     console.log(`>>> [STAGE.2] >> 更新壁纸对象...`);
-    nextWallpaper = await wallpaperRepository.update(prevWallpaper, pickBy(nextWallpaperInfo, identity));
+    await wallpaperRepository.update(prevWallpaper, pickBy(nextWallpaperInfo, identity));
+    nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id);
   }
-
   return nextWallpaper;
 };

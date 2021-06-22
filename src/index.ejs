@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1" />
-    <title>Code & Life</title>
     <title>Bing Wallpaper Robot - iTony.net</title>
     <meta name="renderer" content="webkit" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
@@ -38,6 +37,8 @@
       .wallpaper-title {
       }
       .wallpaper-mirrors {
+      }
+      .wallpaper-note {
         border-bottom: 1px solid#e0e0e0;
         padding-bottom: 0.83em;
       }
@@ -111,7 +112,7 @@
     </script>
   </head>
   <body class="container">
-    <h1 class="wallpaper-title" title="Last Modified: <%= lastModifiedDate %>">
+    <h1 class="wallpaper-title">
       Bing Wallpaper Robot - <a href="https://github.com/tonyc726/bing-wallpaper-robot">Github</a>
     </h1>
     <h2 class="wallpaper-mirrors">
@@ -120,6 +121,7 @@
         >vercel.app</a
       >&nbsp;|&nbsp;<a href="https://bing-wallpaper-robot.netlify.app">netlify.app</a>
     </h2>
+    <h3 class="wallpaper-note">LAST MODIFIED: <%= lastModifiedDate %> | COUNT: <%= wallpapers.length %></h3>
     <ul class="wallpaper-list">
       <% wallpapers.forEach(function(wallpaper){ %>
       <li class="wallpaper-list-item">
