@@ -8,7 +8,6 @@ import { Wallpaper } from './models/entities/Wallpaper';
 import { Analytics } from './models/entities/Analytics';
 import { Imagekit } from './models/entities/Imagekit';
 import makeRandomNumber from './utils/make-random-number';
-import getBingWallpaperInfo from './utils/get-bing-wallpaper-info';
 import getMultipleBingWallpaperInfo from './utils/get-multiple-bing-wallpaper-info';
 import transfromFilenameFromUrlbase from './utils/transfrom-filename-from-urlbase';
 import addOrUpdateWallpaper from './utils/add-or-update-wallpaper';
@@ -60,6 +59,7 @@ const main = async (retry = 1) => {
         });
         console.log(`>> [${wallpaper.id}] ${wallpaper.filename} 写入成功！`);
       } catch (error) {
+        console.log(error);
         console.log(`>> [Error] ${transfromFilenameFromUrlbase(bingWallpaperData.urlbase)} 写入失败！`);
       }
     }

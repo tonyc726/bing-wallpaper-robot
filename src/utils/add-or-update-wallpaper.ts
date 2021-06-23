@@ -1,8 +1,10 @@
 import 'reflect-metadata';
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
+import * as pfs from 'fs/promises';
 import * as path from 'path';
-import { pick, get, isEmpty, pickBy, identity, some, isNil, isString } from 'lodash';
+import { pick, get, isEmpty, pickBy, identity, isNil, isString } from 'lodash';
 import { createConnection, Not, IsNull } from 'typeorm';
+import * as FileType from 'file-type';
 
 import { Wallpaper, Analytics, Imagekit } from '../models';
 import langEnum from './lang-enum';
@@ -115,6 +117,8 @@ export default async (
     } while (thumbImageAnalytics === null && thumbImageAnalyticsRetryCount < 5);
 
     if (thumbImageAnalytics === null) {
+      // 删除临时文件
+      await pfs.rm(thumbTmpImageFilePath);
       throw new Error(`addOrUpdateWallpaper: get analytics of image(${thumbImageUrl}) use python failed.`);
     }
 
@@ -193,8 +197,14 @@ export default async (
       imagekit = similarWallpaperImageKit;
     }
 
+    const thumbTmpImageReadStream = fs.createReadStream(thumbTmpImageFilePath);
+    const thumbTmpImageType = await FileType.fromStream(thumbTmpImageReadStream);
+
     // 重命名此前的临时文件，转移至永久保存路径
-    await fs.rename(thumbTmpImageFilePath, path.resolve(__dirname, '../../docs/thumbs/', `${imagekit.id}.jpg`));
+    await pfs.rename(
+      thumbTmpImageFilePath,
+      path.resolve(__dirname, '../../docs/thumbs/', `${imagekit.id}.${get(thumbTmpImageType, ['ext'], 'jpg')}`),
+    );
 
     // [STAGE.5] >> 新建壁纸对象，并保存
     console.log(`>>> [STAGE.5] >> 新建壁纸对象，并保存...`);
@@ -213,6 +223,8 @@ export default async (
     wallpaper.copyrightlink = get(wallpaperBingData, ['copyrightlink']);
     wallpaper.quiz = get(wallpaperBingData, ['quiz']);
 
+    wallpaper.ext = get(thumbTmpImageType, ['ext'], 'jpg');
+    wallpaper.mime = get(thumbTmpImageType, ['mime']);
     wallpaper.analytics = analytics;
     wallpaper.imagekit = imagekit;
 
@@ -260,7 +272,9 @@ export default async (
       isNil(get(nextWallpaper, ['analytics', 'dHash'])) ||
       isNil(get(nextWallpaper, ['analytics', 'wHash'])) ||
       isNil(get(nextWallpaper, ['analytics', 'pHash'])) ||
-      isNil(get(nextWallpaper, ['analytics', 'dominantColor']))
+      isNil(get(nextWallpaper, ['analytics', 'dominantColor'])) ||
+      isNil(get(nextWallpaper, ['ext'])) ||
+      isNil(get(nextWallpaper, ['mime']))
     ) {
       // [STAGE.3-1] >> 下载缩率图
       console.log(`>>> [STAGE.3-1] >> 下载缩率图...`);
@@ -283,6 +297,28 @@ export default async (
 
       if (thumbTmpImageStat === null) {
         throw new Error(`addOrUpdateWallpaper: download image(${thumbImageUrl}) failed.`);
+      }
+
+      const thumbTmpImageReadStream = fs.createReadStream(thumbTmpImageFilePath);
+      const thumbTmpImageType = await FileType.fromStream(thumbTmpImageReadStream);
+
+      if (
+        (isNil(get(nextWallpaper, ['ext'])) || isNil(get(nextWallpaper, ['mime']))) &&
+        (isNil(get(thumbTmpImageType, ['ext'])) === false || isNil(get(thumbTmpImageType, ['mime'])) === false)
+      ) {
+        await wallpaperRepository.update(
+          nextWallpaper.id,
+          pickBy(
+            {
+              ext: get(thumbTmpImageType, ['ext']),
+              mime: get(thumbTmpImageType, ['mime']),
+            },
+            identity,
+          ),
+        );
+        nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id, {
+          relations: ['analytics', 'imagekit'],
+        });
       }
 
       // [STAGE.3-2] >> 使用python分析下载的缩率图
@@ -325,13 +361,17 @@ export default async (
       // 依据壁纸`imagekit.id`，已经存在时，持久化存储缩略图，否则删除临时图片
       if (isString(get(nextWallpaper, ['imagekit', 'id']))) {
         // 重命名此前的临时文件，转移至永久保存路径
-        await fs.rename(
+        await pfs.rename(
           thumbTmpImageFilePath,
-          path.resolve(__dirname, '../../docs/thumbs/', `${get(nextWallpaper, ['imagekit', 'id'])}.jpg`),
+          path.resolve(
+            __dirname,
+            '../../docs/thumbs/',
+            `${get(nextWallpaper, ['imagekit', 'id'])}.${get(thumbTmpImageType, ['ext'], 'jpg')}`,
+          ),
         );
       } else {
         // 删除临时文件
-        await fs.rm(thumbTmpImageFilePath);
+        await pfs.rm(thumbTmpImageFilePath);
       }
     }
   }
