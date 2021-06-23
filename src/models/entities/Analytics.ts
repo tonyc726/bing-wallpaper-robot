@@ -12,14 +12,6 @@ export class Analytics {
   @PrimaryGeneratedColumn('uuid')
   id: number;
 
-  // `https://cn.bing.com/th?id={FILE_NAME}_UHD.jpg&w=128&c=1`
-  // 计算hash的图片Base64
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  hashImg: string;
-
   // 均值散列(average hashing) - aHash
   // 对图片的每个像素值进行比较，如果大于等于均值则输出1否则输出0
   @Column({

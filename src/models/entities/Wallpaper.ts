@@ -47,6 +47,22 @@ export class Wallpaper {
   @Column('tinyint')
   lang: number;
 
+  // 图片后缀
+  @Column({
+    type: 'text',
+    length: 50,
+    nullable: true,
+  })
+  ext: string;
+
+  // 图片MIME信息
+  @Column({
+    type: 'text',
+    length: 100,
+    nullable: true,
+  })
+  mime: string;
+
   // 一对一关联
   // 一条壁纸记录，对应1条 Analytics 记录
   @OneToOne(() => Analytics)
