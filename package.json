@@ -16,12 +16,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^15.12.5",
-    "@typescript-eslint/eslint-plugin": "^4.28.1",
-    "@typescript-eslint/parser": "^4.28.1",
+    "@types/node": "^15.14.3",
+    "@typescript-eslint/eslint-plugin": "^4.28.5",
+    "@typescript-eslint/parser": "^4.28.5",
     "dotenv": "^9.0.2",
     "eslint": "^7.27.0",
-    "eslint-config-alloy": "^4.1.0",
+    "eslint-config-alloy": "^4.2.0",
     "prettier": "^2.3.2"
   },
   "dependencies": {
@@ -29,7 +29,7 @@
     "@types/date-fns": "^2.6.0",
     "@types/ejs": "^3.0.6",
     "@types/lodash": "^4.14.170",
-    "date-fns": "^2.22.1",
+    "date-fns": "^2.23.0",
     "ejs": "^3.1.6",
     "file-type": "^16.5.0",
     "html-minifier": "^4.0.0",
