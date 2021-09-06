@@ -8,9 +8,9 @@ import { isNil, trim } from 'lodash';
  *
  * ```typescript
  * // 生成一个 0 ~ 10 的随机整数
- * import transfromMetadataFromData from 'transfrom-metadata-from-data';
+ * import transformMetadataFromData from 'transform-metadata-from-data';
  *
- * transfromMetadataFromData('"加拿大猞猁，蒙大拿州 (© Alan and Sandy Carey/Minden Pictures)"');
+ * transformMetadataFromData('"加拿大猞猁，蒙大拿州 (© Alan and Sandy Carey/Minden Pictures)"');
  * >> [
  * >>    "Barnett Demesne公园中在白雪覆盖的山坡上玩耍的一家",
  * >>    "北爱尔兰贝尔法斯特",

@@ -9,9 +9,9 @@ import * as crypto from 'crypto';
  *
  * ```typescript
  * // 生成一个 0 ~ 10 的随机整数
- * import transfromFilenameToHashId from 'transfrom-filename-to-hash-id';
+ * import transformFilenameToHashId from 'transform-filename-to-hash-id';
  *
- * transfromFilenameToHashId('filename');
+ * transformFilenameToHashId('filename');
  * >> '5b063e275d506f65ebf1b02d926f19a4'
  * ```
  */

@@ -1,9 +1,9 @@
 import { merge, pick, get } from 'lodash';
 import { Wallpaper } from '../models';
 import langEnum from './lang-enum';
-import transfromFilenameToHashId from './transfrom-filename-to-hash-id';
-import transfromFilenameFromUrlbase from './transfrom-filename-from-urlbase';
-import transfromMetadataFromData from './transfrom-metadata-from-data';
+import transformFilenameToHashId from './transform-filename-to-hash-id';
+import transformFilenameFromUrlbase from './transform-filename-from-urlbase';
+import transformMetadataFromData from './transform-metadata-from-data';
 
 /**
  * 保存 Bing壁纸 数据
@@ -18,11 +18,11 @@ import transfromMetadataFromData from './transfrom-metadata-from-data';
  */
 export default (wallpaperRepository: any, wallpaper: any, isUpdate = false): Promise<any> =>
   new Promise((resolve, reject) => {
-    const filename = isUpdate ? wallpaper.filename : transfromFilenameFromUrlbase(wallpaper.urlbase);
-    const id = isUpdate ? wallpaper.id : transfromFilenameToHashId(filename);
+    const filename = isUpdate ? wallpaper.filename : transformFilenameFromUrlbase(wallpaper.urlbase);
+    const id = isUpdate ? wallpaper.id : transformFilenameToHashId(filename);
     const [description, address, copyright] = isUpdate
       ? [wallpaper.description, wallpaper.address, wallpaper.copyright]
-      : transfromMetadataFromData(wallpaper.copyright);
+      : transformMetadataFromData(wallpaper.copyright);
 
     const newWallpaper = merge(
       new Wallpaper(),

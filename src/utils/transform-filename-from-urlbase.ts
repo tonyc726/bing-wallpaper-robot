@@ -7,9 +7,9 @@
  *
  * ```typescript
  * // 生成一个 0 ~ 10 的随机整数
- * import transfromFilenameFromUrlbase from 'transfrom-filename-from-urlbase';
+ * import transformFilenameFromUrlbase from 'transform-filename-from-urlbase';
  *
- * transfromFilenameToHashId('/th?id=OHR.CanadaLynx_ZH-CN8645816958');
+ * transformFilenameToHashId('/th?id=OHR.CanadaLynx_ZH-CN8645816958');
  * >> 'OHR.CanadaLynx_ZH-CN8645816958'
  * ```
  */

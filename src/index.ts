@@ -9,7 +9,7 @@ import { Analytics } from './models/entities/Analytics';
 import { Imagekit } from './models/entities/Imagekit';
 import makeRandomNumber from './utils/make-random-number';
 import getMultipleBingWallpaperInfo from './utils/get-multiple-bing-wallpaper-info';
-import transfromFilenameFromUrlbase from './utils/transfrom-filename-from-urlbase';
+import transformFilenameFromUrlbase from './utils/transform-filename-from-urlbase';
 import addOrUpdateWallpaper from './utils/add-or-update-wallpaper';
 
 const main = async (retry = 1) => {
@@ -43,7 +43,7 @@ const main = async (retry = 1) => {
 
     const beforeUpdateDataCount = await wallpaperRepository.count();
     const waitToUpdateDataCount = await wallpaperRepository.count({
-      filename: In(bingWallpapersData.map((wallpaperData) => transfromFilenameFromUrlbase(wallpaperData.urlbase))),
+      filename: In(bingWallpapersData.map((wallpaperData) => transformFilenameFromUrlbase(wallpaperData.urlbase))),
     });
 
     console.log(`>> 当前数据库现有 ${beforeUpdateDataCount} 条数据！
@@ -60,7 +60,7 @@ const main = async (retry = 1) => {
         console.log(`>> [${wallpaper.id}] ${wallpaper.filename} 写入成功！`);
       } catch (error) {
         console.log(error);
-        console.log(`>> [Error] ${transfromFilenameFromUrlbase(bingWallpaperData.urlbase)} 写入失败！`);
+        console.log(`>> [Error] ${transformFilenameFromUrlbase(bingWallpaperData.urlbase)} 写入失败！`);
       }
     }
 

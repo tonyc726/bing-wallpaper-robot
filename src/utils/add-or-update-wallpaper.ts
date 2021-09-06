@@ -8,8 +8,8 @@ import * as FileType from 'file-type';
 
 import { Wallpaper, Analytics, Imagekit } from '../models';
 import langEnum from './lang-enum';
-import transfromFilenameToHashId from './transfrom-filename-to-hash-id';
-import transfromFilenameFromUrlbase from './transfrom-filename-from-urlbase';
+import transformFilenameToHashId from './transform-filename-to-hash-id';
+import transformFilenameFromUrlbase from './transform-filename-from-urlbase';
 import downloadImage from './download-image';
 import execPython from './exec-python';
 import isSimilarImage from './is-similar-image';
@@ -21,27 +21,28 @@ import uploadToImagekit from './upload-to-imagekit';
  *
  * @param {Object} wallpaperBingData
  *
+ * @param repositories
  * @returns {Promise} wallpaper最新的数据
  *
  */
 // eslint-disable-next-line complexity
 export default async (
   wallpaperBingData: any,
-  repositorys?: {
+  repositories?: {
     wallpaper: any;
     analytics: any;
     imagekit: any;
   },
 ) => {
   if (isEmpty(wallpaperBingData)) {
-    throw new Error('addOrUpdateWallpaper: must need one vailded wallpaper data from bing.com');
+    throw new Error('addOrUpdateWallpaper: must need one valid wallpaper data from bing.com');
   }
   let databaseConnection = null;
-  let wallpaperRepository = get(repositorys, ['wallpaper']);
-  let analyticsRepository = get(repositorys, ['analytics']);
-  let imagekitRepository = get(repositorys, ['imagekit']);
+  let wallpaperRepository = get(repositories, ['wallpaper']);
+  let analyticsRepository = get(repositories, ['analytics']);
+  let imagekitRepository = get(repositories, ['imagekit']);
   if (
-    isEmpty(repositorys) ||
+    isEmpty(repositories) ||
     isEmpty(wallpaperRepository) ||
     isEmpty(analyticsRepository) ||
     isEmpty(imagekitRepository)
@@ -59,7 +60,7 @@ export default async (
     }
   }
 
-  const wallpaperFilename = transfromFilenameFromUrlbase(wallpaperBingData.urlbase);
+  const wallpaperFilename = transformFilenameFromUrlbase(wallpaperBingData.urlbase);
   const prevWallpaper = await wallpaperRepository.findOne({
     where: {
       filename: wallpaperFilename,
@@ -82,7 +83,7 @@ export default async (
     const thumbImageWidth = 256;
     const thumbImageUrl = `https://cn.bing.com/th?id=${wallpaperFilename}_UHD.jpg&w=${thumbImageWidth}&c=1`;
 
-    const thumbTmpImageFileName = transfromFilenameToHashId(wallpaperFilename);
+    const thumbTmpImageFileName = transformFilenameToHashId(wallpaperFilename);
     const thumbTmpImageFilePath = path.resolve(__dirname, '../../docs/thumbs/', `${thumbTmpImageFileName}.jpg`);
 
     let thumbTmpImageStat = null;
@@ -173,7 +174,7 @@ export default async (
       do {
         try {
           // 上传图片至 imagekit
-          imagekitUploadFile = await uploadToImagekit(wallpaperFilename, transfromFilenameToHashId(wallpaperFilename));
+          imagekitUploadFile = await uploadToImagekit(wallpaperFilename, transformFilenameToHashId(wallpaperFilename));
         } catch (error) {
           imagekitUploadFileRetryCount = imagekitUploadFileRetryCount + 1;
         }
@@ -281,7 +282,7 @@ export default async (
       const thumbImageWidth = 256;
       const thumbImageUrl = `https://cn.bing.com/th?id=${wallpaperFilename}_UHD.jpg&w=${thumbImageWidth}&c=1`;
 
-      const thumbTmpImageFileName = transfromFilenameToHashId(wallpaperFilename);
+      const thumbTmpImageFileName = transformFilenameToHashId(wallpaperFilename);
       const thumbTmpImageFilePath = path.resolve(__dirname, '../../docs/thumbs/', `${thumbTmpImageFileName}.jpg`);
 
       let thumbTmpImageStat = null;
