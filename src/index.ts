@@ -1,7 +1,6 @@
 import * as githubActionCore from '@actions/core';
 import 'reflect-metadata';
 import { createConnection, In } from 'typeorm';
-import { isEmpty } from 'lodash';
 import { format } from 'date-fns';
 
 import { Wallpaper } from './models/entities/Wallpaper';
@@ -19,8 +18,7 @@ const main = async (retry = 1) => {
 --------------------------------------------------`);
   let bingWallpapersData = null;
   try {
-    const getMultipleBingWallpaperInfoResult = await getMultipleBingWallpaperInfo();
-    bingWallpapersData = getMultipleBingWallpaperInfoResult;
+    bingWallpapersData = await getMultipleBingWallpaperInfo();
   } catch (error) {
     console.log(`>> 数据请求失败
 ==================================================
