@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
+// @ts-ignore
 import * as ImageKit from 'imagekit';
 import { isString } from 'lodash';
 
@@ -17,8 +18,8 @@ export default (
 ): Promise<{
   fileId: string;
   name: string;
-  height: string;
-  width: string;
+  height: number;
+  width: number;
 }> =>
   new Promise((resolve, reject) => {
     if (isString(wallpaperFileName) === false || wallpaperFileName.length === 0) {
