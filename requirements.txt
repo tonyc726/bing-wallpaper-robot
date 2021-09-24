@@ -1,7 +1,7 @@
 autopep8==1.5.7
 certifi==2021.5.30
 chardet==4.0.0
-charset-normalizer==2.0.5
+charset-normalizer==2.0.6
 idna==3.2
 ImageHash==4.2.1
 numpy==1.21.2
@@ -12,4 +12,4 @@ requests==2.26.0
 scipy==1.7.1
 six==1.16.0
 toml==0.10.2
-urllib3==1.26.6
+urllib3==1.26.7
