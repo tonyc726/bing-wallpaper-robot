@@ -7,6 +7,7 @@
 ## :memo: 简介
 
 ![Github Action](https://github.com/tonyc726/bing-wallpaper-robot/actions/workflows/main.yml/badge.svg?branch=main)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/4048a6c6-c825-4db0-9adb-729431bef620/deploy-status)](https://app.netlify.com/sites/bing-wallpaper-robot/deploys)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/tonyc726/bing-wallpaper-robot)
 
 通过 Github Action，每日自动记录 Bing 壁纸数据，同步壁纸(原图)至 [imagekit.io](https://imagekit.io/registration?code=45js2315)，生成预览地址
