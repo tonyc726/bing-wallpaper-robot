@@ -11,24 +11,31 @@ import getMultipleBingWallpaperInfo from './utils/get-multiple-bing-wallpaper-in
 import transformFilenameFromUrlbase from './utils/transform-filename-from-urlbase';
 import addOrUpdateWallpaper from './utils/add-or-update-wallpaper';
 
+const getMultipleBingWallpaperInfoWithRetry = async (maxRetryTime = 5) => {
+  let result = null;
+  try {
+    result = await getMultipleBingWallpaperInfo();
+  } catch (e) {
+    if (maxRetryTime >= 0) {
+      result = await getMultipleBingWallpaperInfoWithRetry(maxRetryTime - 1)
+    }
+  }
+  return result;
+}
+
 const main = async (retry = 1) => {
   console.log(`
 ==================================================
->> 第 ${retry} 次获取Bing壁纸数据
+>> 第 ${retry} 次更新 Bing 壁纸数据
 --------------------------------------------------`);
-  let bingWallpapersData = null;
+  let bingWallpapersData = [];
   try {
-    bingWallpapersData = await getMultipleBingWallpaperInfo();
+    bingWallpapersData = await getMultipleBingWallpaperInfoWithRetry();
   } catch (error) {
     console.log(`>> 数据请求失败
 ==================================================
   `);
-    if (retry <= 5) {
-      // 如果请求失败，延时再试，最多5次
-      setTimeout(async () => {
-        await main(retry + 1);
-      }, makeRandomNumber(500, 5000));
-    }
+    return;
   }
 
   if (Array.isArray(bingWallpapersData) && bingWallpapersData.length !== 0) {
