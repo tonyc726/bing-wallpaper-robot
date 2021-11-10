@@ -60,7 +60,13 @@ export default async (
     }
   }
 
-  const wallpaperFilename = transformFilenameFromUrlbase(wallpaperBingData.urlbase);
+  const wallpaperFilename = transformFilenameFromUrlbase(wallpaperBingData.urlbase || wallpaperBingData['u,rlbase']);
+  if (isString(wallpaperFilename) === false || wallpaperFilename.length === 0) {
+    console.log(`--- wallpaperBingData ---
+${JSON.stringify(wallpaperBingData, null, 2)}
+    --- <<<<<<<<<< ---`)
+    throw new Error('addOrUpdateWallpaper: wallpaperFilename is invaild.');
+  }
   const prevWallpaper = await wallpaperRepository.findOne({
     where: {
       filename: wallpaperFilename,
