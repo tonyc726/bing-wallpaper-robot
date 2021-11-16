@@ -7,7 +7,7 @@ ImageHash==4.2.1
 numpy==1.21.4
 Pillow==8.4.0
 pycodestyle==2.8.0
-PyWavelets==1.1.1
+PyWavelets==1.2.0
 requests==2.26.0
 scipy==1.7.2
 six==1.16.0
