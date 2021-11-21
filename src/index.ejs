@@ -98,6 +98,29 @@
         padding-top: 20px;
         padding-bottom: 35px;
       }
+      .back-to-top {
+        position: fixed;
+        right: 10%;
+        bottom: 10%;
+        background-color: #1f1f1f;
+        color: #fff;
+        display: flex;
+        height: 50px;
+        width: 50px;
+        border-radius: 25px;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        text-decoration: none;
+        flex-direction: column;
+      }
+      .back-to-top-index {
+      }
+      .back-to-top-count {
+        font-size: 12px;
+        color: #a0a0a0;
+        border-top: 1px solid #d0d0d0;
+      }
     </style>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WZLJSKEG4Z"></script>
@@ -123,7 +146,7 @@
     </h2>
     <h3 class="wallpaper-note">LAST MODIFIED: <%= lastModifiedDate %> | COUNT: <%= wallpapers.length %></h3>
     <ul class="wallpaper-list">
-      <% wallpapers.forEach(function(wallpaper){ %>
+      <% wallpapers.forEach(function(wallpaper, wallpaperIndex){ %>
       <li class="wallpaper-list-item">
         <h3>[<%= wallpaper.date %>] - <%= wallpaper.copyright %></h3>
         <p class="wallpaper-links">
@@ -146,6 +169,7 @@
           alt="<%= wallpaper.filename %>"
           title="<%= wallpaper.copyright %>"
           data-src="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&w=<%= wallpaper.width %>&c=1"
+          data-wallpaper-index="<%= wallpaperIndex %>"
           style="background-color: #<%= wallpaper.dominantColor %>"
           width="<%= wallpaper.width %>"
           height="<%= wallpaper.height %>"
@@ -154,12 +178,33 @@
       <% }); %>
     </ul>
     <p class="footer">© 2017- 2021 - Made by Tony (<a href="//itony.net">Blog</a>)</p>
+    <a href="javascript:void(0)" class="back-to-top" id="backToTop">
+      <span class="back-to-top-index" id="backToTopIndex">0</span>
+      <span class="back-to-top-count" id="backToTopCount"><%= wallpapers.length %></span>
+    </a>
     <script>
+      var backToTopElement = document.getElementById('backToTop');
+      var backToTopIndexElement = document.getElementById('backToTopIndex');
+      var backToTopCountElement = document.getElementById('backToTopCount');
+      var wallpapersLength = parseInt("<%= wallpapers.length %>", 10);
+
+      backToTopElement.addEventListener(
+       'click',
+       function (e) {
+         window.scrollTo({top: 0, behavior: "smooth"});
+       },
+       false,
+     );
+
       function logElementEvent(eventName, element) {
         console.log(Date.now(), eventName, element.getAttribute('data-src'));
       }
 
       var callback_enter = function (element) {
+        var wallpaperIndex = element.getAttribute('data-wallpaper-index');
+        if (wallpaperIndex) {
+          backToTopIndexElement.innerHTML = parseInt(wallpaperIndex, 10) + 1;
+        }
         logElementEvent('🔑 ENTERED', element);
       };
       var callback_exit = function (element) {
@@ -190,6 +235,8 @@
         threshold: 0,
         // Assign the callbacks defined above
         callback_enter: callback_enter,
+        unobserve_entered: false,
+        unobserve_completed: false,
         callback_exit: callback_exit,
         callback_cancel: callback_cancel,
         callback_loading: callback_loading,
