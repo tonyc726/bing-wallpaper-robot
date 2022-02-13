@@ -64,7 +64,7 @@ export default async (
   if (isString(wallpaperFilename) === false || wallpaperFilename.length === 0) {
     console.log(`--- wallpaperBingData ---
 ${JSON.stringify(wallpaperBingData, null, 2)}
-    --- <<<<<<<<<< ---`)
+    --- <<<<<<<<<< ---`);
     throw new Error('addOrUpdateWallpaper: wallpaperFilename is invaild.');
   }
   const prevWallpaper = await wallpaperRepository.findOne({
@@ -81,8 +81,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     // * >>> 新建 <<<
     // * 一共 5 个阶段
     // * ----------------
-    console.log(`
->> 新增 ${wallpaperFilename}...`);
+    console.log(`>> 新增 ${wallpaperFilename}...`);
 
     // [STAGE.1] >> 下载缩率图
     console.log(`>>> [STAGE.1] >> 下载缩率图...`);
@@ -242,8 +241,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     // * 更新壁纸的基本信息
     // * 以及检查是否有分析数据
     // * ----------------
-    console.log(`
->> 更新 ${wallpaperFilename}...`);
+    console.log(`>> 更新 ${wallpaperFilename}...`);
 
     // [STAGE.1] >> 依据请求数据，重组壁纸基本信息
     console.log(`>>> [STAGE.1] >> 依据请求数据，重组壁纸基本信息...`);

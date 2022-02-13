@@ -17,11 +17,11 @@ const getMultipleBingWallpaperInfoWithRetry = async (maxRetryTime = 5) => {
     result = await getMultipleBingWallpaperInfo();
   } catch (e) {
     if (maxRetryTime >= 0) {
-      result = await getMultipleBingWallpaperInfoWithRetry(maxRetryTime - 1)
+      result = await getMultipleBingWallpaperInfoWithRetry(maxRetryTime - 1);
     }
   }
   return result;
-}
+};
 
 const main = async (retry = 1) => {
   console.log(`
@@ -55,8 +55,10 @@ const main = async (retry = 1) => {
 >> 本次待新增 ${bingWallpapersData.length - waitToUpdateDataCount} 条，待更新 ${waitToUpdateDataCount} 条！
 --------------------------------------------------`);
 
-    for await (const bingWallpaperData of bingWallpapersData) {
+    for await (const [bingWallpaperDataIndex, bingWallpaperData] of bingWallpapersData.entries()) {
       try {
+        console.log(`
+> ------------ [${bingWallpaperDataIndex + 1}/${bingWallpapersData.length}] -------------`);
         const wallpaper = await addOrUpdateWallpaper(bingWallpaperData, {
           wallpaper: wallpaperRepository,
           analytics: analyticsRepository,
