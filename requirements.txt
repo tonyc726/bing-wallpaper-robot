@@ -4,7 +4,7 @@ chardet==4.0.0
 charset-normalizer==2.0.12
 idna==3.3
 ImageHash==4.2.1
-numpy==1.22.2
+numpy==1.22.3
 Pillow==9.0.1
 pycodestyle==2.8.0
 PyWavelets==1.2.0
