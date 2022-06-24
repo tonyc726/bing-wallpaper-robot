@@ -9,7 +9,7 @@
 ### 创建虚拟环境
 
 ```shell
-python3 -m venv tutorial-env
+python3 -m venv .venv
 ```
 
 ### 切换至虚拟环境
@@ -17,13 +17,13 @@ python3 -m venv tutorial-env
 在 Windows 上，运行:
 
 ```shell
-tutorial-env\Scripts\activate.bat
+.venv\Scripts\activate.bat
 ```
 
 在 Unix 或 MacOS 上，运行:
 
 ```shell
-source tutorial-env/bin/activate
+source .venv/bin/activate
 ```
 
 ### 生成一个类似的已安装包列表
