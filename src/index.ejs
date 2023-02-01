@@ -156,7 +156,7 @@
         >vercel.app</a
       >&nbsp;|&nbsp;<a href="https://bing-wallpaper-robot.netlify.app">netlify.app</a>
     </h2>
-    <h3 class="wallpaper-note">LAST MODIFIED: <%= lastModifiedDate %> | COUNT: <%= wallpapers.length %></h3>
+    <h3 class="wallpaper-note">LAST MODIFIED: <span id="wallpaperLastModifiedDate"><%= lastModifiedDate %></span> | COUNT: <%= wallpapers.length %></h3>
     <ul class="wallpaper-list">
       <% wallpapers.forEach(function(wallpaper, wallpaperIndex){ %>
       <li class="wallpaper-list-item">
@@ -263,6 +263,14 @@
         false,
       );
     </script>
-    <script src="//cdn.jsdelivr.net/combine/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.min.js" integrity="sha256-sO6HPavoXo796Zp/bq6ts4qHOoEqfydXEXSX5NojP48=" crossorigin="anonymous"></script>
+    <script src="//cdn.jsdelivr.net/npm/dayjs/dayjs.min.js" integrity="sha256-EfJOqCcshFS/2TxhArURu3Wn8b/XDA4fbPWKSwZ+1B8=" crossorigin="anonymous"></script>
+    <script src="//cdn.jsdelivr.net/npm/dayjs/plugin/relativeTime.js" crossorigin="anonymous"></script>
+    <script>
+      var wallpaperLastModifiedDateElement = document.getElementById('wallpaperLastModifiedDate');
+      dayjs.extend(dayjs_plugin_relativeTime);
+      wallpaperLastModifiedDate.title = dayjs('<%= lastModifiedDate %>').fromNow();
+      wallpaperLastModifiedDate.innerHTML = dayjs('<%= lastModifiedDate %>').format('YYYY-MM-DD hh:mm:ss');
+    </script>
   </body>
 </html>
