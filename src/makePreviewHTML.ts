@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import * as util from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createConnection, IsNull, Not } from 'typeorm';
+import { createConnection } from 'typeorm';
 import * as ejs from 'ejs';
 import * as htmlMinify from 'html-minifier';
 import { map, get, find, sortBy } from 'lodash';
@@ -35,11 +35,13 @@ const main = async (retry = 1) => {
             // 1 >> en-us
             const zhCNData = find(wallpapers, (w) => w.lang === 0);
             const enUSData = find(wallpapers, (w) => w.lang === 1);
+            const wallpaperDate = get(zhCNData, ['date'], get(enUSData, ['date']));
 
             return {
               filename: get(zhCNData, ['filename'], get(enUSData, ['filename'])),
               description: get(zhCNData, ['description'], get(enUSData, ['description'])),
-              date: get(zhCNData, ['date'], get(enUSData, ['date'])),
+              date: wallpaperDate,
+              dateFmt: `${wallpaperDate}`.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
               title: get(zhCNData, ['title'], get(enUSData, ['title'])),
               copyright: get(zhCNData, ['copyright'], get(enUSData, ['copyright'])),
               dominantColor: get(
