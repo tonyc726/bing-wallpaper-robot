@@ -41,7 +41,7 @@ const main = async (retry = 1) => {
               filename: get(zhCNData, ['filename'], get(enUSData, ['filename'])),
               description: get(zhCNData, ['description'], get(enUSData, ['description'])),
               date: wallpaperDate,
-              dateFmt: `${wallpaperDate}`.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
+              dateFmt: `${wallpaperDate}`.replace(/(\d{4})(\d{2})(\d{2})/, '$1/$2/$3'),
               title: get(zhCNData, ['title'], get(enUSData, ['title'])),
               copyright: get(zhCNData, ['copyright'], get(enUSData, ['copyright'])),
               dominantColor: get(
