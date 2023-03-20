@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import { createConnection } from 'typeorm';
 import * as ejs from 'ejs';
 import * as htmlMinify from 'html-minifier';
-import { map, get, find, sortBy } from 'lodash';
+import { map, get, find, filter, sortBy, isEmpty, isString } from 'lodash';
 import { formatISO } from 'date-fns';
 
 const writeFile = util.promisify(fs.writeFile);
@@ -28,7 +28,7 @@ const main = async (retry = 1) => {
       path.resolve(__dirname, './index.ejs'),
       {
         wallpapers: sortBy(
-          map(imagekits, (imagekit) => {
+          filter(map(imagekits, (imagekit) => {
             // const thumbImageSrc = `./thumbs/${imagekit.id}.`
             const wallpapers = imagekit.wallpapers;
             // 0 >> zh-cn
@@ -54,7 +54,12 @@ const main = async (retry = 1) => {
               width: 600,
               height: Math.ceil((600 * imagekit.height) / imagekit.width),
             };
-          }),
+          }), (wallpaper) => (
+            isEmpty(wallpaper) === false &&
+            (
+              isString(wallpaper.filename) && wallpaper.filename.length !== 0
+            )
+          )),
           [(a) => -a.date],
         ),
         lastModifiedDate: formatISO(new Date()),
