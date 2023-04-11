@@ -78,7 +78,7 @@ const main = async (retry = 1) => {
     collapseWhitespace: true,
   });
 
-  writeFile(path.resolve(__dirname, '../docs/index.html'), previewHTMLMini);
+  await writeFile(path.resolve(__dirname, '../docs/index.html'), previewHTMLMini);
 };
 
 (async () => {
