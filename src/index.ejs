@@ -29,8 +29,8 @@
   <style>
     .container {
       text-align: center;
-      width: 60%;
-      min-width: 800px;
+      width: 90%;
+      min-width: 960px;
       margin: 0 auto;
     }
 
@@ -43,21 +43,69 @@
       padding-bottom: 0.83em;
     }
 
+    .wallpaper-group {
+      margin: 5px;
+      padding: 0;
+      text-align: left;
+      font-style: italic;
+    }
+
     .wallpaper-list {
-      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      border-bottom: 1px solid#e0e0e0;
+      padding-bottom: 8px;
+      margin-bottom: 6px;
+    }
+
+    .wallpaper-list::after {
+      content: '';
+      flex-grow: 999999999;
     }
 
     .wallpaper-list-item {
-      border-bottom: 1px solid #f0f0f0;
-      padding-bottom: 35px;
-      padding-top: 20px;
+      position: relative;
+      margin: 2px;
     }
 
-    .wallpaper-links {}
+    .wallpaper-placehold {
+      display: block;
+    }
+
+    .wallpaper-name {
+      margin: 0;
+      padding: 5px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      background-color: #ffffff;
+    }
+
+    .wallpaper-links {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      margin: 0;
+      padding: 5px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: #ffffff;
+
+    }
+
+    .wallpaper-links a,
+    .wallpaper-links a:hover {
+      color: #ffffff;
+    }
 
     .wallpaper-link {}
 
     .wallpaper-thumb {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      vertical-align: bottom;
       display: block;
       margin: 0 auto;
     }
@@ -121,14 +169,13 @@
     }
 
     .footer {
-      padding-top: 20px;
-      padding-bottom: 35px;
     }
 
     .back-to-top {
       position: fixed;
-      right: 10%;
-      bottom: 10%;
+      right: 2%;
+      bottom: 8%;
+      z-index: 10;
       background-color: #1f1f1f;
       color: #fff;
       display: flex;
@@ -191,117 +238,124 @@
   </h2>
   <h3 class="wallpaper-note">LAST MODIFIED: <span id="wallpaperLastModifiedDate">
       <%= lastModifiedDate %>
-    </span> | COUNT: <%= wallpapers.length %>
+    </span>&nbsp;|&nbsp;COUNT: <%= wallpapersCount %>
   </h3>
-  <ul class="wallpaper-list">
-    <% wallpapers.forEach(function(wallpaper, wallpaperIndex){ %>
-      <li class="wallpaper-list-item">
-        <h3>[<%= wallpaper.dateFmt %>] - <%= wallpaper.copyright %>
-        </h3>
-        <p class="wallpaper-links">
-          <a class="wallpaper-link" target="_blank"
-            href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg">
-            <%= wallpaper.imagekitFileWidth %>*<%= wallpaper.imagekitFileHeight %>
-          </a>
-          &nbsp;&#124;&nbsp;
-          <a class="wallpaper-link" target="_blank"
-            href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=1920&h=1080&rs=1&c=4">1920*1080</a>
-        </p>
-        <img class="lazy wallpaper-thumb wallpaper-thumb-breathed" alt="<%= wallpaper.filename %>"
-          title="<%= wallpaper.copyright %>"
-          data-src="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&w=<%= wallpaper.width %>&c=1"
-          data-wallpaper-index="<%= wallpaperIndex %>" style="background-color: #<%= wallpaper.dominantColor %>"
-          width="<%= wallpaper.width %>" height="<%= wallpaper.height %>" />
-      </li>
-      <% }); %>
-  </ul>
-  <p class="footer">© 2017- 2021 - Made by Tony (<a href="//itony.net">Blog</a>)</p>
-  <a href="javascript:void(0)" class="back-to-top" id="backToTop" title="Back To Top">
-    <span class="back-to-top-index" id="backToTopIndex">0</span>
-    <span class="back-to-top-count">
-      <%= wallpapers.length %>
-    </span>
-    <span class="back-to-top-tip">TOP</span>
-  </a>
-  <script>
-    var backToTopElement = document.getElementById('backToTop');
-    var backToTopIndexElement = document.getElementById('backToTopIndex');
+  <% wallpapersGroupData.forEach(function(wallpaperGroup, wallpaperGroupIndex){ %>
+    <h4 class="wallpaper-group">
+      <%= wallpaperGroup.groupMonth %> (<%= wallpaperGroup.wallpapers.length %>)
+    </h4>
+    <div class="wallpaper-list">
+      <% wallpaperGroup.wallpapers.forEach(function(wallpaper, wallpaperIndex){ %>
+        <div class="wallpaper-list-item" style="width:<%= wallpaper.width*200/wallpaper.height %>px; flex-grow:<%= wallpaper.width*200/wallpaper.height %>;
+          background-color: #<%= wallpaper.dominantColor %>">
+          <span class="wallpaper-placehold" style="padding-bottom:<%= wallpaper.height/wallpaper.width*100 %>%"></span>
+          <h5 class="wallpaper-name" title="[<%= wallpaper.dateFmt %>] - <%= wallpaper.copyright %>">[<%=
+              wallpaper.dateFmt %>] - <%= wallpaper.copyright %>
+          </h5>
+          <p class="wallpaper-links">
+            <a class="wallpaper-link" target="_blank"
+              href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg">
+              <%= wallpaper.imagekitFileWidth %>*<%= wallpaper.imagekitFileHeight %>
+            </a>
+            &nbsp;&#124;&nbsp;
+            <a class="wallpaper-link" target="_blank"
+              href="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=1920&h=1080&rs=1&c=4">1920*1080</a>
+          </p>
+          <img class="lazy wallpaper-thumb wallpaper-thumb-breathed" alt="<%= wallpaper.filename %>"
+            title="<%= wallpaper.copyright %>"
+            data-src="https://cn.bing.com/th?id=<%= wallpaper.filename %>_UHD.jpg&w=<%= wallpaper.width %>&c=1"
+            data-wallpaper-index="<%= wallpaperIndex %>" style="background-color: #<%= wallpaper.dominantColor %>" />
+        </div>
+        <% }); %>
+    </div>
+    <% }); %>
+      <p class="footer">© <%= copyrightYear %> - Made by Tony (<a href="//itony.net">Blog</a>)</p>
+      <a href="javascript:void(0)" class="back-to-top" id="backToTop" title="Back To Top">
+        <span class="back-to-top-index" id="backToTopIndex">0</span>
+        <span class="back-to-top-count">
+          <%= wallpapersCount %>
+        </span>
+        <span class="back-to-top-tip">TOP</span>
+      </a>
+      <script>
+        var backToTopElement = document.getElementById('backToTop');
+        var backToTopIndexElement = document.getElementById('backToTopIndex');
 
-    backToTopElement.addEventListener(
-      'click',
-      function (e) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      },
-      false,
-    );
+        backToTopElement.addEventListener(
+          'click',
+          function (e) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          },
+          false,
+        );
 
-    function logElementEvent(eventName, element) {
-      console.log(Date.now(), eventName, element.getAttribute('data-src'));
-    }
+        function logElementEvent(eventName, element) {
+          console.log(Date.now(), eventName, element.getAttribute('data-src'));
+        }
 
-    var callback_enter = function (element) {
-      var wallpaperIndex = element.getAttribute('data-wallpaper-index');
-      if (wallpaperIndex) {
-        backToTopIndexElement.innerHTML = parseInt(wallpaperIndex, 10) + 1;
-      }
-      logElementEvent('🔑 ENTERED', element);
-    };
-    // var callback_exit = function (element) {
-    //   logElementEvent('🚪 EXITED', element);
-    // };
-    // var callback_loading = function (element) {
-    //   logElementEvent('⌚ LOADING', element);
-    // };
-    var callback_loaded = function (element) {
-      element.className = element.className.replace(
-        new RegExp('(?:^|\\s)' + 'wallpaper-thumb-breathed' + '(?:\\s|$)'),
-        ' ',
-      );
-      logElementEvent('👍 LOADED', element);
-    };
-    var callback_error = function (element) {
-      logElementEvent('💀 ERROR', element);
-      element.src = 'https://via.placeholder.com/600x388/?text=itony.net';
-    };
-    // var callback_finish = function () {
-    //   logElementEvent('✔️ FINISHED', document.documentElement);
-    // };
-    // var callback_cancel = function (element) {
-    //   logElementEvent('🔥 CANCEL', element);
-    // };
+        var callback_enter = function (element) {
+          var wallpaperIndex = element.getAttribute('data-wallpaper-index');
+          if (wallpaperIndex) {
+            backToTopIndexElement.innerHTML = parseInt(wallpaperIndex, 10) + 1;
+          }
+          logElementEvent('🔑 ENTERED', element);
+        };
+        // var callback_exit = function (element) {
+        //   logElementEvent('🚪 EXITED', element);
+        // };
+        // var callback_loading = function (element) {
+        //   logElementEvent('⌚ LOADING', element);
+        // };
+        var callback_loaded = function (element) {
+          element.className = element.className.replace(
+            new RegExp('(?:^|\\s)' + 'wallpaper-thumb-breathed' + '(?:\\s|$)'),
+            ' ',
+          );
+          logElementEvent('👍 LOADED', element);
+        };
+        var callback_error = function (element) {
+          logElementEvent('💀 ERROR', element);
+          element.src = 'https://via.placeholder.com/600x388/?text=itony.net';
+        };
+        // var callback_finish = function () {
+        //   logElementEvent('✔️ FINISHED', document.documentElement);
+        // };
+        // var callback_cancel = function (element) {
+        //   logElementEvent('🔥 CANCEL', element);
+        // };
 
-    window.lazyLoadOptions = {
-      threshold: 0,
-      // Assign the callbacks defined above
-      callback_enter: callback_enter,
-      unobserve_entered: false,
-      // unobserve_completed: false,
-      // callback_exit: callback_exit,
-      // callback_cancel: callback_cancel,
-      // callback_loading: callback_loading,
-      callback_loaded: callback_loaded,
-      callback_error: callback_error,
-      // callback_finish: callback_finish,
-    };
-    window.addEventListener(
-      'LazyLoad::Initialized',
-      function (e) {
-        console.log(e.detail.instance);
-      },
-      false,
-    );
-  </script>
-  <script src="//cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.min.js"
-    integrity="sha256-sO6HPavoXo796Zp/bq6ts4qHOoEqfydXEXSX5NojP48=" crossorigin="anonymous"></script>
-  <script src="//cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"
-    integrity="sha256-EfJOqCcshFS/2TxhArURu3Wn8b/XDA4fbPWKSwZ+1B8=" crossorigin="anonymous"></script>
-  <script src="//cdn.jsdelivr.net/npm/dayjs/plugin/relativeTime.js" crossorigin="anonymous"></script>
-  <script>
-    var wallpaperLastModifiedDateElement = document.getElementById('wallpaperLastModifiedDate');
-    dayjs.extend(dayjs_plugin_relativeTime);
-    wallpaperLastModifiedDate.title = dayjs('<%= lastModifiedDate %>').fromNow();
-    wallpaperLastModifiedDate.innerHTML = dayjs('<%= lastModifiedDate %>').format('YYYY-MM-DD hh:mm:ss');
-  </script>
+        window.lazyLoadOptions = {
+          threshold: 0,
+          // Assign the callbacks defined above
+          callback_enter: callback_enter,
+          unobserve_entered: false,
+          // unobserve_completed: false,
+          // callback_exit: callback_exit,
+          // callback_cancel: callback_cancel,
+          // callback_loading: callback_loading,
+          callback_loaded: callback_loaded,
+          callback_error: callback_error,
+          // callback_finish: callback_finish,
+        };
+        window.addEventListener(
+          'LazyLoad::Initialized',
+          function (e) {
+            console.log(e.detail.instance);
+          },
+          false,
+        );
+      </script>
+      <script src="//cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.min.js"
+        integrity="sha256-sO6HPavoXo796Zp/bq6ts4qHOoEqfydXEXSX5NojP48=" crossorigin="anonymous"></script>
+      <script src="//cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"
+        integrity="sha256-EfJOqCcshFS/2TxhArURu3Wn8b/XDA4fbPWKSwZ+1B8=" crossorigin="anonymous"></script>
+      <script src="//cdn.jsdelivr.net/npm/dayjs/plugin/relativeTime.js" crossorigin="anonymous"></script>
+      <script>
+        var wallpaperLastModifiedDateElement = document.getElementById('wallpaperLastModifiedDate');
+        dayjs.extend(dayjs_plugin_relativeTime);
+        wallpaperLastModifiedDate.title = dayjs('<%= lastModifiedDate %>').fromNow();
+        wallpaperLastModifiedDate.innerHTML = dayjs('<%= lastModifiedDate %>').format('YYYY-MM-DD hh:mm:ss');
+      </script>
 </body>
 
 </html>
