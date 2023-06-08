@@ -12,7 +12,7 @@ entrypoints==0.4
 executing==1.2.0
 idna==3.4
 ImageHash==4.3.1
-ipykernel==6.23.0
+ipykernel==6.23.1
 ipython==8.13.2
 jedi==0.18.2
 jupyter_client==8.2.0
@@ -42,7 +42,7 @@ six==1.16.0
 stack-data==0.6.2
 toml==0.10.2
 tomli==2.0.1
-tornado==6.3.1
+tornado==6.3.2
 traitlets==5.9.0
 urllib3==2.0.2
 wcwidth==0.2.6
