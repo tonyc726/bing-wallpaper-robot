@@ -13,7 +13,7 @@ executing==1.2.0
 idna==3.4
 ImageHash==4.3.1
 ipykernel==6.23.3
-ipython==8.14.0
+ipython==8.13.0
 jedi==0.18.2
 jupyter_client==8.3.0
 jupyter_core==5.3.1
