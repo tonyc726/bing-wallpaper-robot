@@ -1,4 +1,3 @@
-import * as util from 'util';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as githubActionCore from '@actions/core';
