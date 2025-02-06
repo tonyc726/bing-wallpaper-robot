@@ -1,3 +1,6 @@
+import * as util from 'util';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 import * as githubActionCore from '@actions/core';
 import 'reflect-metadata';
 import { createConnection, In } from 'typeorm';
@@ -79,8 +82,27 @@ const main = async (retry = 1) => {
     await databaseConnection.close();
 
     console.log(`>> 数据库已经关闭！
-==================================================
+--------------------------------------------------
   `);
+
+    console.log(`
+--------------------------------------------------
+>> 更新README.md文件`);
+
+    // 读取并更新 README.md
+    const readmePath = path.join(__dirname, '../README.md');
+    let content = await fs.readFile(readmePath, 'utf-8');
+
+    // 使用正则表达式替换 {{count}}
+    content = content.replace(/\{\{count\}\}/g, afterUpdateDataCount.toString());
+
+    // 写回文件
+    await fs.writeFile(readmePath, content, 'utf-8');
+
+    console.log(`>> 更新README.md文件成功！
+==================================================
+      `);
+
     githubActionCore.setOutput(
       'COMMIT_MESSAGE',
       `:robot: >> [${format(new Date(), 'dd/MM/yyyy')}] ADD ${
