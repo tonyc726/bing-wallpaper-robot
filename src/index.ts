@@ -93,7 +93,10 @@ const main = async (retry = 1) => {
     let content = await fs.readFile(readmePath, 'utf-8');
 
     // 使用正则表达式替换 {{count}}
-    content = content.replace(/\{\{count\}\}/g, afterUpdateDataCount.toString());
+    content = content.replace(
+      /生成预览地址，当前已经记录了 \d+ 条壁纸数据。/g,
+      `生成预览地址，当前已经记录了 ${afterUpdateDataCount} 条壁纸数据。`,
+    );
 
     // 写回文件
     await fs.writeFile(readmePath, content, 'utf-8');
