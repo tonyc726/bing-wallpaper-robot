@@ -218,11 +218,13 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     wallpaper.date = get(wallpaperBingData, ['startdate']);
     wallpaper.title = get(wallpaperBingData, ['title']);
     wallpaper.lang = ((urlbase) => {
+      let langCode = langEnum['en-US'];
       if (/zh-cn/gi.test(urlbase)) {
-        return langEnum['zh-CN'];
+        langCode = langEnum['zh-CN'];
       } else if (/en-us/gi.test(urlbase)) {
-        return langEnum['en-US'];
+        langCode = langEnum['en-US'];
       }
+      return langCode;
     })(get(wallpaperBingData, ['urlbase']));
     wallpaper.filename = wallpaperFilename;
     wallpaper.copyright = get(wallpaperBingData, ['copyright']);
