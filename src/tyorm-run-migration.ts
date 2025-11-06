@@ -1,9 +1,11 @@
 import 'reflect-metadata';
-import { createConnection } from 'typeorm';
+import 'sqlite3';
+
+import AppDataSource from './database';
 
 (async () => {
-  const databaseConnection = await createConnection();
-  await databaseConnection.query('PRAGMA foreign_keys=OFF;');
-  await databaseConnection.runMigrations();
-  await databaseConnection.query('PRAGMA foreign_keys=ON;');
+  await AppDataSource.initialize();
+  await AppDataSource.query('PRAGMA foreign_keys=OFF;');
+  await AppDataSource.runMigrations();
+  await AppDataSource.query('PRAGMA foreign_keys=ON;');
 })();

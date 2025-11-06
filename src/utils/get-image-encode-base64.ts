@@ -16,16 +16,16 @@ import { Transform as Stream } from 'stream';
  * ```
  */
 // export default (url): Promise<Array<any>> =>
-const getImageAndEncodeBase64 = (url, saveFilePath) =>
-  new Promise((resolve, reject) => {
+const getImageAndEncodeBase64 = (url: string, saveFilePath: string) =>
+  new Promise<string>((resolve, reject) => {
     const file = fs.createWriteStream(path.resolve(__dirname, '../../docs/thumbs/', saveFilePath));
     const data = new Stream();
     https.get(url, (res) => {
       res.pipe(file);
 
-      file.on('error', () => {
-        reject()
-      })
+      file.on('error', (error) => {
+        reject(error);
+      });
 
       file.on('finish', () => {
         file.close();
@@ -48,7 +48,7 @@ const getImageAndEncodeBase64 = (url, saveFilePath) =>
   });
 
 (async () => {
-  const d = await getImageAndEncodeBase64(
+  await getImageAndEncodeBase64(
     'https://cn.bing.com/th?id=OHR.FatherEagle_ZH-CN6127856255_UHD.jpg&w=128&c=1',
     'OHR.FatherEagle_ZH-CN6127856255_UHD_128.jpg',
   );

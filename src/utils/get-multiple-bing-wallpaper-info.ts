@@ -1,8 +1,13 @@
-import { concat, result, uniqBy } from 'lodash';
+import { uniqBy } from 'lodash';
 import getBingWallpaperInfo from './get-bing-wallpaper-info';
 
-const getBingWallpaperInfoWithRetry = async (idx, n = 8, maxRetry = 5) => {
-  let result = [];
+interface BingWallpaperData {
+  hsh: string;
+  [key: string]: any;
+}
+
+const getBingWallpaperInfoWithRetry = async (idx: number, n = 8, maxRetry = 5): Promise<BingWallpaperData[]> => {
+  let result: BingWallpaperData[] = [];
   try {
     result = await getBingWallpaperInfo(idx, n);
   } catch (e) {
@@ -11,26 +16,26 @@ const getBingWallpaperInfoWithRetry = async (idx, n = 8, maxRetry = 5) => {
     }
   }
   return result;
-}
+};
 
 /**
  * 请求 Bing壁纸 数据
  *
- * @returns {Promise} 返回一个整数
+ * @returns {Promise} 返回壁纸数据数组
  *
  * ```typescript
- * // 生成一个 0 ~ 10 的随机整数
+ * // 获取壁纸数据
  * import getBingWallpaperInfo from 'get-bing-wallpaper-info';
  *
  * const bingWallpapers = await getBingWallpaperInfo();
  * ```
  */
-export default async(): Promise<Array<any>> => {
-  let multipleResult = [];
-  for (const idx of [0,1,2,3,4,5,6,7]) {
+export default async (): Promise<BingWallpaperData[]> => {
+  const multipleResult: BingWallpaperData[] = [];
+  for (const idx of [0, 1, 2, 3, 4, 5, 6, 7]) {
     try {
       const getBingWallpaperResult = await getBingWallpaperInfoWithRetry(idx);
-      multipleResult = concat(multipleResult, getBingWallpaperResult);
+      multipleResult.push(...getBingWallpaperResult);
     } catch (error) {
       console.error(error);
     }

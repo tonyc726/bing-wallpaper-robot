@@ -6,46 +6,46 @@ import { Imagekit } from './Imagekit';
 @Entity()
 export class Wallpaper {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id!: number;
 
   @Column({
     type: 'text',
     length: 200,
   })
-  filename: string;
+  filename!: string;
 
   @Column('date')
-  date: string;
+  date!: string;
 
   @Column({
     type: 'text',
     nullable: true,
   })
-  title: string;
+  title!: string | null;
 
   @Column({
     type: 'text',
     nullable: true,
   })
-  copyright: string;
+  copyright!: string | null;
 
   @Column({
     type: 'text',
     nullable: true,
   })
-  copyrightlink: string;
+  copyrightlink!: string | null;
 
   @Column({
     type: 'text',
     nullable: true,
   })
-  quiz: string;
+  quiz!: string | null;
 
   // 0 >> zh-CN
   // 1 >> en-US
   // 2 >>
   @Column('tinyint')
-  lang: number;
+  lang!: number;
 
   // 图片后缀
   @Column({
@@ -53,7 +53,7 @@ export class Wallpaper {
     length: 50,
     nullable: true,
   })
-  ext: string;
+  ext!: string | null;
 
   // 图片MIME信息
   @Column({
@@ -61,16 +61,16 @@ export class Wallpaper {
     length: 100,
     nullable: true,
   })
-  mime: string;
+  mime!: string | null;
 
   // 一对一关联
   // 一条壁纸记录，对应1条 Analytics 记录
   @OneToOne(() => Analytics)
   @JoinColumn()
-  analytics: Analytics;
+  analytics!: Analytics;
 
   // 多对一关联
   // 多条壁纸记录，对应1条 Imagekit 记录
   @ManyToOne(() => Imagekit, (imagekit) => imagekit.wallpapers)
-  imagekit: Imagekit;
+  imagekit!: Imagekit;
 }

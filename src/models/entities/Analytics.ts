@@ -10,7 +10,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 @Entity()
 export class Analytics {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id!: number;
 
   // 均值散列(average hashing) - aHash
   // 对图片的每个像素值进行比较，如果大于等于均值则输出1否则输出0
@@ -18,7 +18,7 @@ export class Analytics {
     type: 'text',
     nullable: true,
   })
-  aHash: string;
+  aHash!: string | null;
 
   // 感知散列(perception hashing) - pHash
   // 它和均值散列有些相似，但它通过频域（frequency domain）做了一个离散余弦变换（Discrete Cosine Transformation）
@@ -26,7 +26,7 @@ export class Analytics {
     type: 'text',
     nullable: true,
   })
-  pHash: string;
+  pHash!: string | null;
 
   // 梯度散列(gradient hashing) - dHash
   // 计算每个像素的差异，并将差异与平均差异进行比较
@@ -34,7 +34,7 @@ export class Analytics {
     type: 'text',
     nullable: true,
   })
-  dHash: string;
+  dHash!: string | null;
 
   // 小波散列(wavelet hashing) - wHash
   // 它的工作原理使用频域（frequency domain）类似于pHash，并使用DWT替换了DCT
@@ -42,7 +42,7 @@ export class Analytics {
     type: 'text',
     nullable: true,
   })
-  wHash: string;
+  wHash!: string | null;
 
   /**
    * ---------------------
@@ -55,5 +55,5 @@ export class Analytics {
     type: 'text',
     nullable: true,
   })
-  dominantColor: string;
+  dominantColor!: string | null;
 }

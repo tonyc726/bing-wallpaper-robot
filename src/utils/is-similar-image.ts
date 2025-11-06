@@ -7,7 +7,7 @@ import { isString, isNumber, filter } from 'lodash';
  * @param {number} y
  * @return {number}
  */
-const hammingDistance = function (x, y) {
+const hammingDistance = function (x: number, y: number): number {
   let v = x ^ y; // 异或：相同位为0，不同位为1
   let dis = 0;
   while (v) {
@@ -57,11 +57,11 @@ export default (
   },
   similarityHammingDistance = 5,
 ): boolean => {
-  const allHashHammingDistance = [];
+  const allHashHammingDistance: number[] = [];
 
-  ['pHash', 'wHash', 'aHash', 'dHash'].forEach((hashName) => {
-    const aHashHexStr = a[hashName];
-    const bHashHexStr = b[hashName];
+  ['pHash', 'wHash', 'aHash', 'dHash'].forEach((hashName: string) => {
+    const aHashHexStr = (a as any)[hashName];
+    const bHashHexStr = (b as any)[hashName];
     if (isString(aHashHexStr) && aHashHexStr.length !== 0 && isString(bHashHexStr) && bHashHexStr.length !== 0) {
       try {
         const hashHammingDistance = calcHashHammingDistance(aHashHexStr, bHashHexStr);
@@ -79,7 +79,7 @@ export default (
   }
 
   return (
-    filter(allHashHammingDistance, (d) => d <= similarityHammingDistance).length >=
+    filter(allHashHammingDistance, (d: number) => d <= similarityHammingDistance).length >=
     Math.ceil(allHashHammingDistance.length * 0.75)
   );
 };

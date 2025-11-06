@@ -11,38 +11,38 @@ import { Wallpaper } from './Wallpaper';
 @Entity()
 export class Imagekit {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id!: number;
 
   // imagekit.io中的文件ID
   @Column({
     type: 'text',
     nullable: true,
   })
-  fileId: string;
+  fileId!: string | null;
 
   // imagekit.io中的文件名
   @Column({
     type: 'text',
     nullable: true,
   })
-  fileName: string;
+  fileName!: string | null;
 
   // imagekit.io中的文件高度
   @Column({
     type: 'int',
     nullable: true,
   })
-  height: number;
+  height!: number | null;
 
   // imagekit.io中的文件宽度
   @Column({
     type: 'int',
     nullable: true,
   })
-  width: number;
+  width!: number | null;
 
   // 一对多关联
   // 1条分析记录，可能对应多张壁纸
   @OneToMany(() => Wallpaper, (wallpaper) => wallpaper.imagekit)
-  wallpapers: Wallpaper[];
+  wallpapers!: Wallpaper[];
 }

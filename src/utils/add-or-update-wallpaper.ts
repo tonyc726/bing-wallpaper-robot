@@ -1,11 +1,13 @@
 import 'reflect-metadata';
+import 'sqlite3';
 import * as fs from 'fs';
 import * as pfs from 'fs/promises';
 import * as path from 'path';
-import { pick, get, isEmpty, pickBy, identity, isNil, isString } from 'lodash';
-import { createConnection, Not, IsNull } from 'typeorm';
-import * as FileType from 'file-type';
+import { get, isEmpty, pickBy, identity, isNil, isString } from 'lodash';
+import { Not, IsNull } from 'typeorm';
+import { fileTypeFromStream } from 'file-type';
 
+import AppDataSource from '../database';
 import { Wallpaper, Analytics, Imagekit } from '../models';
 import langEnum from './lang-enum';
 import transformFilenameToHashId from './transform-filename-to-hash-id';
@@ -37,7 +39,6 @@ export default async (
   if (isEmpty(wallpaperBingData)) {
     throw new Error('addOrUpdateWallpaper: must need one valid wallpaper data from bing.com');
   }
-  let databaseConnection = null;
   let wallpaperRepository = get(repositories, ['wallpaper']);
   let analyticsRepository = get(repositories, ['analytics']);
   let imagekitRepository = get(repositories, ['imagekit']);
@@ -47,16 +48,16 @@ export default async (
     isEmpty(analyticsRepository) ||
     isEmpty(imagekitRepository)
   ) {
-    databaseConnection = await createConnection();
+    await AppDataSource.initialize();
 
     if (isEmpty(wallpaperRepository)) {
-      wallpaperRepository = databaseConnection.getRepository(Wallpaper);
+      wallpaperRepository = AppDataSource.getRepository(Wallpaper);
     }
     if (isEmpty(analyticsRepository)) {
-      analyticsRepository = databaseConnection.getRepository(Analytics);
+      analyticsRepository = AppDataSource.getRepository(Analytics);
     }
     if (isEmpty(imagekitRepository)) {
-      imagekitRepository = databaseConnection.getRepository(Imagekit);
+      imagekitRepository = AppDataSource.getRepository(Imagekit);
     }
   }
 
@@ -154,12 +155,35 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     });
 
     // 通过汉明距离检测相似图片
-    let similarWallpaper = null;
-    let similarWallpaperImageKit = null;
+    let similarWallpaper: any = null;
+    let similarWallpaperImageKit: any = null;
     if (existingWallpapers.length > 0) {
-      existingWallpapers.forEach((existingWallpaper) => {
+      existingWallpapers.forEach((existingWallpaper: any) => {
+        const existingAnalytics = get(existingWallpaper, ['analytics']);
         if (
-          isSimilarImage(pick(get(existingWallpaper, ['analytics']), ['pHash', 'wHash', 'aHash', 'dHash']), analytics)
+          existingAnalytics &&
+          existingAnalytics.pHash &&
+          existingAnalytics.wHash &&
+          existingAnalytics.aHash &&
+          existingAnalytics.dHash &&
+          analytics.aHash &&
+          analytics.dHash &&
+          analytics.wHash &&
+          analytics.pHash &&
+          isSimilarImage(
+            {
+              pHash: existingAnalytics.pHash,
+              wHash: existingAnalytics.wHash,
+              aHash: existingAnalytics.aHash,
+              dHash: existingAnalytics.dHash,
+            },
+            {
+              pHash: analytics.pHash,
+              wHash: analytics.wHash,
+              aHash: analytics.aHash,
+              dHash: analytics.dHash,
+            },
+          )
         ) {
           similarWallpaper = existingWallpaper;
           similarWallpaperImageKit = get(existingWallpaper, ['imagekit']);
@@ -199,12 +223,12 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       imagekit.width = imagekitUploadFile.width;
       await imagekitRepository.save(imagekit);
     } else {
-      console.log(`>>> [STAGE.4] >> 检测到相似图片（${similarWallpaper.filename}）...`);
-      imagekit = similarWallpaperImageKit;
+      console.log(`>>> [STAGE.4] >> 检测到相似图片（${similarWallpaper!.filename}）...`);
+      imagekit = similarWallpaperImageKit!;
     }
 
     const thumbTmpImageReadStream = fs.createReadStream(thumbTmpImageFilePath);
-    const thumbTmpImageType = await FileType.fromStream(thumbTmpImageReadStream);
+    const thumbTmpImageType = await fileTypeFromStream(thumbTmpImageReadStream);
 
     // 重命名此前的临时文件，转移至永久保存路径
     await pfs.rename(
@@ -232,7 +256,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     wallpaper.quiz = get(wallpaperBingData, ['quiz']);
 
     wallpaper.ext = get(thumbTmpImageType, ['ext'], 'jpg');
-    wallpaper.mime = get(thumbTmpImageType, ['mime']);
+    wallpaper.mime = get(thumbTmpImageType, ['mime']) || null;
     wallpaper.analytics = analytics;
     wallpaper.imagekit = imagekit;
 
@@ -267,7 +291,8 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     // [STAGE.2] >> 更新壁纸对象
     console.log(`>>> [STAGE.2] >> 更新壁纸对象...`);
     await wallpaperRepository.update(prevWallpaper.id, pickBy(nextWallpaperInfo, identity));
-    nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id, {
+    nextWallpaper = await wallpaperRepository.findOne({
+      where: { id: prevWallpaper.id },
       relations: ['analytics', 'imagekit'],
     });
 
@@ -307,7 +332,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       }
 
       const thumbTmpImageReadStream = fs.createReadStream(thumbTmpImageFilePath);
-      const thumbTmpImageType = await FileType.fromStream(thumbTmpImageReadStream);
+      const thumbTmpImageType = await fileTypeFromStream(thumbTmpImageReadStream);
 
       if (
         (isNil(get(nextWallpaper, ['ext'])) || isNil(get(nextWallpaper, ['mime']))) &&
@@ -318,12 +343,13 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
           pickBy(
             {
               ext: get(thumbTmpImageType, ['ext']),
-              mime: get(thumbTmpImageType, ['mime']),
+              mime: get(thumbTmpImageType, ['mime']) || null,
             },
             identity,
           ),
         );
-        nextWallpaper = await wallpaperRepository.findOne(prevWallpaper.id, {
+        nextWallpaper = await wallpaperRepository.findOne({
+          where: { id: prevWallpaper.id },
           relations: ['analytics', 'imagekit'],
         });
       }

@@ -13,4 +13,4 @@
  * >> 'OHR.CanadaLynx_ZH-CN8645816958'
  * ```
  */
-export default (urlbase?: string): string => urlbase?.replace(/(.*id=)(\w+)/, '$2').replace(/,/, '');
+export default (urlbase?: string): string | undefined => urlbase?.replace(/(.*id=)(\w+)/, '$2').replace(/,/, '');

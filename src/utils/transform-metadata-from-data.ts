@@ -31,7 +31,10 @@ export default (copyrightData: string): Array<string | undefined> => {
   }
   let address = '';
   if (description !== undefined && /\，/.test(description)) {
-    [, description, address] = description.match(/(.*)\，(.*)/);
+    const addressMatch = description.match(/(.*)\，(.*)/);
+    if (addressMatch) {
+      [, description, address] = addressMatch;
+    }
   }
   return [trim(description), trim(address), trim(copyright)];
 };

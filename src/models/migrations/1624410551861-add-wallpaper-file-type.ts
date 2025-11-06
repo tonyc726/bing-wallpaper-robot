@@ -1,10 +1,10 @@
-import {MigrationInterface, QueryRunner} from "typeorm";
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addWallpaperFileType1624410551861 implements MigrationInterface {
-    name = 'addWallpaperFileType1624410551861'
+  name = 'addWallpaperFileType1624410551861';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             CREATE TABLE "temporary_analytics" (
                 "id" varchar PRIMARY KEY NOT NULL,
                 "aHash" text,
@@ -14,7 +14,7 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "dominantColor" text
             )
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             INSERT INTO "temporary_analytics"(
                     "id",
                     "aHash",
@@ -31,14 +31,14 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "dominantColor"
             FROM "analytics"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             DROP TABLE "analytics"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             ALTER TABLE "temporary_analytics"
                 RENAME TO "analytics"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "temporary_wallpaper" (
                 "id" varchar PRIMARY KEY NOT NULL,
                 "filename" text(200) NOT NULL,
@@ -57,7 +57,7 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 CONSTRAINT "FK_a1fe93dd602b7e51187a9d1b5e7" FOREIGN KEY ("analyticsId") REFERENCES "analytics" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             INSERT INTO "temporary_wallpaper"(
                     "id",
                     "filename",
@@ -82,21 +82,21 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "imagekitId"
             FROM "wallpaper"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             DROP TABLE "wallpaper"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             ALTER TABLE "temporary_wallpaper"
                 RENAME TO "wallpaper"
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE "wallpaper"
                 RENAME TO "temporary_wallpaper"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "wallpaper" (
                 "id" varchar PRIMARY KEY NOT NULL,
                 "filename" text(200) NOT NULL,
@@ -113,7 +113,7 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 CONSTRAINT "FK_a1fe93dd602b7e51187a9d1b5e7" FOREIGN KEY ("analyticsId") REFERENCES "analytics" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             INSERT INTO "wallpaper"(
                     "id",
                     "filename",
@@ -138,14 +138,14 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "imagekitId"
             FROM "temporary_wallpaper"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             DROP TABLE "temporary_wallpaper"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             ALTER TABLE "analytics"
                 RENAME TO "temporary_analytics"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "analytics" (
                 "id" varchar PRIMARY KEY NOT NULL,
                 "hashImg" text,
@@ -156,7 +156,7 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "dominantColor" text
             )
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             INSERT INTO "analytics"(
                     "id",
                     "aHash",
@@ -173,9 +173,8 @@ export class addWallpaperFileType1624410551861 implements MigrationInterface {
                 "dominantColor"
             FROM "temporary_analytics"
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             DROP TABLE "temporary_analytics"
         `);
-    }
-
+  }
 }
