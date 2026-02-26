@@ -15,15 +15,16 @@ const FONT_FAMILY = [
 const coreThemeOptions = {
   typography: {
     fontFamily: FONT_FAMILY,
-    h1: { fontSize: '2.5rem', fontWeight: 600, letterSpacing: '-0.02em' },
-    h2: { fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.02em' },
-    h3: { fontSize: '1.5rem', fontWeight: 600, letterSpacing: '-0.01em' },
-    body1: { fontSize: '1rem', letterSpacing: '0.01em' },
-    body2: { fontSize: '0.875rem', letterSpacing: '0.01em' },
-    button: { textTransform: 'none' as const, fontWeight: 500 },
+    h1: { fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 800, letterSpacing: '-0.04em' },
+    h2: { fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em' },
+    h3: { fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', fontWeight: 600, letterSpacing: '-0.02em' },
+    h4: { fontSize: 'clamp(1.25rem, 2vw, 1.5rem)', fontWeight: 600, letterSpacing: '-0.01em' },
+    body1: { fontSize: '1rem', letterSpacing: '0.01em', lineHeight: 1.6 },
+    body2: { fontSize: '0.875rem', letterSpacing: '0.02em', lineHeight: 1.5 },
+    button: { textTransform: 'none' as const, fontWeight: 600, letterSpacing: '0.02em' },
   },
   shape: {
-    borderRadius: 16, // 更大的圆角
+    borderRadius: 24, // 极其圆润的流体胶囊基础
   },
   components: {
     MuiCssBaseline: {
@@ -107,14 +108,14 @@ export const darkTheme = createTheme({
       main: '#A1A1AA',
     },
     background: {
-      default: '#0A0A0A', // 极深的夜黑，非纯黑
-      paper: '#121212',
+      default: '#000000', // OLED 原黑
+      paper: 'rgba(20, 20, 20, 0.6)', // 极度通透的纸面
     },
     text: {
-      primary: '#FAFAFA',
-      secondary: '#A1A1AA',
+      primary: '#FFFFFF', // 纯白
+      secondary: 'rgba(255, 255, 255, 0.6)',
     },
-    divider: 'rgba(255, 255, 255, 0.08)',
+    divider: 'rgba(255, 255, 255, 0.04)', // 更不可见的分割线
   },
 });
 
@@ -123,21 +124,21 @@ export const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1D1D1F', // Apple dark text color
+      main: '#000000', // 纯黑
       contrastText: '#FFFFFF',
     },
     secondary: {
       main: '#86868B', // Apple secondary text color
     },
     background: {
-      default: '#F5F5F7', // macOS system light gray
-      paper: '#FFFFFF',
+      default: '#FFFFFF', // 霜白原生背景
+      paper: 'rgba(255, 255, 255, 0.7)', // 透光的轻纸张
     },
     text: {
-      primary: '#1D1D1F',
-      secondary: '#86868B',
+      primary: '#000000',
+      secondary: 'rgba(0, 0, 0, 0.6)',
     },
-    divider: 'rgba(0, 0, 0, 0.06)', // Softer divider
+    divider: 'rgba(0, 0, 0, 0.04)', // 几不可见的微弱切割
   },
   components: {
     ...coreThemeOptions.components,

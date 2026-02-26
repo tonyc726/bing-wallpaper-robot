@@ -32,9 +32,9 @@ interface Props {
   indexData: IndexData | null;
   loadingMonths: Set<string>;
   loadMonthData: (month: string) => Promise<void>;
-  activeSharedId: string | null;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
+  activeSharedId?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -47,8 +47,7 @@ const MonthSection: React.FC<{
   onImageClick: (wallpaper: WallpaperData) => void;
   favorites: Set<string>;
   onToggleFavorite: (wallpaper: WallpaperData) => void;
-  activeSharedId: string | null;
-}> = React.memo(({ group, loading, loadMonthData, onImageClick, favorites, onToggleFavorite, activeSharedId }) => {
+}> = React.memo(({ group, loading, loadMonthData, onImageClick, favorites, onToggleFavorite }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
@@ -78,34 +77,66 @@ const MonthSection: React.FC<{
   if (renderCount === 0) return null;
 
   return (
-    <Box ref={containerRef} sx={{ mb: 2 }}>
-      {/* 月份悬浮表头 Sticky Header */}
+    <Box ref={containerRef} sx={{ mb: { xs: 8, md: 12 }, position: 'relative' }}>
+        {/* 幽灵表头 (Ghost Header) - 悬浮在背景之上的巨大空灵文字 */}
+      <Typography
+        variant="h1" // 使用巨大的 h1
+        id={`month-${group.groupMonth.replace('年', '-').replace('月', '')}`}
+        sx={{
+          position: 'absolute',
+          top: { xs: -30, md: -60 }, // 错位向上偏移，打破网格束缚
+          left: { xs: 16, md: 32 },
+          zIndex: 0, // 沉在图片底部或仅作为水印
+          fontWeight: 900,
+          color: 'transparent',
+          WebkitTextStroke: `1px ${alpha(theme.palette.text.primary, 0.15)}`, // 空心字效果
+          letterSpacing: '-0.04em',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          textTransform: 'uppercase',
+          fontSize: { xs: '4rem', sm: '6rem', md: '10rem' },
+          lineHeight: 0.8,
+          opacity: 0,
+          animation: 'headerReveal 1s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
+          '@keyframes headerReveal': {
+            '0%': { opacity: 0, transform: 'translateY(100px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' }
+          }
+        }}
+      >
+        {group.groupMonth.replace('年', '.').replace('月', '')}
+      </Typography>
+
+      {/* 针对屏幕阅读器和粘性导视的幽灵悬浮标签 */}
       <Typography
         variant="h6"
-        id={`month-${group.groupMonth.replace('年', '-').replace('月', '')}`}
         sx={{
           position: 'sticky',
           top: 0,
-          zIndex: 1000,
+          zIndex: 100, // 高于图片
           py: 2,
-          px: { xs: 1, sm: 2, md: 4 },
-          fontWeight: 600,
-          color: 'text.primary',
-          background: `linear-gradient(to bottom, ${alpha(theme.palette.background.default, 0.95)} 0%, ${alpha(theme.palette.background.default, 0.8)} 60%, ${alpha(theme.palette.background.default, 0)} 100%)`,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          letterSpacing: '0.02em',
+          px: { xs: 2, md: 4 },
+          fontWeight: 700,
+          color: theme.palette.text.primary,
+          // 极致的融合渐变：只在文字背后有一层极其微弱的遮罩
+          background: `linear-gradient(to bottom, ${alpha(theme.palette.background.default, 0.8)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          pointerEvents: 'none', // 不阻挡底层图片的交互
+          textShadow: `0 2px 12px ${theme.palette.background.default}`, // 增加文字清晰度
         }}
       >
         {group.groupMonth}
       </Typography>
 
-      {/* Ultra High Density Grid (4px Gutter, Edge-to-Edge aware) */}
+      {/* Ultra High Density Grid (0-2px Gutter, Edge-to-Edge) */}
       <Grid
         container
-        spacing={0.5} // MUI spacing 0.5 = 4px 极窄间距
-        sx={{ px: { xs: 0, sm: 0.5, md: 1 } }}
+        spacing={{ xs: 0, md: 0.25 }} // 移动端 0 缝隙，PC 2px
+        sx={{ px: 0, zIndex: 1, position: 'relative' }} // 彻底去除两边 padding
       >
+        {/* 骨架屏或内容映射 */}
         {isSkeleton ? (
           Array.from({ length: renderCount }).map((_, i) => (
             <Grid 
@@ -113,7 +144,7 @@ const MonthSection: React.FC<{
               xs={6} sm={4} md={3} lg={2} xl={1.5} 
               key={`skeleton-${group.groupMonth}-${i}`}
             >
-              <Box sx={{ paddingTop: '56.25%', position: 'relative', width: '100%', bgcolor: alpha(theme.palette.text.primary, 0.04), borderRadius: 1, overflow: 'hidden' }}>
+              <Box sx={{ paddingTop: '56.25%', position: 'relative', width: '100%', bgcolor: alpha(theme.palette.text.primary, 0.04), overflow: 'hidden' }}>
                 <Box 
                   sx={{ 
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -128,27 +159,54 @@ const MonthSection: React.FC<{
             </Grid>
           ))
         ) : (
-          group.wallpapers.map((wallpaper) => (
-            <Grid 
+          group.wallpapers.map((wallpaper, index) => (
+            <Grid
               item 
               xs={6} sm={4} md={3} lg={2} xl={1.5} 
               key={wallpaper.id}
             >
-              <WallpaperCard
-                wallpaper={wallpaper}
-                onImageClick={onImageClick}
-                isFavorite={favorites.has(wallpaper.id)}
-                onToggleFavorite={onToggleFavorite}
-                activeSharedId={activeSharedId}
-              />
+              <Box
+                sx={{ 
+                  height: '100%',
+                  opacity: 0,
+                  animation: 'cardReveal 0.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
+                  animationDelay: `${(index % 12) * 0.05}s`,
+                  '@keyframes cardReveal': {
+                    '0%': { opacity: 0, transform: 'translateY(40px) scale(0.95)' },
+                    '100%': { opacity: 1, transform: 'translateY(0) scale(1)' }
+                  }
+                }}
+              >
+                <WallpaperCard
+                  wallpaper={wallpaper}
+                  onImageClick={onImageClick}
+                  isFavorite={favorites.has(wallpaper.id)}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              </Box>
             </Grid>
           ))
         )}
       </Grid>
     </Box>
   );
+}, (prevProps, nextProps) => {
+  if (prevProps.group.groupMonth !== nextProps.group.groupMonth) return false;
+  if (prevProps.loading !== nextProps.loading) return false;
+  
+  // Custom check for favorites: only re-render if a wallpaper IN THIS GROUP changed favorite status 
+  // (Prevents entire Timeline from re-rendering when one image is favorited)
+  const prevFavs = prevProps.favorites;
+  const nextFavs = nextProps.favorites;
+  for (const w of prevProps.group.wallpapers) {
+    if (prevFavs.has(w.id) !== nextFavs.has(w.id)) {
+      return false;
+    }
+  }
+  return true;
 });
 
+// eslint-disable-next-line complexity
 const WallpaperGrid: React.FC<Props> = ({
   data,
   onImageClick,
@@ -156,20 +214,36 @@ const WallpaperGrid: React.FC<Props> = ({
   onToggleFavorite,
   loadingMonths,
   loadMonthData,
-  activeSharedId,
   darkMode,
   setDarkMode,
 }) => {
   const theme = useTheme();
 
   // === URL 状态管理 ===
-  const [searchTerm, setSearchTerm] = useQueryState('q', {
-    throttleMs: 300,
-  });
+  const [searchTerm, setSearchTerm] = useQueryState('q');
   const [sortBy, setSortBy] = useQueryState('sort', {
     defaultValue: 'date-desc',
   });
-  // We no longer use a year toggle on the UI, but we keep the state if someone filters via URL
+  
+  // 解决输入卡顿：使用本地状态加上防抖延迟，防止频繁重新过滤导致浏览器线程阻塞
+  const [localSearch, setLocalSearch] = useState(searchTerm || '');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const val = localSearch || null;
+      if (searchTerm !== val) {
+        setSearchTerm(val);
+      }
+    }, 400); // 400ms 毫秒防抖
+    return () => clearTimeout(timer);
+  }, [localSearch, searchTerm, setSearchTerm]);
+
+  useEffect(() => {
+    // 处理从 URL 外部返回带来的更新
+    if (searchTerm !== localSearch && (searchTerm || '') !== localSearch) {
+      setLocalSearch(searchTerm || '');
+    }
+  }, [searchTerm, localSearch]);
   const [selectedYear] = useQueryState('year', {
     defaultValue: 'all',
     parse: (value) => value || 'all',
@@ -317,43 +391,45 @@ const WallpaperGrid: React.FC<Props> = ({
 
   return (
     <Box>
-      {/* 沉浸式悬浮筛选栏 (Minimal Glassmorphism Pill) */}
+      {/* 沉浸式灵动胶囊过滤栏 (Dynamic Capsule) */}
       <Box
         sx={{
           position: 'sticky',
-          top: 24, // 留出呼吸感
-          zIndex: 1100, // 高于图片
+          top: { xs: 16, md: 24 }, // 移动端稍微靠上
+          zIndex: 1100, // 高于图片和吸顶月份
           display: 'flex',
           justifyContent: 'center',
-          mb: 4,
-          pointerEvents: 'none', // 穿透
+          mb: { xs: 2, md: 6 },
+          pointerEvents: 'none', // 穿透，避免遮挡点击
+          width: '100%', // 确保居中
         }}
       >
         <Paper
           elevation={0}
           sx={{
-            py: 1,
-            px: 2,
+            py: 0.75,
+            px: { xs: 1.5, md: 2.5 },
             display: 'inline-flex',
             flexDirection: 'row',
-            gap: 2,
+            gap: { xs: 1, md: 2 },
             alignItems: 'center',
             pointerEvents: 'auto', // 恢复自身交互
-            bgcolor: alpha(theme.palette.background.paper, 0.75), // 自适应毛玻璃
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
+            bgcolor: alpha(theme.palette.background.paper, 0.6), // 高度通透
+            backdropFilter: 'blur(32px) saturate(150%)', // 强烈的磨砂玻璃质感和色彩饱和度提升
+            WebkitBackdropFilter: 'blur(32px) saturate(150%)',
+            border: `1px solid ${alpha(theme.palette.text.primary, 0.04)}`, // 极弱边框，仿佛隐形
             borderRadius: '100px',
-            boxShadow: `0 8px 32px ${alpha(theme.palette.text.primary, 0.15)}`,
-            transition: 'all 0.3s ease',
+            boxShadow: `0 16px 40px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.4 : 0.08)}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`, // 呼吸感极强的悬浮阴影和内部高光
+            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // 弹簧回弹感
+            // 响应式微缩：在手机端尝试收缩未激活的搜索框，仅保留图标（由 TextField 内部支持）
           }}
         >
           {/* 搜索框 (融入背景) */}
           <TextField
             size="small"
             placeholder="搜索..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={localSearch || ''}
+            onChange={(e) => setLocalSearch(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -364,11 +440,21 @@ const WallpaperGrid: React.FC<Props> = ({
                 borderRadius: '100px',
                 bgcolor: 'transparent',
                 '& fieldset': { border: 'none' },
-                minWidth: { xs: 120, md: 180 },
-                transition: 'width 0.3s',
+                minWidth: { xs: 40, md: 180 }, // 移动端默认收起来像个图标
+                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                '& input': {
+                  opacity: { xs: localSearch ? 1 : 0, md: 1 }, // 手机没打字时隐藏光标
+                  width: { xs: localSearch ? 100 : 0, md: 'auto' }, // 手机展开
+                  padding: { xs: localSearch ? '8.5px 14px' : '8.5px 0', md: '8.5px 14px' },
+                },
                 '&:focus-within': {
-                  bgcolor: alpha(theme.palette.text.primary, 0.05),
-                  minWidth: { xs: '100%', md: 240 },
+                  bgcolor: alpha(theme.palette.text.primary, 0.04),
+                  minWidth: { xs: 160, md: 240 },
+                  '& input': {
+                    opacity: 1,
+                    width: 'auto',
+                    padding: '8.5px 14px',
+                  }
                 }
               }
             }}
@@ -462,7 +548,6 @@ const WallpaperGrid: React.FC<Props> = ({
                 onImageClick={onImageClick}
                 favorites={favorites}
                 onToggleFavorite={onToggleFavorite}
-                activeSharedId={activeSharedId}
               />
             ))
           ) : (
@@ -478,7 +563,6 @@ const WallpaperGrid: React.FC<Props> = ({
                   onImageClick={onImageClick}
                   favorites={favorites}
                   onToggleFavorite={onToggleFavorite}
-                  activeSharedId={activeSharedId}
                 />
               ))}
 

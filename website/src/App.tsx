@@ -70,6 +70,12 @@ function App() {
     return data;
   }, [indexData, wallpaperData]);
 
+  // 高频访问的展平数组：避免在渲染或点击下一张时实时 flatMap
+  const allWallpapers = useMemo(() => {
+    if (!indexData) return [];
+    return indexData.monthList.flatMap((month) => wallpaperData.get(month) || []);
+  }, [indexData, wallpaperData]);
+
   // ========== 初始化 ==========
   useEffect(() => {
     // 防止 React.StrictMode 导致重复初始化
@@ -228,12 +234,11 @@ function App() {
       setActiveSharedId(wallpaper.id); // Enable shared layout origin exclusively for the clicked image
       
       // 只使用已加载并展开的数据，因为 Dialog 不应呈现骨架
-      const allWallpapers = indexData.monthList.flatMap((month) => wallpaperData.get(month) || []);
       const index = allWallpapers.findIndex((w) => w.id === wallpaper.id);
       setCurrentImageIndex(index >= 0 ? index : 0);
       setSelectedImage(wallpaper);
     },
-    [indexData, wallpaperData, setActiveSharedId],
+    [indexData, allWallpapers, setActiveSharedId],
   );
 
   /**
@@ -343,8 +348,8 @@ function App() {
       <LayoutGroup>
         <CssBaseline />
 
-      {/* 主内容 - Edge to Edge */}
-      <Box sx={{ px: { xs: 0, sm: 0.5 }, py: { xs: 1, md: 2 } }}>
+      {/* 主内容 - 真正的 Edge to Edge (消融边界) */}
+      <Box sx={{ px: 0, py: 0 }}>
         <WallpaperGrid
           data={gridData}
           onImageClick={handleImageClick}
@@ -364,7 +369,7 @@ function App() {
         {selectedImage && (
           <ImageDialog
             wallpaper={selectedImage}
-            allWallpapers={indexData.monthList.flatMap((month) => wallpaperData.get(month) || [])}
+            allWallpapers={allWallpapers}
             currentIndex={currentImageIndex}
             onClose={() => {
               setActiveSharedId(selectedImage.id); // Enable fly-back to grid target map
@@ -373,14 +378,12 @@ function App() {
             onPrevious={() => {
               if (currentImageIndex > 0) {
                 setActiveSharedId('NONE'); // Disable grid fly-in layout origin for slides
-                const allWallpapers = indexData.monthList.flatMap((month) => wallpaperData.get(month) || []);
                 const newIndex = currentImageIndex - 1;
                 setCurrentImageIndex(newIndex);
                 setSelectedImage(allWallpapers[newIndex]);
               }
             }}
             onNext={() => {
-              const allWallpapers = indexData.monthList.flatMap((month) => wallpaperData.get(month) || []);
               if (currentImageIndex < allWallpapers.length - 1) {
                 setActiveSharedId('NONE'); // Disable grid fly-in layout origin for slides
                 const newIndex = currentImageIndex + 1;

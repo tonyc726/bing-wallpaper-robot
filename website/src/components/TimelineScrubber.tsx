@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 
 interface TimelineProps {
   months: string[]; // ['2025年02月', '2025年01月', ...]
@@ -37,19 +37,22 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
         }
       }
 
-      if (closestMonth && closestMonth !== activeMonth) {
-        setActiveMonth(closestMonth);
-      } else if (!closestMonth && months.length > 0) {
-        setActiveMonth(months[0]);
+      if (closestMonth) {
+        setActiveMonth(prev => prev !== closestMonth ? closestMonth : prev);
+      } else if (months.length > 0) {
+        setActiveMonth(prev => prev !== months[0] ? months[0] : prev);
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     // 初始化执行一次
-    setTimeout(handleScroll, 100);
+    const timer = setTimeout(handleScroll, 100);
 
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [months, activeMonth, isDragging]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
+    };
+  }, [months, isDragging]);
 
   // 2. 滚至具体月份
   const scrollToMonth = useCallback((month: string) => {
@@ -100,12 +103,20 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
       scrollToMonth(targetMonth);
       // 捕获 pointer 以便在外部移动也能拖拽，修复快速脱离范围断触
       if (e.pointerId) {
-        trackRef.current.setPointerCapture(e.pointerId);
+        try {
+          trackRef.current.setPointerCapture(e.pointerId);
+        } catch (err) {
+          // 忽略失效的 pointerId
+        }
       }
     } else if (e.type === 'pointerup' || e.type === 'pointercancel') {
       setIsDragging(false);
       if (e.pointerId) {
-        trackRef.current.releasePointerCapture(e.pointerId);
+        try {
+          trackRef.current.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          // 忽略失效的 pointerId
+        }
       }
     }
   }, [months, isDragging, activeMonth, scrollToMonth]);
@@ -120,7 +131,6 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   }, [isDragging]);
 
 
-  let lastYear = '';
   if (months.length === 0) return null;
 
   // 用来确定气泡显示的主体，拖拽或悬停时显示精确月，否则显示当前视野月
@@ -128,10 +138,13 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   
   // 计算气泡和高亮的相对位置
   const displayIndex = months.indexOf(displayMonth);
-  // 百分比映射偏移：0 到 100%
-  const bubbleTopPercent = months.length > 1 
-    ? (displayIndex / (months.length - 1)) * 100 
+  // 百分比映射偏移：0 到 100% 对齐中心点
+  const bubbleTopPercent = months.length > 0 
+    ? ((displayIndex + 0.5) / months.length) * 100 
     : 50;
+
+  // 这里我们不再强依赖一个物理 top 坐标的白色气泡背景框
+  // 而是采用绝对定位跟随的悬空文本，并且使用 spring transition
 
   return (
     <Box
@@ -141,53 +154,48 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
       sx={{
         position: 'fixed',
         top: '50%',
-        right: 0,
+        right: { xs: 8, md: 16 }, // 边缘留白
         transform: 'translateY(-50%)',
-        height: '60vh', // 也可以占满屏：height: '80vh'
-        width: 48, // 增加宽度提高点击判定区
+        height: '70vh', 
+        width: 64, // 加宽触摸/鼠标悬停感应区
         zIndex: 1200,
-        display: { xs: 'flex', lg: 'flex' }, // 移动端也支持
+        display: { xs: 'flex', lg: 'flex' }, // 移动端也支持，更窄
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         py: 4,
-        mr: 1,
-        touchAction: 'none', // 关键：禁用浏览器对该区域的触摸平移/缩放处理
+        touchAction: 'none', // 禁用平移缩放拦截
       }}
     >
-      {/* 悬浮气泡指示器 (动态同步位置) */}
-      <Box
+      {/* 极简流体吸附文字 (Hovering Text)  */}
+      <Typography
+        variant="caption"
         sx={{
           position: 'absolute',
-          right: 56,
-          // 气泡和圆点垂直居中对齐，顶部和底部加点修正防止越界
+          right: { xs: 32, md: 48 }, // 与光点拉开距离
           top: `calc(${bubbleTopPercent}%)`, 
           transform: 'translateY(-50%)',
-          bgcolor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(8px)',
-          color: 'rgba(0, 0, 0, 0.87)',
-          px: 1.5,
-          py: 0.5,
-          borderRadius: 4,
-          fontWeight: 800,
-          opacity: isHovering || isDragging ? 1 : 0,
-          transition: isDragging ? 'none' : 'top 0.1s ease-out, opacity 0.2s',
-          pointerEvents: 'none', // 气泡不能挡住点击
-          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+          fontWeight: 800, // 极粗
+          opacity: isHovering || isDragging ? 0.9 : 0, // 仅交互时可见
+          transition: isDragging 
+            ? 'none' // 拖拽时完全零延迟跟手
+            : 'top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s', // 弹簧动效
+          pointerEvents: 'none',
           whiteSpace: 'nowrap',
           zIndex: 1201,
-          fontSize: '0.85rem',
+          fontSize: { xs: '1rem', md: '1.25rem' }, // 更大的展示字体
+          letterSpacing: '-0.02em',
+          textShadow: theme.palette.mode === 'dark' 
+            ? '0 4px 24px rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,1)'
+            : '0 4px 24px rgba(0,0,0,0.2), 0 1px 3px rgba(255,255,255,1)',
         }}
       >
         {displayMonth}
-        {/* 小尾巴 */}
-        <Box sx={{
-          position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%) rotate(45deg)',
-          width: 8, height: 8, bgcolor: 'rgba(255, 255, 255, 0.95)'
-        }} />
-      </Box>
+      </Typography>
 
-      {/* 沉浸式交互轨道 (Track) */}
+
+      {/* 沉浸式交互轨道 (Track) - 移除毛玻璃辅助跑道，只保留感应区 */}
       <Box
         ref={trackRef}
         onPointerDown={handlePointerEvent}
@@ -203,29 +211,40 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
           justifyContent: 'space-between',
           position: 'relative',
           cursor: isDragging ? 'grabbing' : 'pointer',
-          '&::before': { // 毛玻璃辅助滑道
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            width: 20,
-            borderRadius: 10,
-            bgcolor: isHovering || isDragging ? alpha(theme.palette.text.primary, 0.08) : 'transparent',
-            backdropFilter: isHovering || isDragging ? 'blur(4px)' : 'none',
-            transition: 'all 0.3s',
-            zIndex: -1,
-          }
         }}
       >
         {
           // eslint-disable-next-line complexity
-          months.map((month) => {
+          months.map((month, index) => {
           const year = month.substring(0, 4);
-          const isYearStart = year !== lastYear;
-          lastYear = year;
+          const isYearStart = index === 0 || year !== months[index - 1].substring(0, 4);
           
           const isActive = activeMonth === month;
           const isDisplay = displayMonth === month;
+          
+          // 计算距离手指的相对距离，用于动态放大圆点 (模拟磁吸与呼吸涟漪)
+          let distanceScale = 1;
+          let distanceOpacity = 0.15; // 基础超低透明度
+          const diff = Math.abs(index - displayIndex);
+          
+          if (isHovering || isDragging) {
+            if (diff === 0) {
+              distanceScale = 3.5; // 当前悬停项最大
+              distanceOpacity = 1;
+            } else if (diff === 1) {
+              distanceScale = 2; // 旁边项稍大
+              distanceOpacity = 0.6;
+            } else if (diff === 2) {
+              distanceScale = 1.2;
+              distanceOpacity = 0.3;
+            }
+          } else {
+            // 平时态，只有当前活动月亮起
+            if (isActive) {
+              distanceScale = 2;
+              distanceOpacity = 0.8;
+            }
+          }
 
           return (
             <Box
@@ -238,44 +257,44 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
                 alignItems: 'center',
                 flex: 1,
                 position: 'relative',
-                pr: 2,
-                pointerEvents: 'none', // 事件全部交给 Track 层处理，防止断触
+                pr: 1, // 离屏幕右缘近一点
+                pointerEvents: 'none', // 事件全部交给 Track 层处理
               }}
             >
-              {/* 年份标签: 只在年份变化的第一月显示 */}
+              {/* 年份标签: 极简流体 */}
               {isYearStart && (
                 <Typography
                   variant="caption"
                   sx={{
                     position: 'absolute',
-                    right: 32,
-                    fontWeight: 900, // 更粗
-                    fontSize: '0.75rem',
-                    color: isActive || isDisplay ? 'text.primary' : 'text.secondary',
-                    opacity: isHovering || isDragging || isActive || isDisplay ? 1 : (isYearStart ? 0.4 : 0),
-                    transition: 'opacity 0.2s, color 0.2s',
+                    right: 16,
+                    fontWeight: 800, 
+                    fontSize: '0.65rem',
+                    color: theme.palette.text.primary,
+                    opacity: isHovering || isDragging || isActive || isDisplay ? 0 : (isYearStart ? 0.3 : 0),
+                    transition: 'opacity 0.4s ease',
                     userSelect: 'none',
-                    textShadow: (isHovering || isActive) ? 
-                      (theme.palette.mode === 'light' 
-                        ? '0px 0px 8px rgba(255,255,255,0.9), 0px 0px 4px rgba(255,255,255,1)' 
-                        : '0px 0px 8px rgba(0,0,0,0.9), 0px 0px 4px rgba(0,0,0,1)') 
-                      : 'none',
+                    letterSpacing: '0.05em',
                   }}
                 >
                   {year}
                 </Typography>
               )}
 
-              {/* 指示点/线 */}
+              {/* 呼吸星点 (Breathing Dots) */}
               <Box
                 sx={{
-                  width: isActive || isDisplay ? 12 : (isYearStart ? 8 : 4),
-                  height: isActive || isDisplay ? 12 : 2,
-                  borderRadius: isActive || isDisplay ? '50%' : 1,
-                  bgcolor: isActive ? 'primary.main' : isDisplay ? 'text.secondary' : 'text.disabled',
-                  opacity: isActive || isDisplay ? 1 : 0.3,
-                  transition: 'all 0.1s',
-                  boxShadow: isActive ? '0 0 8px rgba(33, 150, 243, 0.5)' : 'none',
+                  width: 2, 
+                  height: 2, 
+                  borderRadius: '50%',
+                  bgcolor: theme.palette.text.primary,
+                  opacity: distanceOpacity,
+                  transform: `scale(${distanceScale})`,
+                  transition: isDragging ? 'transform 0.1s, opacity 0.1s' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  transformOrigin: 'right center', // 向左膨胀
+                  boxShadow: diff === 0 && (isHovering || isDragging) 
+                    ? `0 0 12px 2px ${theme.palette.text.primary}` 
+                    : 'none', // 高亮时的辉光
                 }}
               />
             </Box>

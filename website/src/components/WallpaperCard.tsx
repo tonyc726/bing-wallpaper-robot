@@ -17,7 +17,6 @@ interface Props {
   onImageClick: (wallpaper: WallpaperData) => void;
   isFavorite?: boolean;
   onToggleFavorite?: (wallpaper: WallpaperData) => void;
-  activeSharedId?: string | null;
 }
 
 const WallpaperCard = ({
@@ -25,7 +24,6 @@ const WallpaperCard = ({
   onImageClick,
   isFavorite = false,
   onToggleFavorite,
-  activeSharedId = null,
 }: Props) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -40,7 +38,7 @@ const WallpaperCard = ({
         position: 'relative',
         width: '100%',
         aspectRatio: '16/9', // 保持标准的壁纸比例
-        borderRadius: 2, // 对应 Theme 中的 shape.borderRadius: 16px
+        borderRadius: 0, // 彻底消除边界圆角，Edge-to-Edge 沉浸感
         overflow: 'hidden',
         cursor: 'pointer',
         backgroundColor: `#${wallpaper.dominantColor}`, // 加载前的骨架背景色
@@ -61,19 +59,19 @@ const WallpaperCard = ({
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' }
         },
-        // 悬浮显示遮罩和附加操作
+        // 悬浮微交互：取消所有外层遮罩限制，单纯依赖内部元素的呈现
         '&:hover': {
+          zIndex: 10, // 悬停时提升层级
           '& .overlay-content': {
             opacity: 1, // 唤出遮罩和文字
           }
         },
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1)', // 更舒缓的弹簧过渡
       }}
       onClick={() => onImageClick(wallpaper)}
     >
-      {/* 核心图片 - 只有当全屏未打开(null) 或是当前正在打开的图片时，才赋予 layoutId，防止浏览幻灯片时飞回网格 */}
+      {/* 核心图片 - 赋予微弱的放大呼吸效果 */}
       <motion.img
-        layoutId={activeSharedId === null || activeSharedId === wallpaper.id ? `wallpaper-${wallpaper.id}` : undefined}
         className="wallpaper-img"
         src={wallpaper.imageUrl}
         alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
@@ -85,10 +83,10 @@ const WallpaperCard = ({
           setImageLoaded(true);
         }}
         variants={{
-          hover: { scale: 1.04 }
+          hover: { scale: 1.05 } // 呼吸式放大
         }}
         transition={{
-          scale: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+          scale: { duration: 0.8, ease: [0.165, 0.84, 0.44, 1] } // 超级顺滑的阻尼
         }}
         style={{
           width: '100%',

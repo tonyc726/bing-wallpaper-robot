@@ -29,6 +29,12 @@ const ImageDialog = ({
   onNext,
 }: Props) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showUI, setShowUI] = useState(true);
+  
+  // 处理滑动变量
+  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{x: number, y: number} | null>(null);
+  const minSwipeDistance = 50;
 
   // 当切换图片时重置加载状态
   useEffect(() => {
@@ -45,9 +51,11 @@ const ImageDialog = ({
           onClose();
           break;
         case 'ArrowLeft':
+        case 'ArrowUp':
           if (currentIndex > 0) onPrevious();
           break;
         case 'ArrowRight':
+        case 'ArrowDown':
           if (currentIndex < allWallpapers.length - 1) onNext();
           break;
       }
@@ -56,6 +64,64 @@ const ImageDialog = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [wallpaper, currentIndex, allWallpapers.length, onClose, onPrevious, onNext]);
+
+  // 意念式控件：静止 3 秒后自动隐藏 UI
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const resetTimer = () => {
+      setShowUI(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setShowUI(false), 3000);
+    };
+
+    // 监听各类交互事件来唤醒 UI
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('touchstart', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+
+    // 初始启动倒计时
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+    };
+  }, []);
+
+  // 手势处理 (Touch Swipe)
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
+
+    if (isHorizontalSwipe && Math.abs(distanceX) > minSwipeDistance) {
+      if (distanceX > 0) {
+        // Swipe Left: Next Image
+        if (currentIndex < allWallpapers.length - 1) onNext();
+      } else {
+        // Swipe Right: Prev Image
+        if (currentIndex > 0) onPrevious();
+      }
+    } else if (!isHorizontalSwipe && Math.abs(distanceY) > minSwipeDistance) {
+      if (distanceY < 0) {
+        // Swipe Down: Close Dialog
+        onClose();
+      }
+    }
+  };
 
   // Framer Motion 变体：用于背景的淡入淡出
   const backdropVariants = {
@@ -84,53 +150,58 @@ const ImageDialog = ({
             justifyContent: 'center',
           }}
         >
-          {/* 半透明黑色背景层 */}
+          {/* 半透明纯黑电影级沉浸背景层 */}
           <motion.div
             variants={backdropVariants}
             initial="hidden"
             animate="visible"
             exit="hidden"
             onClick={onClose}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.9)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.95)', // 极度深邃的黑
+              backdropFilter: 'blur(20px) brightness(60%)', // 显著降低高昂的毛玻璃开销以解决卡顿
+              WebkitBackdropFilter: 'blur(20px) brightness(60%)',
               cursor: 'zoom-out',
             }}
           />
 
-          {/* 核心图片：基于 AnimatePresence 的无缝切换与共享元素动画 */}
-          <AnimatePresence mode="popLayout">
+          {/* 核心图片：基于 AnimatePresence 的无缝切换与触屏手势层 */}
+          <AnimatePresence>
             <motion.div
               key={`wallpaper-container-${wallpaper.id}`}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
               style={{
                 position: 'absolute',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                maxWidth: '90vw',
-                maxHeight: '90vh',
+                width: '100vw', // 满屏宽容度
+                height: '100vh',
                 zIndex: 1301,
               }}
+              // 绑定触控手势
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
               <Box
                 sx={{
                   position: 'relative',
                   width: 'fit-content',
                   height: 'fit-content',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
                   backgroundColor: `#${wallpaper.dominantColor}`,
-                  borderRadius: '8px',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)', // 降低渲染消耗
                   overflow: 'hidden',
                   // Skeleton Shimmer effect
                   '&::before': {
@@ -149,13 +220,12 @@ const ImageDialog = ({
                 }}
               >
                 <motion.img
-                  layoutId={`wallpaper-${wallpaper.id}`} // Keep shared element ID only on the img itself
                   src={wallpaper.downloadUrl}
                   alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
                   onLoad={() => setImageLoaded(true)}
                   style={{
-                    maxWidth: '90vw',
-                    maxHeight: '90vh',
+                    maxWidth: '100vw', // 解除边距限制，图片可以直接顶满屏幕
+                    maxHeight: '100vh',
                     objectFit: 'contain',
                     display: 'block',
                     opacity: imageLoaded ? 1 : 0, // 隐藏直到加载完成（骨架屏透出）
@@ -174,8 +244,9 @@ const ImageDialog = ({
           <motion.div
             variants={uiVariants}
             initial="hidden"
-            animate="visible"
+            animate={showUI ? "visible" : "hidden"} // 受控于超时隐藏状态
             exit="hidden"
+            transition={{ duration: 0.5, ease: [0.165, 0.84, 0.44, 1] }} 
             style={{
               position: 'absolute',
               top: 0,
@@ -258,11 +329,41 @@ const ImageDialog = ({
                 pointerEvents: 'auto',
               }}
             >
-              <Box sx={{ color: 'white', maxWidth: '70%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+              <Box key={wallpaper.id} sx={{ color: 'white', maxWidth: '70%' }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600, 
+                    mb: 1, 
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    // Typewriter Effect (No cursor)
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    width: '0',
+                    animation: 'typing 1s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
+                    animationDelay: '0.4s', // 图片出现后再开始打字
+                    '@keyframes typing': {
+                      from: { width: '0' },
+                      to: { width: '100%' }
+                    }
+                  }}
+                >
                   {wallpaper.copyright || '无版权信息'}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, display: 'flex', gap: 2 }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    opacity: 0, // 初始隐藏
+                    display: 'flex', 
+                    gap: 2,
+                    animation: 'fadeInUp 0.6s ease forwards',
+                    animationDelay: '1.0s', // 稍微提早一点淡入
+                    '@keyframes fadeInUp': {
+                      from: { opacity: 0, transform: 'translateY(10px)' },
+                      to: { opacity: 0.8, transform: 'translateY(0)' }
+                    }
+                  }}
+                >
                   <span>📅 {wallpaper.dateFmt || wallpaper.date}</span>
                   {wallpaper.title && <span>📝 {wallpaper.title}</span>}
                   <span>🖼️ {currentIndex + 1} / {allWallpapers.length}</span>
