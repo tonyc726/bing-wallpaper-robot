@@ -15,7 +15,7 @@ on:
     # │ │ │ │ │
     # │ │ │ │ │
     # * * * * *
-    - cron: "0 18 * * *"
+    - cron: '0 18 * * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -57,13 +57,27 @@ jobs:
       - name: Fetch Data
         id: fetch-message
         env:
-          IMAGEKIT_PUBLIC_KEY: "${{ secrets.IMAGEKIT_PUBLIC_KEY }}"
-          IMAGEKIT_PRIVATE_KEY: "${{ secrets.IMAGEKIT_PRIVATE_KEY }}"
-          IMAGEKIT_URL_ENDPOINT: "${{ secrets.IMAGEKIT_URL_ENDPOINT }}"
+          IMAGEKIT_PUBLIC_KEY: '${{ secrets.IMAGEKIT_PUBLIC_KEY }}'
+          IMAGEKIT_PRIVATE_KEY: '${{ secrets.IMAGEKIT_PRIVATE_KEY }}'
+          IMAGEKIT_URL_ENDPOINT: '${{ secrets.IMAGEKIT_URL_ENDPOINT }}'
         run: npm run fetch-data
 
-      - name: Make preview html
-        run: npm run make-html
+      - name: Make Website
+        run: npm run build
+
+      - name: Publish to NPM
+        run: |
+          if [ "$(date +%m%d)" = "0101" ]; then
+            npm version major --no-git-tag-version
+          elif [ "$(date +%d)" = "01" ]; then
+            npm version minor --no-git-tag-version
+          else
+            npm version patch --no-git-tag-version
+          fi
+          npm config set //registry.npmjs.org/:_authToken ${NODE_AUTH_TOKEN}
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit changes
         run: |
