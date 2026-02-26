@@ -1,7 +1,7 @@
 import type { WallpaperData } from '../types';
 
 const BASE = "https://cn.bing.com/th?id=";
-export const imageUrl = (id: string) => `${BASE}${id}_UHD.jpg&w=600&c=1`;
+export const imageUrl = (id: string) => `${BASE}${id}_UHD.jpg&w=300&c=1`;
 export const downloadUrl = (id: string) => `${BASE}${id}_UHD.jpg`;
 export const dateFmt = (date: number) => {
   const s = String(date);

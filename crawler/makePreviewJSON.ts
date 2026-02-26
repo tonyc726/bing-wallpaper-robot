@@ -264,7 +264,7 @@ const main = async () => {
           title: get(zhCNData, ['title'], get(enUSData, ['title'])),
           copyright: get(zhCNData, ['copyright'], get(enUSData, ['copyright'])),
           dominantColor: dominantColor || 'cccccc',
-          imageUrl: `https://cn.bing.com/th?id=${filename}_UHD.jpg&w=600&c=1`,
+          imageUrl: `https://cn.bing.com/th?id=${filename}_UHD.jpg&w=300&c=1`,
           downloadUrl: `https://cn.bing.com/th?id=${filename}_UHD.jpg`,
         };
       }),
@@ -409,7 +409,7 @@ const main = async () => {
 
   // 写入 NPM 辅助工具 utils.js
   const utilsJsContent = `const BASE = "https://cn.bing.com/th?id=";
-export const imageUrl = (id) => \`\${BASE}\${id}_UHD.jpg&w=600&c=1\`;
+export const imageUrl = (id) => \`\${BASE}\${id}_UHD.jpg&w=300&c=1\`;
 export const downloadUrl = (id) => \`\${BASE}\${id}_UHD.jpg\`;
 export const dateFmt = (date) => {
   const s = String(date);
