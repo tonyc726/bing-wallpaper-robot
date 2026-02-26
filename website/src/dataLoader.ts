@@ -8,7 +8,11 @@ import type { IndexData, ChunkData, WallpaperData } from './types';
 import { dbManager } from './dbManager';
 import { unpackChunk } from './utils/unpackChunk';
 
-const NPM_CDN_BASE = 'https://cdn.jsdelivr.net/npm/bing-wallpaper-robot@latest/docs';
+const NPM_CDN_BASES = [
+  'https://cdn.jsdelivr.net/npm/bing-wallpaper-robot@latest/docs',
+  'https://unpkg.com/bing-wallpaper-robot@latest/docs',
+  'https://npm.elemecdn.com/bing-wallpaper-robot@latest/docs',
+];
 
 /**
  * 初始化数据加载器（必须先调用）
@@ -33,7 +37,8 @@ async function checkAndFixMonthIndex(): Promise<void> {
  * 获取index.json索引数据
  */
 export async function fetchIndexData(): Promise<IndexData> {
-  const response = await fetch('/index.json', {
+  const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const response = await fetch(`${baseUrl}/index.json`, {
     cache: 'no-cache'
   });
 
@@ -74,15 +79,31 @@ export async function fetchChunkData(
   const isLatestMonth = indexData ? (indexData.latestMonth === month) : false;
 
   try {
-    // 如果是最新月份，由于 NPM 发版可能有几十分钟到 24h 的延迟，强制走本站源
+    // 如果是最新月份，强制走本站源
     if (isLatestMonth) {
       throw new Error('Force fallback to origin for latest month');
     }
 
-    // 2. 尝试从 jsDelivr CDN 获取紧凑 JS 数组 (极致提速)
-    const module = await import(/* @vite-ignore */ `${NPM_CDN_BASE}/chunks/${month}.js`);
-    const compactRows = module.default;
+    // 2. 尝试从各大 CDN 顺序获取紧凑 JS 数组
+    let module: any;
+    let fallbackError;
     
+    for (const cdnBase of NPM_CDN_BASES) {
+      try {
+        module = await import(/* @vite-ignore */ `${cdnBase}/chunks/${month}.js`);
+        break; // 请求成功，跳出循环
+      } catch (err) {
+        fallbackError = err;
+        console.warn(`[CDN Failed] Failed to load from ${cdnBase}`, err);
+        // Continue to the next CDN
+      }
+    }
+
+    if (!module) {
+      throw fallbackError || new Error('All primary CDNs failed');
+    }
+
+    const compactRows = module.default;
     const wallpapers = unpackChunk(compactRows);
     
     // 组装成兼容 dbManager 的 ChunkData 结构
@@ -99,14 +120,14 @@ export async function fetchChunkData(
       }
     };
   } catch (error) {
-    // CDN 失败或为当前最新月份时，降级/回源拉取同源的 JS 数据块
     if (!isLatestMonth) {
-      console.warn(`[CDN Failed] Falling back to local/github pages for ${month}`, error);
+      console.warn(`[Network] Falling back to local/github pages for ${month}`, error);
     }
     
     try {
       // 降级时直接拉取本站源的紧凑 JS 数据块
-      const module = await import(/* @vite-ignore */ `/chunks/${month}.js`);
+      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const module = await import(/* @vite-ignore */ `${baseUrl}/chunks/${month}.js`);
       const compactRows = module.default;
       const wallpapers = unpackChunk(compactRows);
       
