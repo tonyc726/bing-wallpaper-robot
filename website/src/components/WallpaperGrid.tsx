@@ -38,6 +38,7 @@ interface Props {
   loadingMonths: Set<string>;
   loadMonthData: (month: string) => Promise<void>;
   loadAllData: () => Promise<Map<string, WallpaperData[]> | undefined>;
+  isLoadingAllData?: boolean; // 全量数据异步加载中（搜索触发）
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   activeSharedId?: string | null;
@@ -368,6 +369,7 @@ const WallpaperGrid: React.FC<Props> = ({
   loadingMonths,
   loadMonthData,
   loadAllData,
+  isLoadingAllData = false,
   darkMode,
   setDarkMode,
 }) => {
@@ -932,7 +934,24 @@ const WallpaperGrid: React.FC<Props> = ({
       {/* 空状态 */}
       {sortedWallpapers.length === 0 ? (
         <Paper sx={{ p: 8, textAlign: 'center', bgcolor: 'transparent', border: 'none', boxShadow: 'none' }}>
-          <Typography variant="h6" color="text.secondary">无匹配壁纸</Typography>
+          {isLoadingAllData ? (
+            // 全量数据加载中：显示加载提示，而非虚假的“无结果”
+            <>
+              <Box sx={{
+                width: 40, height: 40, mx: 'auto', mb: 2,
+                borderRadius: '50%',
+                border: `3px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+                borderTopColor: theme.palette.text.secondary,
+                animation: 'spin 0.8s linear infinite',
+                '@keyframes spin': { to: { transform: 'rotate(360deg)' } }
+              }} />
+              <Typography variant="body2" color="text.secondary">
+                正在检索全部壁纸...
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="h6" color="text.secondary">无匹配壁纸</Typography>
+          )}
         </Paper>
       ) : (
         <Box>

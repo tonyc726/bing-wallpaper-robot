@@ -64,6 +64,12 @@ function ScrollTop(props: { children: React.ReactElement }) {
 function App() {
   // ========== 状态管理 ==========
   // URL 同步主要由下层组件接管，顶层通过原生 URLParams 读取初始直达意图
+
+  // 在渲染前立刻读取 URL 参数，并存入稳定 ref，避免异步初始化中闭包读不到 state 的问题
+  const initialUrlIntent = useRef({
+    sharedId: new URLSearchParams(window.location.search).get('id'),
+    targetMonth: new URLSearchParams(window.location.search).get('month'),
+  });
   
   const [indexData, setIndexData] = useState<IndexData | null>(null);
   const [wallpaperData, setWallpaperData] = useState<Map<string, WallpaperData[]>>(new Map());
@@ -71,6 +77,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoadingAllData, setIsLoadingAllData] = useState(false); // 全量数据加载中（搜索触发）
   const isInitializedRef = useRef(false);
 
   // 主题
@@ -211,13 +218,18 @@ function App() {
       const initialMonths = index.monthList.slice(0, 3);
       
       // 5. [新增] Deep Link (直达链接) 拦截与全量预加载
-      const urlParams = new URLSearchParams(window.location.search);
-      const sharedId = urlParams.get('id');
-      const targetMonth = urlParams.get('month'); // 也可能通过 nuqs hook 取到，但这里直读最稳
+      // 注意：不在此处直接调用 handleDeepLink/scrollIntoView，
+      // 因为 initializeApp 是普通函数闭包，此时 React state 中的 indexData/wallpaperData 仍为 null。
+      // 真正的 Deep Link 唤起由下方的 useEffect 在 loading===false 时负责触发。
+      const targetMonth = initialUrlIntent.current.targetMonth;
       
       if (targetMonth && index.monthList.includes(targetMonth) && !initialMonths.includes(targetMonth)) {
          log(`%c🔗 Deep Link Month Detected: ${targetMonth}, injecting to initial load.`, 'color: #E91E63; font-weight: bold');
          initialMonths.push(targetMonth);
+      }
+
+      if (initialUrlIntent.current.sharedId) {
+        log(`%c🔗 Deep Link ID Detected: ${initialUrlIntent.current.sharedId} — will trigger after state settles.`, 'color: #E91E63; font-weight: bold');
       }
 
       log(`   - Months: ${initialMonths.length} total`);
@@ -233,23 +245,6 @@ function App() {
       log(`💾 Database mode: v4.0 (hybrid flattened)`);
       log(`🚀 Ready for user interaction!`);
       log('');
-
-      if (sharedId) {
-        log(`%c🔗 Deep Link ID Detected: ${sharedId}`, 'color: #E91E63; font-weight: bold');
-        // 既然用户指明要看某一张图，极大概率它不在最近 3 个月里
-        // 所以我们立刻开始全量加载字典并尝试弹出它
-        handleDeepLink(sharedId);
-      } 
-      
-      if (targetMonth) {
-         // 处理 Month 跳转逻辑：在首屏渲染后触发滚动
-         setTimeout(() => {
-            const anchor = document.getElementById(`month-${targetMonth.replace(/年|月/g, '').replace(/\./g, '-')}`);
-            if (anchor) {
-              anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-         }, 800); // 留出充足时间等待 React 和 Framer Motion 将 DOM 生成
-      }
     } catch (error) {
       log('');
       log('%c❌ ===== Initialization Failed! =====', 'color: #F44336; font-weight: bold; font-size: 16px');
@@ -325,6 +320,7 @@ function App() {
     if (isGlobalFetching.current) return;
 
     isGlobalFetching.current = true;
+    setIsLoadingAllData(true); // 告知搜索组件：全量数据正在加载，请展示 loading 而非空状态
     
     try {
       const { fetchAllData } = await import('./dataLoader');
@@ -348,35 +344,9 @@ function App() {
       return undefined;
     } finally {
       isGlobalFetching.current = false;
+      setIsLoadingAllData(false);
     }
   }, [indexData, wallpaperData.size, wallpaperData]);
-
-  /**
-   * 处理直达分享链接的深潜唤起
-   */
-  const handleDeepLink = async (targetId: string) => {
-    // 强制获取全量数据（因为它一定带有图片所属列表上下文）
-    let targetMap = wallpaperData;
-    if (targetMap.size < (indexData?.monthList.length || 0)) {
-      setLoading(true); // 唤起小绿条遮蔽，保证体验连贯
-      const fullData = await loadAllData();
-      if (fullData) targetMap = fullData;
-      setLoading(false);
-    }
-    
-    // 从字典中打平以进行查找
-    const flatPool = Array.from(targetMap.values()).flat();
-    const wp = flatPool.find(w => w.id === targetId);
-    
-    if (wp) {
-      // 通过构造一个含有它所在的全局上下文来直接唤醒展示
-      handleImageClick(wp, flatPool);
-      
-      // 抹除 URL 参数，避免刷新再次触发（不插入历史记录）
-      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-      window.history.replaceState({path:newUrl}, '', newUrl);
-    }
-  };
 
   /**
    * 处理图片点击
@@ -396,6 +366,34 @@ function App() {
   );
 
   /**
+   * 处理直达分享链接的深潜唤起
+   * 使用 useCallback 确保可安全作为 useEffect 依赖
+   */
+  const handleDeepLink = useCallback(async (targetId: string) => {
+    // 强制获取全量数据（因为它一定带有图片所属列表上下文）
+    let targetMap = wallpaperData;
+    if (targetMap.size < (indexData?.monthList.length || 0)) {
+      setLoading(true); // 唤起小绿条遮蔽，保证体验连贯
+      const fullData = await loadAllData();
+      if (fullData) targetMap = fullData;
+      setLoading(false);
+    }
+    
+    // 从字典中打平以进行查找
+    const flatPool = Array.from(targetMap.values()).flat();
+    const wp = flatPool.find(w => w.id === targetId);
+    
+    if (wp) {
+      // 通过构造一个含有它所在的全局上下文来直接唤醒展示
+      handleImageClick(wp, flatPool);
+      
+      // 抹除 URL 参数，避免刷新再次触发（不插入历史记录）
+      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({path: newUrl}, '', newUrl);
+    }
+  }, [wallpaperData, indexData, loadAllData, handleImageClick]);
+
+  /**
    * 切换收藏
    */
   const handleToggleFavorite = useCallback(
@@ -411,6 +409,33 @@ function App() {
     [favorites],
   );
 
+
+  // ========== Deep Link 触发（在数据加载完成后） ==========
+  // 🔑 关键修复：React 的 setState 是异步的。
+  // initializeApp 中调用 handleDeepLink 时 indexData/wallpaperData 在闭包里仍为 null。
+  // 必须等 loading===false 且 indexData 已进入 state 后再触发 Deep Link。
+  useEffect(() => {
+    if (!loading && indexData) {
+      const { sharedId, targetMonth } = initialUrlIntent.current;
+
+      if (sharedId) {
+        handleDeepLink(sharedId);
+        initialUrlIntent.current.sharedId = null; // 消费后清空，防止重复触发
+      }
+
+      if (targetMonth) {
+        setTimeout(() => {
+          const anchor = document.getElementById(
+            `month-${targetMonth.replace(/年|月/g, '').replace(/\./g, '-')}`
+          );
+          if (anchor) {
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 500);
+        initialUrlIntent.current.targetMonth = null; // 消费后清空
+      }
+    }
+  }, [loading, indexData]); // handleDeepLink 依赖 wallpaperData/indexData，loading 变化时已是最新值
 
   /**
    * 键盘快捷键
@@ -515,6 +540,7 @@ function App() {
           loadingMonths={loadingMonths}
           loadMonthData={loadMonthData}
           loadAllData={loadAllData}
+          isLoadingAllData={isLoadingAllData}
           activeSharedId={activeSharedId}
           darkMode={darkMode}
           setDarkMode={handleThemeToggle}

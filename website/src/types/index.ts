@@ -34,16 +34,15 @@ export interface WallpapersGroupData {
 export interface ChunkMetadata {
   // === 版本信息 ===
   version: string;                     // md5:abc123...
-  hash: string;                        // abc123...（纯MD5）
   updatedAt: string | null;            // 更新时间
 
   // === 数据状态 ===
-  isChanged: boolean;                  // 是否变更
-  recordCount: number;                 // 记录数
+  isChanged: boolean;                  // 是否发生内容变更
+  recordCount: number;                 // 记录数（当月总数）
 
   // === 校验数据 ===
   checksum: string;                    // md5:...
-  previousHash: string | null;         // 上次哈希
+  previousHash: string | null;         // 上次内容哈希
 
   // === 存储信息（可选）===
   fileSize?: number;                   // 文件大小
@@ -93,6 +92,9 @@ export interface IndexData {
   monthList: string[];
   latestMonth: string;
   oldestMonth: string;
+
+  // === all.js 版本控制 ===
+  allJsVersion?: string;               // all.js 内容 MD5，用于客户端缓存失效判断
 }
 
 /**

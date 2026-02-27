@@ -47,7 +47,6 @@ export interface WallpapersGroupData {
 interface ChunkMetadata {
   // === 版本信息 ===
   version: string;                     // md5:abc123...（内容哈希）
-  hash: string;                        // abc123...（纯MD5）
   updatedAt: string | null;            // 更新时间（null = 未更改）
 
   // === 数据状态 ===
@@ -118,6 +117,9 @@ interface IndexData {
   monthList: string[];                 // 所有月份列表（降序）
   latestMonth: string;                 // 最新月份（YYYY-MM）
   oldestMonth: string;                 // 最老月份（YYYY-MM）
+
+  // === all.js 版本控制 ===
+  allJsVersion: string;                // all.js 内容 MD5，客户端缓存失效判断
 }
 
 /**
@@ -219,7 +221,7 @@ const main = async () => {
   const previousIndex = await readPreviousIndex();
   const previousChunks = previousIndex?.chunks || {};
   const previousHashes = new Map(
-    Object.entries(previousChunks).map(([month, meta]) => [month, meta.hash])
+    Object.entries(previousChunks).map(([month, meta]) => [month, meta.version?.replace('md5:', '') || ''])
   );
 
   // 3. 获取数据
@@ -336,7 +338,6 @@ const main = async () => {
     const wallpapersChecksum = calculateContentHash(group.wallpapers);
     chunkMetadata[group.groupMonth] = {
       version: `md5:${currentHash}`,
-      hash: currentHash,
       updatedAt: isChanged ? new Date().toISOString() : null,
       isChanged,
       recordCount: group.wallpapers.length,
@@ -389,11 +390,25 @@ const main = async () => {
       byMonth,
     },
     monthList: wallpapersGroupData.map(g => g.groupMonth).sort((a, b) => b.localeCompare(a)),
-    latestMonth: wallpapersGroupData[0]?.groupMonth || '',
-    oldestMonth: wallpapersGroupData[wallpapersGroupData.length - 1]?.groupMonth || '',
+    // wallpapersGroupData 按 date 升序排列：[0] 是最旧月份，[length-1] 是最新月份
+    latestMonth: wallpapersGroupData[wallpapersGroupData.length - 1]?.groupMonth || '',
+    oldestMonth: wallpapersGroupData[0]?.groupMonth || '',
+    allJsVersion: '',  // 占位，将在下方计算 allJsHash 后覆盖
     // TODO: 未来版本添加 updateLog
     updateLog: [],
   };
+
+  // 7.5: 计算 all.js 内容及其 MD5，然后回填 indexData.allJsVersion
+  const allCompactRows = cleanWallpapers.map((w: any) => [
+    w.id,
+    w.date,
+    w.title || '',
+    w.copyright || '',
+    w.dominantColor
+  ]);
+  const allJsHash = crypto.createHash('md5').update(JSON.stringify(allCompactRows)).digest('hex');
+  indexData.allJsVersion = `md5:${allJsHash}`;
+  console.log(`✅ Computed allJsVersion: md5:${allJsHash}`);
 
   // 8. 写入index.json（索引文件）
   const docsDir = path.resolve(__dirname, '../docs');
@@ -431,15 +446,9 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
 
   // 写入 NPM 全局数据 all.js (含所有壁纸紧凑信息，专供全局搜索和颜色分类极速拉取)
   console.log('💾 Writing all.js for global loading...');
-  const allCompactRows = cleanWallpapers.map((w: any) => [
-    w.id,
-    w.date,
-    w.title || '',
-    w.copyright || '',
-    w.dominantColor
-  ]);
   const allJsContent = `export default ${JSON.stringify(allCompactRows, null, 0)};\n`;
   await writeFileAsync(path.join(docsDir, 'all.js'), allJsContent, 'utf-8');
+  console.log(`✅ Written all.js (allJsVersion: md5:${allJsHash})`);
 
   console.log('✅ Written indexes, utils, and all.js');
 

@@ -220,18 +220,41 @@ export async function rebuildMonthIndex(): Promise<void> {
 
 /**
  * 获取所有的壁纸数据（极速模式，专为全局搜索/颜色大类排序准备）
- * 读取 /docs/all.js
+ *
+ * 缓存策略：
+ *   1. 读取 IndexedDB 中缓存的 allJsVersion
+ *   2. 与 index.json 下发的 allJsVersion 比对
+ *   3. 版本匹配 → 直接使用 IDB 缓存（O(1)，无网络请求）
+ *   4. 版本不匹配 or 无缓存 → 拉取 all.js，写入 IDB
  */
 export async function fetchAllData(): Promise<WallpaperData[]> {
+  // 1. 读取服务端最新的 allJsVersion（由 fetchIndexData 写入 IDB METADATA）
+  const indexData = await dbManager.getMetadata('index') as { allJsVersion?: string } | null;
+  const serverVersion = indexData?.allJsVersion;
+
+  // 2. 读取本地缓存的版本与数据
+  if (serverVersion) {
+    const cached = await dbManager.getMetadata('allData') as
+      { version: string; data: WallpaperData[] } | null;
+
+    if (cached && cached.version === serverVersion) {
+      console.log(`[fetchAllData] ✅ IDB cache hit (${serverVersion}), skipping network`);
+      return cached.data;
+    }
+  }
+
+  // 3. 缓存不命中 → 从 CDN / 本站拉取 all.js
+  let wallpapers: WallpaperData[] | null = null;
+
   try {
     let module: any;
     let fallbackError;
-    
-    // 尝试从各大 CDN 顺序获取全量 JS 数组
+
+    // 依次尝试各 CDN
     for (const cdnBase of NPM_CDN_BASES) {
       try {
         module = await import(/* @vite-ignore */ `${cdnBase}/all.js`);
-        break; 
+        break;
       } catch (err) {
         fallbackError = err;
         console.warn(`[CDN Failed] Failed to load all from ${cdnBase}`, err);
@@ -242,19 +265,35 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
       throw fallbackError || new Error('All primary CDNs failed for all.js');
     }
 
-    return unpackChunk(module.default);
+    wallpapers = unpackChunk(module.default);
   } catch (error) {
     console.warn(`[Network] Falling back to local/github pages for all.js`, error);
-    
+
     try {
       const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
       const module = await import(/* @vite-ignore */ `${baseUrl}/all.js`);
-      return unpackChunk(module.default);
+      wallpapers = unpackChunk(module.default);
     } catch (fallbackError) {
       console.error(`Failed to download all.js from both sources:`, fallbackError);
       throw fallbackError;
     }
   }
+
+  // 4. 写入 IDB 缓存（带 allJsVersion 版本标记）
+  if (wallpapers && serverVersion) {
+    try {
+      await dbManager.storeMetadata('allData', {
+        version: serverVersion,
+        data: wallpapers,
+      });
+      console.log(`[fetchAllData] 💾 Cached all.js in IDB (${serverVersion})`);
+    } catch (e) {
+      // 缓存写入失败不阻断主流程
+      console.warn('[fetchAllData] Failed to cache allData in IDB', e);
+    }
+  }
+
+  return wallpapers!;
 }
 
 /**

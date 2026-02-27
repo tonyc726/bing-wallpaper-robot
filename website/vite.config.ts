@@ -99,14 +99,13 @@ export default defineConfig({
             src: "android-chrome-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            form_factor: "wide",
             label: "Horizon 主界面"
           }
         ]
       },
       workbox: {
-        navigationPreload: true,
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        navigationPreload: false,
+        globPatterns: ['**/*.{js,css,html,ico,svg,png,jpg,webp,woff2}'],
         runtimeCaching: [
           {
             // index.json and chunk jsons/js (NPM CDN)

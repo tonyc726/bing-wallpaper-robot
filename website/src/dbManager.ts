@@ -34,16 +34,27 @@ const CACHE_CONFIG = {
   hotMonthsThreshold: 6,       // 最近6个月为热数据
 } as const;
 
+// MonthIndex 记录类型（内存镜像）
+interface MonthIndexRecord {
+  month: string;
+  startIndex: number;
+  endIndex: number;
+  recordCount: number;
+}
+
 class DBManager {
   private db: IDBDatabase | null = null;
 
-  // v3.0 兼容：按月份的内存缓存
+  // v3.0 兼容：按月份的内存缓存（Map 按插入顺序 = LRU 顺序）
   private memoryCache = new Map<string, ChunkData>();
   private accessOrder: string[] = [];
 
   // v4.0 新增：按 globalIndex 的 LRU 缓存
-  private lruCache = new Map<number, WallpaperData>();  // globalIndex -> WallpaperData
-  private lruOrder: number[] = [];  // 访问顺序
+  // 利用 ES6 Map 的严格插入顺序实现 O(1) LRU（替代原有 indexOf+splice O(N) 方案）
+  private lruCache = new Map<number, WallpaperData>();  // globalIndex -> WallpaperData（按访问新旧排序）
+
+  // v4.0 新增：MONTH_INDEX 常驻内存镜像，消除高频读路径的 IndexedDB 事务开销
+  private cachedMonthIndex = new Map<string, MonthIndexRecord>();
 
   /**
    * 初始化数据库 (v4.0)
@@ -70,10 +81,14 @@ class DBManager {
       request.onsuccess = async () => {
         this.db = request.result;
 
-
         // 检查是否需要重建 monthIndex
         try {
           await this.checkAndRebuildMonthIndex();
+        } catch (e) {}
+
+        // 🚀 性能优化：将全部 MONTH_INDEX 载入内存，消除高频读路径的事务开销
+        try {
+          await this.loadMonthIndexToMemory();
         } catch (e) {}
 
         resolve();
@@ -220,7 +235,7 @@ class DBManager {
         this.memoryCache.clear();
         this.accessOrder = [];
         this.lruCache.clear();
-        this.lruOrder = [];
+        this.cachedMonthIndex.clear();
         
         console.log('[DB Cache] 🗑️ All data successfully cleared built-in db reset.');
         resolve();
@@ -231,11 +246,10 @@ class DBManager {
   }
 
   /**
-   * v4.0：从现有的 chunks 重建 monthIndex
+   * v4.0：从现有的 chunks 重建 monthIndex，同步更新内存镜像
    */
   private async rebuildMonthIndexFromChunks(): Promise<void> {
     if (!this.db) return;
-
 
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([STORES.CHUNKS_COLD, STORES.MONTH_INDEX], 'readwrite');
@@ -248,6 +262,8 @@ class DBManager {
         const allChunks = getAllRequest.result || [];
         let cumulativeIndex = 0;
 
+        // 清理内存镜像后重建
+        this.cachedMonthIndex.clear();
 
         for (const chunk of allChunks) {
           const recordCount = chunk.wallpapers?.length || 0;
@@ -264,17 +280,46 @@ class DBManager {
           };
 
           indexStore.put(monthIndexRecord);
-
+          // 同步更新内存镜像
+          this.cachedMonthIndex.set(chunk.month, { month: chunk.month, startIndex, endIndex, recordCount });
 
           cumulativeIndex = endIndex + 1;
         }
-
 
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
       };
 
       getAllRequest.onerror = () => reject(getAllRequest.error);
+    });
+  }
+
+  /**
+   * 将全量 MONTH_INDEX 从 IndexedDB 载入内存
+   * 在 init() 后调用，使后续所有 monthIndex 查询变为同步 O(1) 内存操作
+   */
+  private async loadMonthIndexToMemory(): Promise<void> {
+    if (!this.db) return;
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
+      const store = tx.objectStore(STORES.MONTH_INDEX);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        this.cachedMonthIndex.clear();
+        for (const record of (request.result || [])) {
+          this.cachedMonthIndex.set(record.month, {
+            month: record.month,
+            startIndex: record.startIndex,
+            endIndex: record.endIndex,
+            recordCount: record.recordCount,
+          });
+        }
+        resolve();
+      };
+
+      request.onerror = () => reject(request.error);
     });
   }
 
@@ -493,11 +538,10 @@ class DBManager {
 
   /**
    * 重建正确的 monthIndex
-   * 当发现索引错误时调用此方法修复
+   * 当发现索引错误时调用此方法修复，同步更新内存镜像
    */
   public async rebuildMonthIndex(): Promise<void> {
     if (!this.db) return;
-
 
     return new Promise(async (resolve, reject) => {
       try {
@@ -517,13 +561,13 @@ class DBManager {
           // 2. 按月份时间顺序排序（从旧到新）
           allChunks.sort((a, b) => a.month.localeCompare(b.month));
 
-
           // 3. 重新计算正确的索引
           const writeTx = this.db!.transaction([STORES.MONTH_INDEX], 'readwrite');
           const writeStore = writeTx.objectStore(STORES.MONTH_INDEX);
 
-          // 先清空旧的索引
+          // 先清空旧的索引及内存镜像
           writeStore.clear();
+          this.cachedMonthIndex.clear();
 
           let cumulativeIndex = 0;
 
@@ -541,14 +585,13 @@ class DBManager {
             };
 
             writeStore.put(monthIndexRecord);
+            // 同步更新内存镜像
+            this.cachedMonthIndex.set(chunk.month, { month: chunk.month, startIndex, endIndex, recordCount });
 
             cumulativeIndex += recordCount;
           });
 
-          writeTx.oncomplete = () => {
-            resolve();
-          };
-
+          writeTx.oncomplete = () => resolve();
           writeTx.onerror = () => reject(writeTx.error);
         };
 
@@ -574,7 +617,6 @@ class DBManager {
       request.onsuccess = () => {
         // 清除 LRU 缓存
         this.lruCache.clear();
-        this.lruOrder = [];
 
         resolve();
       };
@@ -810,16 +852,11 @@ class DBManager {
   /**
    * v4.0：从热存储查询 (O(log n))
    * 使用 B+ 树范围查询
+   * 🚀 优化：移除 _getHotStoreCount() 防御检查（该检查每次都开启额外事务）
+   *    IndexedDB 的 getAll(range) 在无数据时会立即返回空数组，无需额外 count 防御
    */
   private async getFromHotStorage(startIdx: number, endIdx: number): Promise<WallpaperData[]> {
     if (!this.db) return [];
-
-    // 🔍 调试：先检查 hot storage 总量
-    const hotStoreCount = await this._getHotStoreCount();
-
-    if (hotStoreCount === 0) {
-      return [];
-    }
 
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readonly');
@@ -831,9 +868,7 @@ class DBManager {
 
       request.onsuccess = () => {
         const results = request.result || [];
-        const wallpapers = results.map(r => r.data);
-        if (wallpapers.length > 0) {}
-        resolve(wallpapers);
+        resolve(results.map(r => r.data));
       };
 
       request.onerror = () => {
@@ -865,12 +900,13 @@ class DBManager {
   /**
    * v4.0：从冷存储查询 + 动态迁移
    * 当查询冷数据时，将其迁移到热存储，下次更快
+   * 🚀 优化：findMonthsByIndexRange / calculateRangeInChunk / getMonthIndex 全部改为同步内存查询
    */
   private async getFromColdStorage(startIdx: number, endIdx: number): Promise<WallpaperData[]> {
     if (!this.db) return [];
 
-    // 1. 通过 monthIndex 找到目标月份
-    const months = await this.findMonthsByIndexRange(startIdx, endIdx);
+    // 1. 通过内存 monthIndex 找到目标月份（同步 O(N)，N 最多几十个月）
+    const months = this.findMonthsByIndexRange(startIdx, endIdx);
     const results: WallpaperData[] = [];
 
     for (const month of months) {
@@ -878,22 +914,21 @@ class DBManager {
       const chunk = await this.getChunkFromDB(month);
       if (!chunk) continue;
 
-      // 3. 切片提取 (异步计算范围)
-      const range = await this.calculateRangeInChunk(month, startIdx, endIdx);
+      // 3. 切片提取（同步内存计算范围）
+      const range = this.calculateRangeInChunk(month, startIdx, endIdx);
       if (range.start <= range.end) {
         const slice = chunk.wallpapers.slice(range.start, range.end + 1);
         results.push(...slice);
 
         // 4. 异步迁移到热存储（带正确的索引范围）
-        // 需要计算该月份在全局索引中的正确起始位置
-        const monthIndex = await this.getMonthIndex(month);
+        const monthIndex = this.getMonthIndex(month);
         if (monthIndex) {
           // 正确的全局索引范围：该月份的起始索引 + 本地偏移
           const correctGlobalStart = monthIndex.startIndex + range.start;
           const correctGlobalEnd = monthIndex.startIndex + range.end;
           const globalRange = { startIndex: correctGlobalStart, endIndex: correctGlobalEnd };
           this.migrateToHotStorage(month, slice, globalRange).catch(() => {});
-        } else {}
+        }
       }
     }
 
@@ -902,212 +937,126 @@ class DBManager {
 
   /**
    * v4.0：通过 globalIndex 范围查找月份
+   * 🚀 优化：改为 O(N) 同步内存查询，消除 IndexedDB 事务开销
    */
-  private async findMonthsByIndexRange(startIdx: number, endIdx: number): Promise<string[]> {
-    if (!this.db) return [];
+  private findMonthsByIndexRange(startIdx: number, endIdx: number): string[] {
+    if (this.cachedMonthIndex.size === 0) return [];
 
-    // 重试机制：最多3次，避免v4.0查询初期空结果问题
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const months = await this._findMonthsInternal(startIdx, endIdx);
-        if (months.length > 0 || attempt === 3) {
-          return months;
-        } else {
-          // 递增延迟：50ms, 100ms
-          await new Promise(resolve => setTimeout(resolve, 50 * attempt));
-        }
-      } catch (error) {
-        if (attempt === 3) throw error;
-        await new Promise(resolve => setTimeout(resolve, 50 * attempt));
+    const matchingMonths: string[] = [];
+    for (const [, index] of this.cachedMonthIndex) {
+      if (endIdx >= index.startIndex && startIdx <= index.endIndex) {
+        matchingMonths.push(index.month);
       }
     }
-    return [];
-  }
-
-  private async _findMonthsInternal(startIdx: number, endIdx: number): Promise<string[]> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
-      const store = tx.objectStore(STORES.MONTH_INDEX);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const allIndexes = request.result || [];
-
-        if (allIndexes.length > 0) {}
-
-        const matchingMonths: string[] = [];
-        const unmatchedRanges: { month: string; indexRange: string; queryRange: string }[] = [];
-
-        for (const index of allIndexes) {
-          // 检查是否有重叠
-          const hasOverlap = endIdx >= index.startIndex && startIdx <= index.endIndex;
-
-          if (hasOverlap) {
-            matchingMonths.push(index.month);
-          } else {
-            unmatchedRanges.push({
-              month: index.month,
-              indexRange: `[${index.startIndex}, ${index.endIndex}]`,
-              queryRange: `[${startIdx}, ${endIdx}]`
-            });
-          }
-        }
-
-
-        resolve(matchingMonths);
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    return matchingMonths;
   }
 
   /**
    * v4.0：计算在 chunk 中的范围
-   * 根据 globalIndex 范围和 monthIndex，计算在该月份中的本地范围
+   * 🚀 优化：改为同步内存查询，无需 IndexedDB 事务
    */
-  private async calculateRangeInChunk(month: string, globalStart: number, globalEnd: number): Promise<{ start: number; end: number }> {
-    if (!this.db) return { start: 0, end: 0 };
+  private calculateRangeInChunk(month: string, globalStart: number, globalEnd: number): { start: number; end: number } {
+    const monthIndex = this.cachedMonthIndex.get(month);
+    if (!monthIndex) return { start: 0, end: 0 };
 
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
-      const store = tx.objectStore(STORES.MONTH_INDEX);
-      const request = store.get(month);
-
-      request.onsuccess = () => {
-        const monthIndex = request.result;
-        if (!monthIndex) {
-          resolve({ start: 0, end: 0 });
-          return;
-        }
-
-        // 计算在该月份中的范围
-        const start = Math.max(0, globalStart - monthIndex.startIndex);
-        const end = Math.min(monthIndex.recordCount - 1, globalEnd - monthIndex.startIndex);
-
-        resolve({ start, end });
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    const start = Math.max(0, globalStart - monthIndex.startIndex);
+    const end = Math.min(monthIndex.recordCount - 1, globalEnd - monthIndex.startIndex);
+    return { start, end };
   }
 
   /**
    * v4.0：获取指定月份的索引信息
+   * 🚀 优化：改为同步内存查询，无需 IndexedDB 事务
    */
-  private async getMonthIndex(month: string): Promise<{ startIndex: number; endIndex: number; recordCount: number } | null> {
-    if (!this.db) return null;
-
-    return new Promise((resolve) => {
-      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
-      const store = tx.objectStore(STORES.MONTH_INDEX);
-      const request = store.get(month);
-
-      request.onsuccess = () => {
-        const monthIndex = request.result;
-        if (monthIndex) {
-          resolve({
-            startIndex: monthIndex.startIndex,
-            endIndex: monthIndex.endIndex,
-            recordCount: monthIndex.recordCount
-          });
-        } else {
-          resolve(null);
-        }
-      };
-
-      request.onerror = () => resolve(null);
-    });
+  private getMonthIndex(month: string): MonthIndexRecord | null {
+    return this.cachedMonthIndex.get(month) ?? null;
   }
 
   /**
    * v4.0：将冷数据迁移到热存储
-   * @param month 月份
-   * @param wallpapers 壁纸数据
-   * @param globalIndexRange 可选的全局索引范围，如果传入则使用该范围，否则从 monthIndex 计算
+   * 🚀 优化 1：从内存获取 globalIndex 范围，无需额外事务
+   * 🚀 优化 2：将 cleanupHotStorage 的删除操作与写入合并到同一个 readwrite 事务
    */
   private async migrateToHotStorage(month: string, wallpapers: WallpaperData[], globalIndexRange?: { startIndex: number; endIndex: number }): Promise<void> {
     if (!this.db || wallpapers.length === 0) return;
 
-
-    // 计算正确的全局索引范围
+    // 计算正确的全局索引范围（同步内存查询）
     let startGlobalIndex: number;
-
     if (globalIndexRange) {
-      // 如果传入了范围，直接使用
       startGlobalIndex = globalIndexRange.startIndex;
     } else {
-      // 从 monthIndex 获取正确的索引
-      const range = await this.calculateRangeInChunkForMigration(month);
-      if (!range) {
-        return;
-      }
-      startGlobalIndex = range.start;
+      const idx = this.cachedMonthIndex.get(month);
+      if (!idx) return;
+      startGlobalIndex = idx.startIndex;
     }
 
-    // 在迁移前检查并清理空间
-    await this.cleanupHotStorage(wallpapers.length);
+    // 🚀 合并 cleanup + write 到同一个事务，避免额外事务开销
+    return new Promise(async (resolve, reject) => {
+      try {
+        // 先检查是否需要清理空间（仍需一次 count）
+        const currentCount = await this._getHotStoreCount();
+        const overload = (currentCount + wallpapers.length) - CACHE_CONFIG.maxHotEntries;
 
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readwrite');
-      const store = tx.objectStore(STORES.WALLPAPERS_HOT);
+        const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readwrite');
+        const store = tx.objectStore(STORES.WALLPAPERS_HOT);
 
-      // 批量添加，使用正确的 globalIndex
-      wallpapers.forEach((wallpaper, i) => {
-        store.put({
-          globalIndex: startGlobalIndex + i,
-          id: wallpaper.id,
-          month: month,
-          localIndex: i,
-          data: wallpaper,
-          cachedAt: new Date().toISOString()
-        });
-      });
+        // 如果超载，用同一事务的游标删除旧数据
+        if (overload > 0) {
+          const deleteLimit = overload + Math.floor(CACHE_CONFIG.maxHotEntries * 0.1);
+          const index = store.index('cachedAt');
+          let deleted = 0;
 
-      tx.oncomplete = () => {
-        resolve();
-      };
-
-      tx.onerror = () => {
-        reject(tx.error);
-      };
-    });
-  }
-
-  /**
-   * v4.0：为迁移计算正确的全局索引范围
-   */
-  private async calculateRangeInChunkForMigration(month: string): Promise<{ start: number; end: number } | null> {
-    if (!this.db) return null;
-
-    return new Promise((resolve) => {
-      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
-      const store = tx.objectStore(STORES.MONTH_INDEX);
-      const request = store.get(month);
-
-      request.onsuccess = () => {
-        const monthIndex = request.result;
-        if (monthIndex) {
-          resolve({ start: monthIndex.startIndex, end: monthIndex.endIndex });
-        } else {
-          resolve(null);
+          await new Promise<void>((resolveCursor, rejectCursor) => {
+            const cursorRequest = index.openCursor(); // 升序（最旧的在前）
+            cursorRequest.onsuccess = (event) => {
+              const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+              if (cursor && deleted < deleteLimit) {
+                cursor.delete();
+                deleted++;
+                cursor.continue();
+              } else {
+                resolveCursor();
+              }
+            };
+            cursorRequest.onerror = () => rejectCursor(cursorRequest.error);
+          });
         }
-      };
 
-      request.onerror = () => resolve(null);
+        // 在同一事务中批量写入新数据
+        const cachedAt = new Date().toISOString();
+        wallpapers.forEach((wallpaper, i) => {
+          store.put({
+            globalIndex: startGlobalIndex + i,
+            id: wallpaper.id,
+            month,
+            localIndex: i,
+            data: wallpaper,
+            cachedAt,
+          });
+        });
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
   /**
    * v4.0：从内存缓存查询 (LRU by globalIndex)
+   * 🚀 优化：O(1) LRU 刷新（delete+set 利用 Map 插入顺序）
    */
-  private async getFromMemoryCache(startIdx: number, endIdx: number): Promise<WallpaperData[]> {
+  private getFromMemoryCache(startIdx: number, endIdx: number): WallpaperData[] {
     const results: WallpaperData[] = [];
 
     for (let i = startIdx; i <= endIdx; i++) {
       const cached = this.lruCache.get(i);
       if (cached) {
         results.push(cached);
-        this.updateLRUOrder(i);
+        // O(1) LRU 刷新：delete 后 set 使其变为 Map 中最新插入（队尾）
+        this.lruCache.delete(i);
+        this.lruCache.set(i, cached);
       } else {
         // LRU 未命中，返回到此为止的结果
         break;
@@ -1119,29 +1068,20 @@ class DBManager {
 
   /**
    * v4.0：添加到 LRU 缓存
+   * 🚀 优化：O(1) 淘汰（Map.keys().next().value 永远是最旧的键）
    */
   private addToLRUCache(globalIndex: number, wallpaper: WallpaperData): void {
-    // 超过限制时移除最久未使用的
-    if (this.lruCache.size >= CACHE_CONFIG.maxMemoryCache) {
-      const lruIndex = this.lruOrder.pop();
-      if (lruIndex !== undefined) {
-        this.lruCache.delete(lruIndex);
+    if (this.lruCache.has(globalIndex)) {
+      // 已存在：先删除使其移到队尾
+      this.lruCache.delete(globalIndex);
+    } else if (this.lruCache.size >= CACHE_CONFIG.maxMemoryCache) {
+      // 超容量：淘汰队首（最旧的）
+      const oldestKey = this.lruCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.lruCache.delete(oldestKey);
       }
     }
-
     this.lruCache.set(globalIndex, wallpaper);
-    this.updateLRUOrder(globalIndex);
-  }
-
-  /**
-   * v4.0：更新 LRU 访问顺序
-   */
-  private updateLRUOrder(globalIndex: number): void {
-    const index = this.lruOrder.indexOf(globalIndex);
-    if (index > -1) {
-      this.lruOrder.splice(index, 1);
-    }
-    this.lruOrder.unshift(globalIndex);
   }
 
   /**
@@ -1177,101 +1117,35 @@ class DBManager {
 
   /**
    * v4.0：计算全局索引范围
-   * 根据月份和记录数，计算在全局索引中的范围
-   * 核心原则：按月份时间顺序（从旧到新）累加索引
+   * 🚀 优化：改为同步内存查询
    */
-  private async calculateGlobalIndexRange(month: string, recordCount: number): Promise<{ startIndex: number; endIndex: number }> {
-    // 策略：基于月份顺序计算
-    // 从 metadata 中获取所有已存储的月份及其记录数
-    if (!this.db) return { startIndex: 0, endIndex: recordCount - 1 };
-
-    return new Promise((resolve, reject) => {
-      const tx = this.db!.transaction([STORES.MONTH_INDEX], 'readonly');
-      const store = tx.objectStore(STORES.MONTH_INDEX);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const allIndexes = request.result || [];
-
-        // ✅ 修复：按月份时间顺序排序（从旧到新），而不是按 startIndex
-        allIndexes.sort((a, b) => a.month.localeCompare(b.month));
-
-
-        // 计算累计索引
-        let cumulativeIndex = 0;
-
-        for (const index of allIndexes) {
-          if (index.month === month) {
-            // 理论上这个月份应该已经存在，如果有则报错
-            resolve({ startIndex: index.startIndex, endIndex: index.endIndex });
-            return;
-          }
-
-          // 累加前一个月份的记录数
-          cumulativeIndex += index.recordCount;
-        }
-
-        // 如果没有找到该月份，说明是新月份
-        const startIndex = cumulativeIndex;
-        const endIndex = startIndex + recordCount - 1;
-
-        resolve({ startIndex, endIndex });
-      };
-
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * v6.0：热存储容量治理 - 如果超过限制则清理旧数据
-   * @param incomingCount 即将存入的数量
-   */
-  private async cleanupHotStorage(incomingCount: number): Promise<void> {
-    if (!this.db) return;
-
-    try {
-      const currentCount = await this._getHotStoreCount();
-      const overload = (currentCount + incomingCount) - CACHE_CONFIG.maxHotEntries;
-
-      if (overload <= 0) return;
-
-      // 清理过载数量 + 10% 的缓冲，避免频繁清理
-      const deleteLimit = overload + Math.floor(CACHE_CONFIG.maxHotEntries * 0.1);
-      
-      return new Promise((resolve, reject) => {
-        const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readwrite');
-        const store = tx.objectStore(STORES.WALLPAPERS_HOT);
-        const index = store.index('cachedAt');
-        
-        let deleted = 0;
-        const cursorRequest = index.openCursor(); // 默认升序（最旧的在前）
-
-        cursorRequest.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-          if (cursor && deleted < deleteLimit) {
-            cursor.delete();
-            deleted++;
-            cursor.continue();
-          } else {
-            resolve();
-          }
-        };
-
-        cursorRequest.onerror = () => reject(cursorRequest.error);
-        tx.oncomplete = () => resolve();
-      });
-    } catch (e) {
-      console.error('[DB Cache] Hot storage cleanup failed:', e);
+  private calculateGlobalIndexRange(month: string, recordCount: number): { startIndex: number; endIndex: number } {
+    // 如果该月份已在内存索引中，直接复用
+    const existing = this.cachedMonthIndex.get(month);
+    if (existing) {
+      return { startIndex: existing.startIndex, endIndex: existing.endIndex };
     }
+
+    // 新月份：按插入顺序（旧→新）累加计算起始索引
+    const allIndexes = Array.from(this.cachedMonthIndex.values()).sort(
+      (a, b) => a.month.localeCompare(b.month)
+    );
+    let cumulativeIndex = 0;
+    for (const index of allIndexes) {
+      cumulativeIndex += index.recordCount;
+    }
+    return { startIndex: cumulativeIndex, endIndex: cumulativeIndex + recordCount - 1 };
   }
+
+
+
 
   /**
    * v4.0：构建月份索引
-   * 为 v4.0 的 getByRange() 方法提供月份范围映射
+   * 写入 DB 后同步更新内存镜像
    */
   private async buildMonthIndex(month: string, startIndex: number, endIndex: number, recordCount: number): Promise<void> {
     if (!this.db) return;
-
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORES.MONTH_INDEX], 'readwrite');
@@ -1285,10 +1159,11 @@ class DBManager {
         createdAt: new Date().toISOString()
       };
 
-
       const request = store.put(monthIndexRecord);
 
       request.onsuccess = () => {
+        // 同步更新内存镜像
+        this.cachedMonthIndex.set(month, { month, startIndex, endIndex, recordCount });
         resolve();
       };
 
