@@ -26,11 +26,15 @@ class SWRegister {
 
     try {
       this.updateSW = registerSW({
-        onNeedRefresh() {
+        onNeedRefresh: () => {
           console.log('[SW] New content available, prompting for refresh...');
           // 可以触发一个全局的 UI 提示用户刷新
           if (confirm('发现新版本或新数据，是否刷新页面以应用？')) {
-            window.location.reload();
+            if (this.updateSW) {
+              this.updateSW(true);
+            } else {
+              window.location.reload();
+            }
           }
         },
         onOfflineReady() {

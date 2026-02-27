@@ -96,7 +96,7 @@ export default defineConfig({
             options: {
               cacheName: 'bing-images-cache',
               expiration: {
-                maxEntries: 500,
+                maxEntries: 50,
                 maxAgeSeconds: 60 * 24 * 60 * 60 // 60 Days
               },
               cacheableResponse: {
