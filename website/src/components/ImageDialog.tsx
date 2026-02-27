@@ -1,14 +1,21 @@
-import { useEffect, useState, type SyntheticEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, type SyntheticEvent, useCallback } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { useQueryState } from 'nuqs';
 import {
   Box,
   Typography,
   IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ShareIcon from '@mui/icons-material/Share';
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import type { WallpaperData } from '../types';
 
 interface Props {
@@ -30,11 +37,65 @@ const ImageDialog = ({
 }: Props) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showUI, setShowUI] = useState(true);
-  
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [zenMode, setZenMode] = useState(false);
+
+  // Swipe Direction tracking for animations
+  const [[page, direction], setPage] = useState([currentIndex, 0]);
+  useEffect(() => {
+    if (currentIndex !== page) {
+      setPage([currentIndex, currentIndex > page ? 1 : -1]);
+    }
+  }, [currentIndex, page]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   // 处理滑动变量
   const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
   const [touchEnd, setTouchEnd] = useState<{x: number, y: number} | null>(null);
   const minSwipeDistance = 50;
+
+  // URL 状态同步 (Deep Linking)
+  const [, setSharedId] = useQueryState('id', {
+    shallow: true,
+    history: 'push' // 关键点：大图模式开启时必须 Push History，从而劫持返回键
+  });
+
+  // 挂载和更新时同步 ID 与锁定背景滚动
+  useEffect(() => {
+    if (wallpaper?.id) {
+      setSharedId(wallpaper.id);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [wallpaper?.id, setSharedId]);
+
+  // 关闭对话框并清除 URL ID 的核心方法
+  const handleClose = useCallback(async () => {
+    await setSharedId(null);
+    onClose();
+  }, [onClose, setSharedId]);
+
+  // 劫持浏览器的物理返回事件 (PopState)
+  useEffect(() => {
+    if (!wallpaper) return;
+
+    const handlePopState = (e: PopStateEvent) => {
+      // 当用户按下手机的侧滑返回或浏览器的后退键时触发
+      // 我们拦截默认行为，直接调用关闭对话框
+      e.preventDefault();
+      onClose(); // 不调用 handleClose 因为 URL 在 popstate 时已经被浏览器 pop 掉了，再次 setSharedId 会打乱历史
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [wallpaper, onClose]);
 
   // 当切换图片时重置加载状态
   useEffect(() => {
@@ -48,7 +109,7 @@ const ImageDialog = ({
 
       switch (e.key) {
         case 'Escape':
-          onClose();
+          handleClose();
           break;
         case 'ArrowLeft':
         case 'ArrowUp':
@@ -65,13 +126,15 @@ const ImageDialog = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [wallpaper, currentIndex, allWallpapers.length, onClose, onPrevious, onNext]);
 
-  // 意念式控件：静止 3 秒后自动隐藏 UI
+  // 意念式控件：静止 3 秒后自动隐藏 UI (非 Zen Mode 下有效)
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const resetTimer = () => {
-      setShowUI(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setShowUI(false), 3000);
+      if (!zenMode) {
+        setShowUI(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(() => setShowUI(false), 3000);
+      }
     };
 
     // 监听各类交互事件来唤醒 UI
@@ -88,7 +151,18 @@ const ImageDialog = ({
       window.removeEventListener('touchstart', resetTimer);
       window.removeEventListener('keydown', resetTimer);
     };
-  }, []);
+  }, [zenMode, currentIndex]);
+
+  // 全沉浸“禅模式” (Zero-UI Focus)
+  const toggleZenMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZenMode(prev => !prev);
+    if (!zenMode) {
+       setShowUI(false); 
+    } else {
+       setShowUI(true);
+    }
+  };
 
   // 手势处理 (Touch Swipe)
   const onTouchStart = (e: React.TouchEvent) => {
@@ -118,23 +192,130 @@ const ImageDialog = ({
     } else if (!isHorizontalSwipe && Math.abs(distanceY) > minSwipeDistance) {
       if (distanceY < 0) {
         // Swipe Down: Close Dialog
-        onClose();
+        handleClose();
       }
     }
   };
 
+  // 真·无缝下载逻辑
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!wallpaper || isDownloading) return;
+    
+    setIsDownloading(true);
+    try {
+      const response = await fetch(wallpaper.downloadUrl);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      // 提取原始文件名或使用 fallback
+      const fileName = wallpaper.downloadUrl.split('/').pop()?.split('?')[0] || `bing-wallpaper-${wallpaper.id}.jpg`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      // 清理
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      
+      setToastMessage('下载已完成');
+    } catch (err) {
+      console.error('Download error:', err);
+      // Fallback
+      window.open(wallpaper.downloadUrl, '_blank');
+      setToastMessage('直接下载失败，已为您打开原图连接');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // 极简分享与复制逻辑
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!wallpaper) return;
+
+    // 构造带参数的 Deep Link 专属链接
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${wallpaper.id}`;
+    const shareTitle = `分享一张必应壁纸: ${wallpaper.title || wallpaper.copyright || wallpaper.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: wallpaper.copyright || undefined,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share error:', err);
+          fallbackCopyTextToClipboard(shareUrl);
+        }
+      }
+    } else {
+      fallbackCopyTextToClipboard(shareUrl);
+    }
+  };
+
+  const fallbackCopyTextToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setToastMessage('专属分享链接已复制到剪贴板');
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+      setToastMessage('复制链接失败');
+    });
+  };
+
   // Framer Motion 变体：用于背景的淡入淡出
-  const backdropVariants = {
+  const backdropVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },
   };
 
-  const uiVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { delay: 0.3 } }, // 图片落位后再显示 UI
+  // 极速空间淡入淡出 (Snappy Spatial Crossfade)
+  const slideVariants: Variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 40 : -40, // 仅极微小的偏移入场，拒绝拖泥带水
+      opacity: 0,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 40 : -40,
+      opacity: 0,
+    })
+  };
+
+  const uiVariants: Variants = {
+    hidden: { opacity: 0, transition: { duration: 0.15 } },
+    visible: { opacity: 1, transition: { duration: 0.4 } },
+  };
+
+  const textSequenceVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 0.2 }
+    }
+  };
+
+  const childItemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1, 
+      transition: { ease: [0.165, 0.84, 0.44, 1] as const, duration: 0.8 }
+    }
   };
 
   return (
+    <>
     <AnimatePresence>
       {wallpaper && (
         <Box
@@ -156,7 +337,7 @@ const ImageDialog = ({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            onClick={onClose}
+            onClick={handleClose}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{
               position: 'absolute',
@@ -164,35 +345,68 @@ const ImageDialog = ({
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.95)', // 极度深邃的黑
-              backdropFilter: 'blur(20px) brightness(60%)', // 显著降低高昂的毛玻璃开销以解决卡顿
-              WebkitBackdropFilter: 'blur(20px) brightness(60%)',
-              cursor: 'zoom-out',
+              backgroundColor: 'rgba(5, 5, 5, 0.98)', // 极简纯黑，移除所有高昂的毛玻璃滤镜释放 GPU
+              willChange: 'opacity', // HW Acceleration
             }}
           />
 
           {/* 核心图片：基于 AnimatePresence 的无缝切换与触屏手势层 */}
-          <AnimatePresence>
+          <AnimatePresence initial={false} custom={direction}>
+            {/* 主图展示区 */}
             <motion.div
-              key={`wallpaper-container-${wallpaper.id}`}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              key={`wallpaper-container-${wallpaper.id}`} // Keep the key for AnimatePresence
+              layoutId={`wallpaper-image-${wallpaper.id}`} // 英雄动画，与卡片关联
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              onDoubleClick={toggleZenMode} // [Zero-UI Focus] 双击进入/退出禅模式
+              drag={isMobile ? "y" : false} // [Mobile] 允许 Y 轴拖拽
+              dragConstraints={{ top: 0, bottom: 0 }} // 阻尼限制中心点位置
+              dragElastic={0.8} // 高阻尼拉伸感
+              onDragEnd={(_, info) => {
+                // 如果滑动速度快，或者绝对拖拽距离过高，则触发关闭动画 (Physics Drag-to-Dismiss)
+                if (Math.abs(info.offset.y) > 150 || Math.abs(info.velocity.y) > 500) {
+                  onClose();
+                }
+              }}
+              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] as const }} // 极具进攻性的爽快弹射曲线
               style={{
-                position: 'absolute',
+                width: '100%',
+                height: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '100vw', // 满屏宽容度
-                height: '100vh',
-                zIndex: 1301,
+                padding: isMobile ? 0 : '4vmin',
+                position: 'relative',
+                zIndex: 1,
               }}
+              // 随拖拽位移与变形的动态滤镜效果
+              whileDrag={{ scale: 0.9, borderRadius: '32px' }}
               // 绑定触控手势
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
             >
+              {/* [视觉奇观] 全息环境光泛光池 - 性能极速版 (Hardware Accelerated Ambilight) */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '80vw',
+                  height: '80vh',
+                  transform: 'translate3d(-50%, -50%, 0)', // Force GPU layer
+                  // 使用极其平滑的渐变色圈代替真实的模糊计算，降低10倍GPU渲染压力
+                  background: `radial-gradient(ellipse at center, rgba(${parseInt(wallpaper.dominantColor.slice(0, 2), 16)}, ${parseInt(wallpaper.dominantColor.slice(2, 4), 16)}, ${parseInt(wallpaper.dominantColor.slice(4, 6), 16)}, 0.4) 0%, transparent 60%)`,
+                  opacity: imageLoaded ? 1 : 0, 
+                  transition: 'opacity 1s ease-in-out',
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                  willChange: 'opacity', // 告诉浏览器仅这一层会变
+                }}
+              />
               <Box
                 sx={{
                   position: 'relative',
@@ -201,8 +415,9 @@ const ImageDialog = ({
                   maxWidth: '100%',
                   maxHeight: '100%',
                   backgroundColor: `#${wallpaper.dominantColor}`,
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)', // 降低渲染消耗
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)', 
                   overflow: 'hidden',
+                  zIndex: 1, // 抬高层级以盖住光晕
                   // Skeleton Shimmer effect
                   '&::before': {
                     content: '""',
@@ -257,140 +472,274 @@ const ImageDialog = ({
               zIndex: 1302,
             }}
           >
-            {/* 关闭按钮 */}
-            <IconButton
-              onClick={onClose}
-              sx={{
+            {/* 关闭按钮 (Gallery Minimalist Close) */}
+            <motion.div 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.9 }}
+              style={{
                 position: 'absolute',
-                top: 24,
-                right: 24,
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
+                top: 32,
+                right: 32,
+                zIndex: 1301,
                 pointerEvents: 'auto',
-                backdropFilter: 'blur(10px)',
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
               }}
             >
-              <CloseIcon />
-            </IconButton>
-
-            {/* 上一张按钮 */}
-            {currentIndex > 0 && (
               <IconButton
-                onClick={(e) => { e.stopPropagation(); onPrevious(); }}
+                onClick={onClose}
                 sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: 24,
-                  transform: 'translateY(-50%)',
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  pointerEvents: 'auto',
-                  backdropFilter: 'blur(10px)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
+                  width: 48,
+                  height: 48,
+                  bgcolor: 'rgba(0, 0, 0, 0.2)', // 微微偏暗的毛玻璃，适应任何亮度的背景图
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    bgcolor: 'rgba(255, 255, 255, 0.15)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                  },
                 }}
               >
-                <ArrowBackIcon fontSize="large" />
+                <CloseIcon />
               </IconButton>
-            )}
+            </motion.div>
 
-            {/* 下一张按钮 */}
-            {currentIndex < allWallpapers.length - 1 && (
-              <IconButton
-                onClick={(e) => { e.stopPropagation(); onNext(); }}
-                sx={{
+            {/* 桌面端高定画廊级左右翻页控件 (Gallery Navigators) */}
+            {!isMobile && currentIndex > 0 && (
+              <motion.div 
+                whileHover={{ scale: 1.1, x: -4 }} 
+                whileTap={{ scale: 0.9 }}
+                style={{
                   position: 'absolute',
-                  top: '50%',
-                  right: 24,
-                  transform: 'translateY(-50%)',
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
+                  top: '50%', 
+                  left: 48,
+                  marginTop: -28, // height is 56, offset to true center
+                  zIndex: 1301,
                   pointerEvents: 'auto',
-                  backdropFilter: 'blur(10px)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
                 }}
               >
-                <ArrowForwardIcon fontSize="large" />
-              </IconButton>
+                <IconButton
+                  onClick={(e) => { e.stopPropagation(); onPrevious(); }}
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
+                    '&:hover': { 
+                      bgcolor: 'rgba(255, 255, 255, 0.15)',
+                      color: 'white',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      boxShadow: '0 0 30px rgba(255,255,255,0.15)'
+                    },
+                  }}
+                >
+                  <KeyboardArrowLeftIcon fontSize="large" sx={{ ml: -0.5 }} />
+                </IconButton>
+              </motion.div>
             )}
+
+            {!isMobile && currentIndex < allWallpapers.length - 1 && (
+              <motion.div 
+                whileHover={{ scale: 1.1, x: 4 }} 
+                whileTap={{ scale: 0.9 }}
+                style={{
+                  position: 'absolute',
+                  top: '50%', 
+                  right: 48,
+                  marginTop: -28,
+                  zIndex: 1301,
+                  pointerEvents: 'auto',
+                }}
+              >
+                <IconButton
+                  onClick={(e) => { e.stopPropagation(); onNext(); }}
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
+                    '&:hover': { 
+                      bgcolor: 'rgba(255, 255, 255, 0.15)',
+                      color: 'white',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      boxShadow: '0 0 30px rgba(255,255,255,0.15)'
+                    },
+                  }}
+                >
+                  <KeyboardArrowRightIcon fontSize="large" />
+                </IconButton>
+              </motion.div>
+            )}
+
 
             {/* 底部信息栏 */}
+            {/* [Gallery Typography] 极简艺术展签栏 */}
             <Box
               sx={{
                 position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                p: { xs: 3, md: 4 },
-                background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                pointerEvents: 'auto',
+                bottom: { xs: 32, md: 48 },
+                left: { xs: 24, md: 48 },
+                right: { xs: 24, md: 48 },
+                pointerEvents: 'none', // 让内层元素的 auto 生效，外层不挡底部点击
               }}
             >
-              <Box key={wallpaper.id} sx={{ color: 'white', maxWidth: '70%' }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600, 
-                    mb: 1, 
-                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                    // Typewriter Effect (No cursor)
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    width: '0',
-                    animation: 'typing 1s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
-                    animationDelay: '0.4s', // 图片出现后再开始打字
-                    '@keyframes typing': {
-                      from: { width: '0' },
-                      to: { width: '100%' }
-                    }
-                  }}
-                >
-                  {wallpaper.copyright || '无版权信息'}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    opacity: 0, // 初始隐藏
-                    display: 'flex', 
-                    gap: 2,
-                    animation: 'fadeInUp 0.6s ease forwards',
-                    animationDelay: '1.0s', // 稍微提早一点淡入
-                    '@keyframes fadeInUp': {
-                      from: { opacity: 0, transform: 'translateY(10px)' },
-                      to: { opacity: 0.8, transform: 'translateY(0)' }
-                    }
-                  }}
-                >
-                  <span>📅 {wallpaper.dateFmt || wallpaper.date}</span>
-                  {wallpaper.title && <span>📝 {wallpaper.title}</span>}
-                  <span>🖼️ {currentIndex + 1} / {allWallpapers.length}</span>
-                </Typography>
-              </Box>
-
-              <IconButton
-                onClick={(e) => { e.stopPropagation(); window.open(wallpaper.downloadUrl, '_blank'); }}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: '#666',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: '100px',
-                  '&:hover': { bgcolor: 'primary.dark' },
+              <motion.div
+                key={`info-${wallpaper.id}`}
+                variants={textSequenceVariants}
+                initial="hidden"
+                animate="visible"
+                style={{
                   display: 'flex',
-                  gap: 1,
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                  width: '100%',
                 }}
               >
-                <DownloadIcon />
-                <Typography variant="button" sx={{ fontWeight: 600, color: '#666' }}>下载原图</Typography>
-              </IconButton>
+                {/* 左侧：画作元数据 (The Art) */}
+                <div style={{ color: 'white', maxWidth: '70%', pointerEvents: 'auto' }}>
+                  <motion.div variants={childItemVariants}>
+                    <Typography 
+                      variant="h5" 
+                      sx={{ 
+                        fontFamily: '"Times New Roman", Times, serif', // 衬线体复古人文感
+                        fontWeight: 400, 
+                        letterSpacing: '0.02em',
+                        lineHeight: 1.2,
+                        mb: 1.5, 
+                        textShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {wallpaper.copyright || '无版权信息'}
+                    </Typography>
+                  </motion.div>
+                  
+                  <motion.div 
+                    variants={childItemVariants}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: 4,
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        fontWeight: 600,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      {wallpaper.title}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        fontWeight: 300,
+                        letterSpacing: '0.05em',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                      }}
+                    >
+                      {(() => {
+                        // 将 2026-02-23 转为 FEB 23, 2026
+                        if (!wallpaper.date) return '';
+                        try {
+                          const d = new Date(String(wallpaper.date).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+                          return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase();
+                        } catch (e) {
+                          return wallpaper.date;
+                        }
+                      })()}
+                    </Typography>
+                  </motion.div>
+                </div>
+
+                {/* 右侧：徕卡级交互圆柱钮 (The Tools) */}
+                <motion.div variants={childItemVariants} style={{ display: 'flex', gap: 16, pointerEvents: 'auto' }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
+                    <IconButton
+                      onClick={handleShare}
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': { 
+                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.8)',
+                          boxShadow: '0 0 20px rgba(255,255,255,0.2)'
+                        },
+                      }}
+                    >
+                      <ShareIcon fontSize="small" />
+                    </IconButton>
+                  </motion.div>
+
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
+                    <IconButton
+                      onClick={handleDownload}
+                      disabled={isDownloading}
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': { 
+                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.8)',
+                          boxShadow: '0 0 20px rgba(255,255,255,0.2)'
+                        },
+                        '&.Mui-disabled': {
+                          bgcolor: 'rgba(255, 255, 255, 0.05)',
+                          color: 'rgba(255, 255, 255, 0.3)',
+                        }
+                      }}
+                    >
+                      {isDownloading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon fontSize="small" />}
+                    </IconButton>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
             </Box>
           </motion.div>
         </Box>
       )}
     </AnimatePresence>
+
+    {/* Toast 通知层，脱离 AnimatePresence 保持可见 */}
+    <Snackbar
+      open={!!toastMessage}
+      autoHideDuration={3000}
+      onClose={() => setToastMessage(null)}
+      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      sx={{ zIndex: 9999 }}
+    >
+      <Alert onClose={() => setToastMessage(null)} severity="success" sx={{ width: '100%', borderRadius: '100px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        {toastMessage}
+      </Alert>
+    </Snackbar>
+    </>
   );
 };
 

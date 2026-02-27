@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 
 interface TimelineProps {
   months: string[]; // ['2025年02月', '2025年01月', ...]
@@ -14,6 +14,7 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   const [isDragging, setIsDragging] = useState(false);
   
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -93,6 +94,10 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
     if (e.type === 'pointermove') {
       setHoverMonth(targetMonth);
       if (isDragging && targetMonth !== activeMonth) {
+        // [极客细节] 神经末梢马达共振 - 跨越卡点时给予极微弱的物理震动
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+           navigator.vibrate(10); // 10ms 的极简短促震动
+        }
         setActiveMonth(targetMonth);
         scrollToMonth(targetMonth);
       }
@@ -136,6 +141,15 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   // 用来确定气泡显示的主体，拖拽或悬停时显示精确月，否则显示当前视野月
   const displayMonth = isHovering || isDragging ? (hoverMonth || activeMonth) : activeMonth;
   
+  // 优雅的格式化给展示用
+  let displayFormatted = displayMonth;
+  const dateMatch = displayMonth.match(/^(\d{4})-(\d{2})$/);
+  if (dateMatch) {
+     const year = dateMatch[1];
+     const monthIdx = parseInt(dateMatch[2], 10);
+     displayFormatted = `${year} 年 ${monthIdx} 月`;
+  }
+
   // 计算气泡和高亮的相对位置
   const displayIndex = months.indexOf(displayMonth);
   // 百分比映射偏移：0 到 100% 对齐中心点
@@ -173,7 +187,8 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
         sx={{
           position: 'absolute',
           right: { xs: 32, md: 48 }, // 与光点拉开距离
-          top: `calc(${bubbleTopPercent}%)`, 
+          // [工学补偿] 移动端大拇指常常遮挡视线，这里将其大幅度推高 60px 避开指腹盲区
+          top: `calc(${bubbleTopPercent}% - ${isMobile ? '60px' : '0px'})`, 
           transform: 'translateY(-50%)',
           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
           fontWeight: 800, // 极粗
@@ -191,7 +206,7 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
             : '0 4px 24px rgba(0,0,0,0.2), 0 1px 3px rgba(255,255,255,1)',
         }}
       >
-        {displayMonth}
+        {displayFormatted}
       </Typography>
 
 
@@ -225,18 +240,22 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
           // 计算距离手指的相对距离，用于动态放大圆点 (模拟磁吸与呼吸涟漪)
           let distanceScale = 1;
           let distanceOpacity = 0.15; // 基础超低透明度
+          let translateX = 0; // 磁吸 X 轴形变 (Parallax Bending)
           const diff = Math.abs(index - displayIndex);
           
           if (isHovering || isDragging) {
             if (diff === 0) {
               distanceScale = 3.5; // 当前悬停项最大
               distanceOpacity = 1;
+              translateX = -8; // 主节点向左（外）突击最远
             } else if (diff === 1) {
               distanceScale = 2; // 旁边项稍大
               distanceOpacity = 0.6;
+              translateX = -5; // 紧邻节点跟随隆起
             } else if (diff === 2) {
               distanceScale = 1.2;
               distanceOpacity = 0.3;
+              translateX = -2; // 边缘节点微弱受到引力
             }
           } else {
             // 平时态，只有当前活动月亮起
@@ -289,7 +308,7 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
                   borderRadius: '50%',
                   bgcolor: theme.palette.text.primary,
                   opacity: distanceOpacity,
-                  transform: `scale(${distanceScale})`,
+                  transform: `translateX(${translateX}px) scale(${distanceScale})`,
                   transition: isDragging ? 'transform 0.1s, opacity 0.1s' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                   transformOrigin: 'right center', // 向左膨胀
                   boxShadow: diff === 0 && (isHovering || isDragging) 

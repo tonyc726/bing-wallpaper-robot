@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import { useQueryState } from 'nuqs';
 import {
   Grid,
@@ -15,23 +15,29 @@ import {
   IconButton,
   useTheme,
   alpha,
+  useMediaQuery,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import ClearIcon from '@mui/icons-material/Clear';
 import WallpaperCard from './WallpaperCard';
+import TimelineScrubber from './TimelineScrubber';
+import ColorScrubber from './ColorScrubber';
+import { getHexColorCategory, COLOR_ORDER } from '../utils/colorUtils';
 import type { WallpaperData, WallpapersGroupData, IndexData } from '../types';
 
 interface Props {
   data: WallpapersGroupData[];
-  onImageClick: (wallpaper: WallpaperData) => void;
+  onImageClick: (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => void;
   favorites: Set<string>;
   onToggleFavorite: (wallpaper: WallpaperData) => void;
   indexData: IndexData | null;
   loadingMonths: Set<string>;
   loadMonthData: (month: string) => Promise<void>;
+  loadAllData: () => Promise<Map<string, WallpaperData[]> | undefined>;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   activeSharedId?: string | null;
@@ -39,17 +45,26 @@ interface Props {
 
 const ITEMS_PER_PAGE = 24;
 
-// 提取单个月份模块，便于独立拥有 IntersectionObserver 逻辑
-const MonthSection: React.FC<{
+interface MonthSectionProps {
   group: WallpapersGroupData;
   loading: boolean;
   loadMonthData: (month: string) => void;
-  onImageClick: (wallpaper: WallpaperData) => void;
+  onImageClick: (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => void;
+  contextWallpapers: WallpaperData[]; // 传入当前过滤后的上下文合集
   favorites: Set<string>;
   onToggleFavorite: (wallpaper: WallpaperData) => void;
-}> = React.memo(({ group, loading, loadMonthData, onImageClick, favorites, onToggleFavorite }) => {
+  sortBy?: string | null;
+}
+
+const MonthSection: React.FC<MonthSectionProps> = React.memo(({ group, loading, loadMonthData, onImageClick, contextWallpapers, favorites, onToggleFavorite }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
+  
+  // 用于浅路由状态同步
+  const [, setQueryMonth] = useQueryState('month', {
+    shallow: true,
+    history: 'replace' // 滚动时不产生大量的历史记录堆栈
+  });
 
   useEffect(() => {
     // 只有在数据未加载且不在 loading 中才观测
@@ -61,14 +76,40 @@ const MonthSection: React.FC<{
           loadMonthData(group.groupMonth);
         }
       },
-      { rootMargin: '400px' } // 提前 400px 触发
+      { rootMargin: '400px' } // 提前 400px 触发加载
     );
 
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-    return () => observer.disconnect();
+    
+    return () => {
+      observer.disconnect();
+    };
   }, [group.groupMonth, group.wallpapers.length, loading, loadMonthData]);
+
+  // 独立的 URL 同步观察器，不受数据加载状态限制（常驻）
+  useEffect(() => {
+    // 专门用于 URL 同步的观察器，触发区域限定在屏幕上半部分
+    const syncObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          // 当前月份块的主体进入了屏幕视界中心，静默更新 URL
+          setQueryMonth(group.groupMonth);
+        }
+      },
+      // rootMargin 逻辑：只在元素进入视口顶部 10% 到 50% 的核心区域时触发，避免轻微滚动导致的乱跳
+      { rootMargin: '-10% 0px -50% 0px' } 
+    );
+
+    if (containerRef.current) {
+      syncObserver.observe(containerRef.current);
+    }
+    
+    return () => {
+      syncObserver.disconnect();
+    };
+  }, [group.groupMonth, setQueryMonth]);
 
   // 如果没有数据，渲染骨架屏
   const isSkeleton = group.wallpapers.length === 0;
@@ -76,72 +117,166 @@ const MonthSection: React.FC<{
 
   if (renderCount === 0) return null;
 
+  // 优雅的格式化
+  let watermarkText = group.groupMonth;
+  
+  const dateMatch = group.groupMonth.match(/^(\d{4})-(\d{2})$/);
+  if (dateMatch) {
+    const year = dateMatch[1];
+    const monthIdx = parseInt(dateMatch[2], 10) - 1;
+    const enMonths = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    watermarkText = `${enMonths[monthIdx]} ${year}`;
+  } else if (group.groupMonth.includes('年') && group.groupMonth.includes('月')) {
+      // 防止过滤/排序组合产生了类似 2026年02月 的旧数据缓存
+      watermarkText = group.groupMonth.replace('年', '').replace('月', ''); // 去除年月，变成 2026 02
+  }
+
+  // 为电影感排版解析数据
+  let cinematicYear = '';
+  let cinematicMonthEn = '';
+  let cinematicMonthCn = '';
+
+  const dateMatchCinema = group.groupMonth.match(/^(\d{4})-(\d{2})$/);
+  if (dateMatchCinema) {
+    cinematicYear = dateMatchCinema[1];
+    const mIdx = parseInt(dateMatchCinema[2], 10) - 1;
+    const enMonths = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    const cnMonths = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+    cinematicMonthEn = enMonths[mIdx];
+    cinematicMonthCn = cnMonths[mIdx];
+  } else {
+    // 兼容回退
+    cinematicMonthEn = watermarkText;
+    cinematicMonthCn = '';
+  }
+
   return (
-    <Box ref={containerRef} sx={{ mb: { xs: 8, md: 12 }, position: 'relative' }}>
-        {/* 幽灵表头 (Ghost Header) - 悬浮在背景之上的巨大空灵文字 */}
-      <Typography
-        variant="h1" // 使用巨大的 h1
-        id={`month-${group.groupMonth.replace('年', '-').replace('月', '')}`}
+    <Box ref={containerRef} sx={{ mb: { xs: 8, md: 15 }, position: 'relative' }}>
+        {/* 方案 C (Kinetic Typography 动效排版) - 出血级幽灵水印伴随滚动视差 */}
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0, y: 100 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.1, margin: "200px" }} // 滚动视差进入
+        transition={{ duration: 1.2, ease: [0.165, 0.84, 0.44, 1] }}
         sx={{
           position: 'absolute',
-          top: { xs: -30, md: -60 }, // 错位向上偏移，打破网格束缚
-          left: { xs: 16, md: 32 },
-          zIndex: 0, // 沉在图片底部或仅作为水印
-          fontWeight: 900,
-          color: 'transparent',
-          WebkitTextStroke: `1px ${alpha(theme.palette.text.primary, 0.15)}`, // 空心字效果
-          letterSpacing: '-0.04em',
-          whiteSpace: 'nowrap',
+          top: { xs: -40, md: -120 }, // 更激进的错位，拉开空间层次
+          left: { xs: -20, md: -60 }, // 出血设计 (Bleed) - 故意超出屏幕边缘截断部分字母，极具张力
+          zIndex: 0, // 沉在图片底部
           pointerEvents: 'none',
           userSelect: 'none',
-          textTransform: 'uppercase',
-          fontSize: { xs: '4rem', sm: '6rem', md: '10rem' },
-          lineHeight: 0.8,
-          opacity: 0,
-          animation: 'headerReveal 1s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
-          '@keyframes headerReveal': {
-            '0%': { opacity: 0, transform: 'translateY(100px)' },
-            '100%': { opacity: 1, transform: 'translateY(0)' }
-          }
         }}
       >
-        {group.groupMonth.replace('年', '.').replace('月', '')}
-      </Typography>
+        <Typography
+          variant="h1" // 使用巨大的 h1
+          id={`month-${group.groupMonth.replace(/年|月/g, '').replace(/\./g, '-')}`}
+          sx={{
+            fontWeight: 900,
+            color: 'transparent',
+            WebkitTextStroke: `1px ${alpha(theme.palette.text.primary, 0.12)}`, // 极淡的描边
+            letterSpacing: '-0.05em', // 极致收紧
+            whiteSpace: 'nowrap',
+            textTransform: 'uppercase',
+            fontSize: { xs: '6rem', sm: '10rem', md: '18rem', lg: '24rem' }, // 视觉核弹级的字号
+            lineHeight: 0.8,
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          }}
+        >
+          {watermarkText}
+        </Typography>
+      </Box>
 
-      {/* 针对屏幕阅读器和粘性导视的幽灵悬浮标签 */}
-      <Typography
-        variant="h6"
+      {/* 方案 B (Cinematic 电影感) - 吸顶导航的微排版结构 */}
+      <Box
         sx={{
           position: 'sticky',
           top: 0,
           zIndex: 100, // 高于图片
-          py: 2,
-          px: { xs: 2, md: 4 },
-          fontWeight: 700,
-          color: theme.palette.text.primary,
-          // 极致的融合渐变：只在文字背后有一层极其微弱的遮罩
-          background: `linear-gradient(to bottom, ${alpha(theme.palette.background.default, 0.8)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`,
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          py: { xs: 2, md: 3 },
+          // 极致的融合渐变遮罩
+          background: `linear-gradient(to bottom, ${alpha(theme.palette.background.default, 0.95)} 0%, ${alpha(theme.palette.background.default, 0.7)} 50%, ${alpha(theme.palette.background.default, 0)} 100%)`,
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           pointerEvents: 'none', // 不阻挡底层图片的交互
-          textShadow: `0 2px 12px ${theme.palette.background.default}`, // 增加文字清晰度
+          display: 'flex',
+          alignItems: 'center',
+          gap: { xs: 2, md: 4 }, // 年份和月份间的极简留白
+          px: { xs: 2.5, md: 4.5 },
         }}
       >
-        {group.groupMonth}
-      </Typography>
+        {/* 左侧：横转 90 度的极小年份标识 */}
+        {cinematicYear && (
+          <Typography
+            sx={{
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)', // 让字头朝左
+              fontSize: { xs: '0.6rem', md: '0.75rem' },
+              fontWeight: 700,
+              letterSpacing: '0.2em',
+              color: alpha(theme.palette.text.primary, 0.5),
+              fontFamily: '"Inter", "Helvetica", sans-serif',
+            }}
+          >
+            {cinematicYear}
+          </Typography>
+        )}
+        
+        {/* 右侧：超粗字距全大写月份 + 下方微细中文 */}
+        <Box display="flex" flexDirection="column" justifyContent="center">
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 900,
+              letterSpacing: { xs: '0.1em', md: '0.3em' }, // 电影感精髓：拉开巨宽的字间距
+              color: theme.palette.text.primary,
+              textTransform: 'uppercase',
+              lineHeight: 1,
+              fontFamily: '"Inter", "Helvetica", sans-serif',
+              textShadow: `0 4px 24px ${alpha(theme.palette.background.default, 0.8)}`,
+            }}
+          >
+            {cinematicMonthEn}
+          </Typography>
+          {cinematicMonthCn && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                letterSpacing: '0.3em',
+                color: alpha(theme.palette.text.primary, 0.4),
+                marginTop: { xs: '4px', md: '8px' },
+                paddingLeft: '4px', // 对齐光学视觉边缘
+              }}
+            >
+              {cinematicMonthCn}
+            </Typography>
+          )}
+        </Box>
+      </Box>
 
-      {/* Ultra High Density Grid (0-2px Gutter, Edge-to-Edge) */}
+      {/* Ultra High Density Asymmetric Grid */}
       <Grid
         container
-        spacing={{ xs: 0, md: 0.25 }} // 移动端 0 缝隙，PC 2px
+        spacing={{ xs: 0, md: 0.5 }} // 移动端 0 缝隙，PC 4px 细缝
         sx={{ px: 0, zIndex: 1, position: 'relative' }} // 彻底去除两边 padding
       >
         {/* 骨架屏或内容映射 */}
         {isSkeleton ? (
-          Array.from({ length: renderCount }).map((_, i) => (
+          Array.from({ length: renderCount }).map((_, i) => {
+            // 骨架屏也遵循不规则排版
+            const isFeatured = i % 7 === 0;
+            const isTabletFeatured = i % 5 === 0;
+            const spanXs = 6;
+            const spanSm = isTabletFeatured ? 8 : 4;
+            const spanMd = isFeatured ? 6 : 3;
+            const spanLg = isFeatured ? 4 : 2;
+            const spanXl = isFeatured ? 3 : 1.5;
+
+            return (
             <Grid 
               item 
-              xs={6} sm={4} md={3} lg={2} xl={1.5} 
+              xs={spanXs} sm={spanSm} md={spanMd} lg={spanLg} xl={spanXl} 
               key={`skeleton-${group.groupMonth}-${i}`}
             >
               <Box sx={{ paddingTop: '56.25%', position: 'relative', width: '100%', bgcolor: alpha(theme.palette.text.primary, 0.04), overflow: 'hidden' }}>
@@ -157,12 +292,28 @@ const MonthSection: React.FC<{
                 />
               </Box>
             </Grid>
-          ))
+            );
+          })
         ) : (
-          group.wallpapers.map((wallpaper, index) => (
+          group.wallpapers.map((wallpaper, index) => {
+            // ====== 核心算法：杂志级混排 (Magazine Grid) ======
+            // 通过赋予特定的图片更大的跨度（Span），打破平庸的网格
+            // 规则：每 7 张图出一次大图（跨度翻倍）。平板下每 5 张出一次。
+            // 但如果最后一张落单，导致排版碎裂，需要额外的补齐逻辑，这里优先简单数学律
+            const isFeatured = index % 7 === 0;
+            const isTabletFeatured = index % 5 === 0;
+            
+            // 响应式 Span 计算
+            const spanXs = 6; // 手机上依然是 2 列，保证可读性
+            const spanSm = isTabletFeatured ? 8 : 4; // Flat 8/4 = 2/1 比例
+            const spanMd = isFeatured ? 6 : 3; // 12列制：特色图占一半，普通占 1/4
+            const spanLg = isFeatured ? 4 : 2; // 12列制：特色占 1/3，普通占 1/6
+            const spanXl = isFeatured ? 3 : 1.5;
+
+            return (
             <Grid
               item 
-              xs={6} sm={4} md={3} lg={2} xl={1.5} 
+              xs={spanXs} sm={spanSm} md={spanMd} lg={spanLg} xl={spanXl} 
               key={wallpaper.id}
             >
               <Box
@@ -179,20 +330,22 @@ const MonthSection: React.FC<{
               >
                 <WallpaperCard
                   wallpaper={wallpaper}
-                  onImageClick={onImageClick}
+                  onImageClick={(w) => onImageClick(w, contextWallpapers)}
                   isFavorite={favorites.has(wallpaper.id)}
                   onToggleFavorite={onToggleFavorite}
                 />
               </Box>
             </Grid>
-          ))
+            );
+          })
         )}
       </Grid>
     </Box>
   );
-}, (prevProps, nextProps) => {
+}, (prevProps: MonthSectionProps, nextProps: MonthSectionProps) => {
   if (prevProps.group.groupMonth !== nextProps.group.groupMonth) return false;
   if (prevProps.loading !== nextProps.loading) return false;
+  if (prevProps.sortBy !== nextProps.sortBy) return false;
   
   // Custom check for favorites: only re-render if a wallpaper IN THIS GROUP changed favorite status 
   // (Prevents entire Timeline from re-rendering when one image is favorited)
@@ -214,23 +367,31 @@ const WallpaperGrid: React.FC<Props> = ({
   onToggleFavorite,
   loadingMonths,
   loadMonthData,
+  loadAllData,
   darkMode,
   setDarkMode,
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // === URL 状态管理 ===
   const [searchTerm, setSearchTerm] = useQueryState('q');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortBy, setSortBy] = useQueryState('sort', {
     defaultValue: 'date-desc',
   });
   
-  // 解决输入卡顿：使用本地状态加上防抖延迟，防止频繁重新过滤导致浏览器线程阻塞
   const [localSearch, setLocalSearch] = useState(searchTerm || '');
+  const isComposingRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const val = localSearch || null;
+      // 1. 如果处于中文等输入法组合状态（如拼音未完成），则暂不触发真实搜索
+      if (isComposingRef.current) return;
+
+      // 2. 规范化用户的输入：去前后空格，将连续多个特殊空白字符合并为单空格
+      const cleanTerm = localSearch.replace(/\s+/g, ' ').trim();
+      const val = cleanTerm || null;
       if (searchTerm !== val) {
         setSearchTerm(val);
       }
@@ -239,11 +400,24 @@ const WallpaperGrid: React.FC<Props> = ({
   }, [localSearch, searchTerm, setSearchTerm]);
 
   useEffect(() => {
-    // 处理从 URL 外部返回带来的更新
-    if (searchTerm !== localSearch && (searchTerm || '') !== localSearch) {
+    // 【核心修复】如果用户正在使用输入法（比如还没打完“中国”），坚决不要用外面的 searchTerm 去覆盖 localSearch！
+    // 此外，只要输入框正处于焦点/激活状态（isSearchExpanded 为 true），即使用户敲了 Backspace 导致防抖定时器尚未触发，
+    // URL的searchTerm和此刻的localSearch不一致，也绝不可以去强行覆盖，否则就会导致“删不掉”的退格吞噬现象。
+    if (!isComposingRef.current && !isSearchExpanded && searchTerm !== localSearch && (searchTerm || '') !== localSearch) {
       setLocalSearch(searchTerm || '');
     }
-  }, [searchTerm, localSearch]);
+  }, [searchTerm, localSearch, isSearchExpanded]);
+
+  const handleComposition = (e: React.CompositionEvent<HTMLInputElement>) => {
+    if (e.type === 'compositionstart') {
+      isComposingRef.current = true;
+    } else if (e.type === 'compositionend') {
+      isComposingRef.current = false;
+      // 当拼音输入结束时，我们不再在这里直接去把 state 写进 searchTerm（因为会跳过防抖）
+      // 我们仅仅释放 isComposingRef，让刚才那个因为依赖项 [localSearch] 已经被触发的 useEffect 计时器
+      // 顺利跑到 if (isComposingRef.current) return; 的时候发现是 false，从而走通正常防抖流程
+    }
+  };
   const [selectedYear] = useQueryState('year', {
     defaultValue: 'all',
     parse: (value) => value || 'all',
@@ -281,13 +455,20 @@ const WallpaperGrid: React.FC<Props> = ({
 
     // 搜索过滤
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (w) =>
-          w.copyright?.toLowerCase().includes(term) ||
-          w.id.toLowerCase().includes(term) ||
-          w.title?.toLowerCase().includes(term),
-      );
+      // 允许多个关键词（空格分隔）的“且”关系搜索，大大提升精准度
+      const terms = searchTerm.toLowerCase().split(' ').filter(Boolean);
+      
+      result = result.filter((w) => {
+        // 构建全信息检索长文本
+        const searchableText = [
+          w.title || '',
+          w.copyright || '',
+          w.id || '',
+        ].join(' ').toLowerCase();
+
+        // 只有当所有的搜索词段都在这张壁纸的相关信息中找到时，才算匹配成功（AND 关系）
+        return terms.every(term => searchableText.includes(term));
+      });
     }
 
     // (可选的) 年份过滤，隐藏在底层，供特殊的URL直达使用
@@ -327,43 +508,89 @@ const WallpaperGrid: React.FC<Props> = ({
   // === 第四步：截取当前可见数量 (Client Pagination) ===
   const visibleWallpapers = sortedWallpapers.slice(0, visibleCount);
 
-  // === 第五步：按年月分组 (Group by Month for Timeline/Headers) ===
-  const groupedData = useMemo(() => {
-    const groups: { monthStr: string; items: WallpaperData[] }[] = [];
-    let currentGroupMonth = '';
-    let currentItems: WallpaperData[] = [];
+  // 판단是否处于纯净的时间线模式（无过滤，支持正序或倒序）
+  // 这里把 localSearch 也加进来，只要用户在框里打字了，哪怕还没防抖成 searchTerm，也应该立即摘除 isTimelineMode 进而触发 loadAllData
+  const isTimelineMode = !searchTerm && !localSearch && !showFavoritesOnly && 
+    (sortBy === 'date-desc' || sortBy === 'date-asc') && 
+    selectedYear === 'all';
 
-    // 对于普通排序（不是按日期排的时候），可能不需要强行分组，但为了Google Photos风格，
-    // 如果是按颜色或标题排序，全挤在一个 "全部" 下面也是一种选择。
-    // 这里如果按 date-desc/date-asc 排序，就按自然月切分。否则并作一组。
-    const isDateSort = (sortBy ?? 'date-desc').startsWith('date');
-
-    visibleWallpapers.forEach((w) => {
-      const year = Math.floor(w.date / 10000);
-      const month = Math.floor((w.date % 10000) / 100);
-      const mm = month < 10 ? `0${month}` : `${month}`;
-      const monthStr = isDateSort ? `${year}年${mm}月` : '已排序壁纸';
-
-      if (monthStr !== currentGroupMonth) {
-        if (currentItems.length > 0) {
-          groups.push({ monthStr: currentGroupMonth, items: currentItems });
-        }
-        currentGroupMonth = monthStr;
-        currentItems = [w];
-      } else {
-        currentItems.push(w);
-      }
-    });
-
-    if (currentItems.length > 0) {
-      groups.push({ monthStr: currentGroupMonth, items: currentItems });
+  // === 后台全局拉取 ===
+  useEffect(() => {
+    if (!isTimelineMode) {
+      // 只要不是时间线模式（即开启了搜索、输入了字符、颜色排序、仅喜爱、特定年份），全部加载
+      loadAllData();
     }
+  }, [isTimelineMode, loadAllData]);
 
-    return groups;
+  // === 第五步：按特征分组 (Group by Month or Color for Headers) ===
+  const groupedData = useMemo(() => {
+    if (sortBy === 'color') {
+      // 按颜色归类
+      const colorMap = new Map<string, WallpaperData[]>();
+      COLOR_ORDER.forEach(c => colorMap.set(c, []));
+      
+      visibleWallpapers.forEach(w => {
+        const cat = getHexColorCategory(w.dominantColor);
+        if (colorMap.has(cat)) {
+          colorMap.get(cat)!.push(w);
+        } else {
+          colorMap.set(cat, [w]);
+        }
+      });
+      
+      const groups: { monthStr: string; items: WallpaperData[] }[] = [];
+      COLOR_ORDER.forEach(c => {
+        const items = colorMap.get(c);
+        if (items && items.length > 0) {
+          groups.push({ monthStr: c, items });
+        }
+      });
+      return groups;
+      
+    } else {
+      // 原有逻辑：按年月或其他模式聚合
+      const groups: { monthStr: string; items: WallpaperData[] }[] = [];
+      let currentGroupMonth = '';
+      let currentItems: WallpaperData[] = [];
+
+      const isDateSort = (sortBy ?? 'date-desc').startsWith('date');
+
+      visibleWallpapers.forEach((w) => {
+        const year = Math.floor(w.date / 10000);
+        const month = Math.floor((w.date % 10000) / 100);
+        const mm = month < 10 ? `0${month}` : `${month}`;
+        const monthStr = isDateSort ? `${year}年${mm}月` : '已排序壁纸';
+
+        if (monthStr !== currentGroupMonth) {
+          if (currentItems.length > 0) {
+            groups.push({ monthStr: currentGroupMonth, items: currentItems });
+          }
+          currentGroupMonth = monthStr;
+          currentItems = [w];
+        } else {
+          currentItems.push(w);
+        }
+      });
+
+      if (currentItems.length > 0) {
+        groups.push({ monthStr: currentGroupMonth, items: currentItems });
+      }
+
+      return groups;
+    }
   }, [visibleWallpapers, sortBy]);
 
-  // 判断是否处于纯净的时间线模式（无过滤，按时间倒序）
-  const isTimelineMode = !searchTerm && !showFavoritesOnly && (sortBy === 'date-desc') && selectedYear === 'all';
+  // 用于时间线模式的正倒序映射数据
+  const timelineData = useMemo(() => {
+    if (!isTimelineMode) return [];
+    if (sortBy === 'date-asc') {
+      return [...data].reverse().map(group => ({
+        ...group,
+        wallpapers: [...group.wallpapers].reverse()
+      }));
+    }
+    return data;
+  }, [data, isTimelineMode, sortBy]);
 
   // === 状态重置 ===
   useEffect(() => {
@@ -372,6 +599,9 @@ const WallpaperGrid: React.FC<Props> = ({
 
   // === 无限滚动侦听 ===
   useEffect(() => {
+    const el = loadingRef.current;
+    if (!el) return;
+    
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
@@ -380,90 +610,255 @@ const WallpaperGrid: React.FC<Props> = ({
         }
       },
       {
-        threshold: 0.5,
-        rootMargin: '200px', // 提前点触发
+        threshold: 0.1,
+        rootMargin: '600px', // 提前更多触发，避免卡顿感
       },
     );
 
-    if (loadingRef.current) observer.observe(loadingRef.current);
+    observer.observe(el);
+
     return () => observer.disconnect();
   }, [sortedWallpapers.length]);
 
+  // ==========================================
+  // Dynamic Capsule V2 (灵动胶囊) 核心逻辑
+  // ==========================================
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // 1. 快捷键劫持 (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Cmd + K or Ctrl + K
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchExpanded(true);
+        searchInputRef.current?.focus();
+      }
+      // ESC 退出版态
+      if (e.key === 'Escape' && isSearchExpanded) {
+        setIsSearchExpanded(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isSearchExpanded]);
+
+  // 2. 智能滚动隐藏 (Smart Scroll Hide)
+  const { scrollY } = useScroll();
+  const [isCapsuleVisible, setIsCapsuleVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const isScrollingDown = latest > lastScrollY.current;
+    
+    // 如果正在输入搜索，不隐藏
+    if (isSearchExpanded || localSearch) {
+      setIsCapsuleVisible(true);
+    } 
+    // 往下滚超过 200px 且没有聚焦，则收起胶囊
+    else if (isScrollingDown && latest > 200) {
+      setIsCapsuleVisible(false);
+    } 
+    // 往上滚，立刻唤出胶囊
+    else if (!isScrollingDown) {
+      setIsCapsuleVisible(true);
+    }
+    
+    lastScrollY.current = latest;
+  });
+
   return (
     <Box>
-      {/* 沉浸式灵动胶囊过滤栏 (Dynamic Capsule) */}
+      {/* 沉浸式灵动胶囊过滤栏 (Dynamic Capsule V2) */}
       <Box
+        component={motion.div}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ 
+          y: isCapsuleVisible ? 0 : (isMobile ? -10 : -20), 
+          scale: isCapsuleVisible ? 1 : 0.75,
+          opacity: isCapsuleVisible ? 1 : 0.25 
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         sx={{
           position: 'sticky',
-          top: { xs: 16, md: 24 }, // 移动端稍微靠上
-          zIndex: 1100, // 高于图片和吸顶月份
+          top: { xs: 16, md: 24 },
+          zIndex: 1100,
           display: 'flex',
           justifyContent: 'center',
           mb: { xs: 2, md: 6 },
-          pointerEvents: 'none', // 穿透，避免遮挡点击
-          width: '100%', // 确保居中
+          pointerEvents: 'none',
+          width: '100%',
+          px: { xs: 2, md: 0 },
         }}
       >
         <Paper
+          component={motion.div}
+          layout // 开启流体布局动画
           elevation={0}
+          onHoverStart={() => !isCapsuleVisible && setIsCapsuleVisible(true)}
+          onClickCapture={(e) => {
+            if (!isCapsuleVisible) {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsCapsuleVisible(true);
+            }
+          }}
           sx={{
-            py: 0.75,
+            position: 'relative', // 必须 relative，供内部绝对定位的 overlay 使用
+            cursor: isCapsuleVisible ? 'default' : 'pointer',
+            py: { xs: isSearchExpanded ? 1.5 : 0.75, md: 1 },
             px: { xs: 1.5, md: 2.5 },
             display: 'inline-flex',
-            flexDirection: 'row',
-            gap: { xs: 1, md: 2 },
+            flexDirection: { xs: isSearchExpanded ? 'column' : 'row', md: 'row' },
+            gap: { xs: isSearchExpanded ? 2 : 1, md: 2 },
             alignItems: 'center',
-            pointerEvents: 'auto', // 恢复自身交互
-            bgcolor: alpha(theme.palette.background.paper, 0.6), // 高度通透
-            backdropFilter: 'blur(32px) saturate(150%)', // 强烈的磨砂玻璃质感和色彩饱和度提升
-            WebkitBackdropFilter: 'blur(32px) saturate(150%)',
-            border: `1px solid ${alpha(theme.palette.text.primary, 0.04)}`, // 极弱边框，仿佛隐形
-            borderRadius: '100px',
-            boxShadow: `0 16px 40px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.4 : 0.08)}, inset 0 1px 0 ${alpha(theme.palette.common.white, 0.1)}`, // 呼吸感极强的悬浮阴影和内部高光
-            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // 弹簧回弹感
-            // 响应式微缩：在手机端尝试收缩未激活的搜索框，仅保留图标（由 TextField 内部支持）
+            pointerEvents: 'auto',
+            background: theme.palette.mode === 'dark' 
+              ? 'linear-gradient(145deg, rgba(30,30,30,0.8) 0%, rgba(20,20,20,0.9) 100%)' 
+              : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(240,240,240,0.95) 100%)',
+            backdropFilter: 'blur(40px) saturate(250%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(250%)',
+            border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.1 : 0.05)}`,
+            borderTop: `1px solid ${alpha(theme.palette.common.white, theme.palette.mode === 'dark' ? 0.2 : 0.5)}`, // Glowing edge
+            borderRadius: { xs: isSearchExpanded ? '24px' : '100px', md: '100px' },
+            boxShadow: theme.palette.mode === 'dark' 
+              ? `0 20px 40px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)` 
+              : `0 20px 40px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)`,
+            width: (isMobile && (isSearchExpanded || localSearch)) ? '100%' : 'auto',
+            minWidth: { xs: 'auto', md: 'min-content' },
+            overflow: 'hidden',
+            // Noise 材质贴图
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+              opacity: theme.palette.mode === 'dark' ? 0.04 : 0.02,
+              pointerEvents: 'none',
+              mixBlendMode: 'overlay',
+            }
           }}
         >
-          {/* 搜索框 (融入背景) */}
-          <TextField
-            size="small"
-            placeholder="搜索..."
-            value={localSearch || ''}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              sx: {
-                borderRadius: '100px',
-                bgcolor: 'transparent',
-                '& fieldset': { border: 'none' },
-                minWidth: { xs: 40, md: 180 }, // 移动端默认收起来像个图标
-                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                '& input': {
-                  opacity: { xs: localSearch ? 1 : 0, md: 1 }, // 手机没打字时隐藏光标
-                  width: { xs: localSearch ? 100 : 0, md: 'auto' }, // 手机展开
-                  padding: { xs: localSearch ? '8.5px 14px' : '8.5px 0', md: '8.5px 14px' },
-                },
-                '&:focus-within': {
-                  bgcolor: alpha(theme.palette.text.primary, 0.04),
-                  minWidth: { xs: 160, md: 240 },
+          {/* 睡眠态唤醒层 (Ghost Pill Wake Overlay) */}
+          {!isCapsuleVisible && (
+            <Box 
+              sx={{ 
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+                zIndex: 10, cursor: 'pointer' 
+              }} 
+            />
+          )}
+
+          {/* 搜索框区 */}
+          <Box sx={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <TextField
+              inputRef={searchInputRef}
+              size="small"
+              placeholder="搜索壁纸..."
+              value={localSearch || ''}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              onCompositionStart={handleComposition}
+              onCompositionUpdate={handleComposition}
+              onCompositionEnd={handleComposition}
+              onFocus={() => setIsSearchExpanded(true)}
+              onBlur={() => setIsSearchExpanded(false)}
+              onClick={() => setIsSearchExpanded(true)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ mr: { xs: 0.5, md: 1 } }}>
+                    <SearchIcon 
+                      fontSize="small" 
+                      sx={{ 
+                        color: (isSearchExpanded || localSearch) ? 'text.primary' : 'text.secondary', 
+                        transition: 'color 0.3s' 
+                      }} 
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ display: 'flex', gap: 0.5 }}>
+                    <AnimatePresence>
+                      {localSearch && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                        >
+                          <IconButton 
+                            size="small" 
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setLocalSearch(''); 
+                              setSearchTerm(null);
+                            }} 
+                            sx={{ p: 0.25, color: 'text.secondary' }}
+                          >
+                            <ClearIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {/* PC 端 Command K 铭文提示 */}
+                    {!isMobile && !localSearch && !isSearchExpanded && (
+                      <Box sx={{ 
+                        display: 'flex', alignItems: 'center', gap: 0.5, 
+                        border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
+                        borderRadius: 1, px: 0.5, py: 0.1,
+                        bgcolor: alpha(theme.palette.text.primary, 0.05)
+                      }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 'bold' }}>
+                          {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘K' : 'Ctrl+K'}
+                        </Typography>
+                      </Box>
+                    )}
+                  </InputAdornment>
+                ),
+                sx: {
+                  borderRadius: '100px',
+                  bgcolor: isMobile && isSearchExpanded ? alpha(theme.palette.text.primary, 0.05) : 'transparent',
+                  '& fieldset': { border: 'none' },
+                  transition: 'all 0.3s ease',
+                  width: '100%',
                   '& input': {
-                    opacity: 1,
-                    width: 'auto',
-                    padding: '8.5px 14px',
+                    width: (isMobile && !(isSearchExpanded || localSearch)) ? 0 : { xs: '100%', md: 180 },
+                    minWidth: (isMobile && !(isSearchExpanded || localSearch)) ? 0 : { xs: 100, md: 'auto' },
+                    opacity: (isMobile && !(isSearchExpanded || localSearch)) ? 0 : 1,
+                    padding: (isMobile && !(isSearchExpanded || localSearch)) ? '8.5px 0' : '8.5px 8px',
+                    transition: 'all 0.3s ease',
+                    fontSize: '0.95rem',
+                  },
+                  '&:focus-within': {
+                    bgcolor: isMobile ? alpha(theme.palette.text.primary, 0.08) : alpha(theme.palette.text.primary, 0.05),
+                    '& input': {
+                      width: { xs: '100%', md: 240 },
+                    }
                   }
                 }
-              }
+              }}
+              sx={{ flex: 1 }}
+            />
+          </Box>
+
+          {/* 右侧操作区 - 支持响应式折叠与流体布局 */}
+          <Box 
+            component={motion.div}
+            layout
+            sx={{ 
+              display: 'flex', 
+              gap: { xs: 0.5, md: 1 }, 
+              alignItems: 'center',
+              width: (isMobile && isSearchExpanded) ? '100%' : 'auto',
+              justifyContent: (isMobile && isSearchExpanded) ? 'space-around' : 'flex-start',
+              borderTop: (isMobile && isSearchExpanded) ? `1px solid ${alpha(theme.palette.text.primary, 0.1)}` : 'none',
+              pt: (isMobile && isSearchExpanded) ? 1.5 : 0,
             }}
-          />
+          >
+            {/* 分割线：仅在横向并排时显示 */}
+            {!(isMobile && isSearchExpanded) && (
+              <Box sx={{ width: '1px', height: 24, bgcolor: alpha(theme.palette.text.primary, 0.1), mx: 0.5 }} />
+            )}
 
-          <Box sx={{ width: '1px', height: 24, bgcolor: alpha(theme.palette.text.primary, 0.1) }} />
-
-          {/* 排序与操作 */}
-          <Box display="flex" gap={0.5} alignItems="center">
             <FormControl size="small">
               <Select
                 value={sortBy ?? 'date-desc'}
@@ -476,8 +871,14 @@ const WallpaperGrid: React.FC<Props> = ({
                   color: 'text.primary',
                   fontWeight: 500,
                   fontSize: '0.9rem',
-                  '& .MuiSelect-select': { py: 0.5, pl: 1, pr: 3 },
-                  '& .MuiSvgIcon-root': { right: 4, fontSize: '1.1rem', color: 'text.secondary' },
+                  '& .MuiSelect-select': { 
+                    py: 0.5, 
+                    pl: { xs: 1, md: 1 }, 
+                    pr: { xs: 3, md: 3 },
+                    fontSize: '0.9rem', // 恢复文字显示，配合展开态
+                    minHeight: 'auto',
+                  },
+                  '& .MuiSvgIcon-root': { right: 4, fontSize: '1.2rem', color: 'text.secondary', pointerEvents: 'none' },
                   '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) }
                 }}
               >
@@ -500,7 +901,7 @@ const WallpaperGrid: React.FC<Props> = ({
               </IconButton>
             </Tooltip>
 
-            {/* 主题切换 */}
+            {/* 主题与 Github：移动端空间紧张，可以依旧保留，但利用前方的 flex 折叠 */}
             <Tooltip title={darkMode ? '切换到亮色' : '切换到暗色'}>
               <IconButton 
                 onClick={() => setDarkMode(!darkMode)}
@@ -513,7 +914,6 @@ const WallpaperGrid: React.FC<Props> = ({
               </IconButton>
             </Tooltip>
 
-            {/* GitHub 链接 */}
             <Tooltip title="项目主页">
               <IconButton
                 onClick={() => window.open('https://github.com/tonyc726/bing-wallpaper-robot', '_blank')}
@@ -539,15 +939,17 @@ const WallpaperGrid: React.FC<Props> = ({
           {isTimelineMode ? (
             /* ================= TIMELINE 模式 ================= */
             /* 拥有完整骨架，依靠 IntersectionObserver 按需加载 */
-            data.map((group) => (
+            timelineData.map((group) => (
               <MonthSection
                 key={`group-${group.groupMonth}`}
                 group={group}
                 loading={loadingMonths.has(group.groupMonth)}
                 loadMonthData={loadMonthData}
                 onImageClick={onImageClick}
+                contextWallpapers={sortedWallpapers}
                 favorites={favorites}
                 onToggleFavorite={onToggleFavorite}
+                sortBy={sortBy}
               />
             ))
           ) : (
@@ -561,6 +963,7 @@ const WallpaperGrid: React.FC<Props> = ({
                   loading={false}
                   loadMonthData={() => {}}
                   onImageClick={onImageClick}
+                  contextWallpapers={sortedWallpapers}
                   favorites={favorites}
                   onToggleFavorite={onToggleFavorite}
                 />
@@ -586,6 +989,36 @@ const WallpaperGrid: React.FC<Props> = ({
             </Box>
           )}
         </Box>
+      )}
+
+      {/* 沉浸式侧边时光轴 (仅纯净日期模式显示) */}
+      {isTimelineMode && (
+        <TimelineScrubber 
+          months={isTimelineMode ? timelineData.map(g => g.groupMonth) : []} 
+          onScrubRequest={(month) => {
+            const id = `month-${month.replace('年', '-').replace('月', '')}`;
+            const el = document.getElementById(id);
+            if (el) {
+              const y = el.getBoundingClientRect().top + window.scrollY - 64; // header padding offset
+              window.scrollTo({ top: y, behavior: 'instant' });
+            }
+          }} 
+        />
+      )}
+
+      {/* 沉浸式侧边颜色轴 (仅在颜色排序模式下显示) */}
+      {sortBy === 'color' && (
+        <ColorScrubber 
+          colors={groupedData.map(g => g.monthStr as any)}
+          onScrubRequest={(color: string) => {
+            const id = `month-${color.replace('年', '-').replace('月', '')}`; // 复用 MonthSection 生成的 ID
+            const el = document.getElementById(id);
+            if (el) {
+              const y = el.getBoundingClientRect().top + window.scrollY - 64; // header padding offset
+              window.scrollTo({ top: y, behavior: 'instant' });
+            }
+          }} 
+        />
       )}
     </Box>
   );

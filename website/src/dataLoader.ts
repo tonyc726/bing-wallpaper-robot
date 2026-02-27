@@ -219,6 +219,45 @@ export async function rebuildMonthIndex(): Promise<void> {
 }
 
 /**
+ * 获取所有的壁纸数据（极速模式，专为全局搜索/颜色大类排序准备）
+ * 读取 /docs/all.js
+ */
+export async function fetchAllData(): Promise<WallpaperData[]> {
+  try {
+    let module: any;
+    let fallbackError;
+    
+    // 尝试从各大 CDN 顺序获取全量 JS 数组
+    for (const cdnBase of NPM_CDN_BASES) {
+      try {
+        module = await import(/* @vite-ignore */ `${cdnBase}/all.js`);
+        break; 
+      } catch (err) {
+        fallbackError = err;
+        console.warn(`[CDN Failed] Failed to load all from ${cdnBase}`, err);
+      }
+    }
+
+    if (!module) {
+      throw fallbackError || new Error('All primary CDNs failed for all.js');
+    }
+
+    return unpackChunk(module.default);
+  } catch (error) {
+    console.warn(`[Network] Falling back to local/github pages for all.js`, error);
+    
+    try {
+      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const module = await import(/* @vite-ignore */ `${baseUrl}/all.js`);
+      return unpackChunk(module.default);
+    } catch (fallbackError) {
+      console.error(`Failed to download all.js from both sources:`, fallbackError);
+      throw fallbackError;
+    }
+  }
+}
+
+/**
  * 清除热存储（用于调试和重新测试）
  * 清除后，重新加载数据时会重新迁移到热存储
  */

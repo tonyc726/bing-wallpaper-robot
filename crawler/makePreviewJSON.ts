@@ -429,7 +429,19 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
 `;
   await writeFileAsync(path.join(docsDir, 'index.js'), indexJsContent, 'utf-8');
 
-  console.log('✅ Written indexes and utils');
+  // 写入 NPM 全局数据 all.js (含所有壁纸紧凑信息，专供全局搜索和颜色分类极速拉取)
+  console.log('💾 Writing all.js for global loading...');
+  const allCompactRows = cleanWallpapers.map((w: any) => [
+    w.id,
+    w.date,
+    w.title || '',
+    w.copyright || '',
+    w.dominantColor
+  ]);
+  const allJsContent = `export default ${JSON.stringify(allCompactRows, null, 0)};\n`;
+  await writeFileAsync(path.join(docsDir, 'all.js'), allJsContent, 'utf-8');
+
+  console.log('✅ Written indexes, utils, and all.js');
 
   // 9. 写入发生变更的分块文件
   console.log(`💾 Writing ${totalChanged} changed chunks...`);
