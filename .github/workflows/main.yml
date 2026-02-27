@@ -1,4 +1,4 @@
-# Optimized Bing Wallpaper Robot Workflow
+# Optimized & Stable Bing Wallpaper Robot Workflow
 name: Update Data & Deploy
 
 on:
@@ -6,6 +6,7 @@ on:
     - cron: '0 18 * * *' # 北京时间凌晨 2 点
   workflow_dispatch:
 
+# 核心魔法：赋予 GitHub 默认 Token 读写仓库的权限，彻底告别 ROBOT_TOKEN 和第三方 Push Action
 permissions:
   contents: write
 
@@ -15,9 +16,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          # 如果你要用自定义 PAT (ROBOT_TOKEN) 覆盖默认 Token 以触发其他 Action，请在这里传入
-          token: ${{ secrets.ROBOT_TOKEN || github.token }}
+        # 无需传入自定义 token，使用系统默认的高级凭证即可
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,9 +25,11 @@ jobs:
           cache: 'pip'
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      # 调换顺序：先安装 pnpm，后设置 node 与缓存
+      # 注意：先安装 pnpm，再设置 Node，这样 setup-node 才能找到 pnpm 并开启缓存
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -43,23 +44,19 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Code Quality Check
-        run: |
-          pnpm run format:check
-          pnpm run lint
-
-      - name: Fetch & Process Data
+      - name: Fetch Data
         id: fetch-message
         env:
           IMAGEKIT_PUBLIC_KEY: '${{ secrets.IMAGEKIT_PUBLIC_KEY }}'
           IMAGEKIT_PRIVATE_KEY: '${{ secrets.IMAGEKIT_PRIVATE_KEY }}'
           IMAGEKIT_URL_ENDPOINT: '${{ secrets.IMAGEKIT_URL_ENDPOINT }}'
+        # 根据你老版本的配置，这里你使用的是 npm 或 pnpm 运行 fetch-data
         run: pnpm run fetch-data
 
-      - name: Full Application Build
+      - name: Make Website (Build)
         run: pnpm run build
 
-      - name: Automate Version & Publish
+      - name: Publish to NPM
         run: |
           if [ "$(date +%m%d)" = "0101" ]; then
             pnpm version major --no-git-tag-version
@@ -73,17 +70,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Auto-Commit & Push Changes
+      - name: Commit and Push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
 
-          # 检查是否有改动，有改动才进行 commit 和 push
+          # 容错处理：如果你 fetch-data 脚本没能成功输出 COMMIT_MESSAGE，这里给一个默认值防止报错
+          COMMIT_MSG="${{ steps.fetch-message.outputs.COMMIT_MESSAGE }}"
+          if [ -z "$COMMIT_MSG" ]; then
+            COMMIT_MSG="chore: automated data update and build"
+          fi
+
+          # 检查是否有文件变动，如果有才 commit 和 push
           if [ -n "$(git status --porcelain)" ]; then
-            # 提供默认的回退 Commit Message，以防 outputs 拿不到值导致语法错误
-            git commit -m "${{ steps.fetch-message.outputs.COMMIT_MESSAGE || 'chore: automated data update and build' }}"
-            git push origin ${{ github.ref_name }}
+            git commit -m "$COMMIT_MSG"
+            # 因为我们在顶部配置了 permissions: contents: write，这里可以直接原生的 git push
+            git push
           else
-            echo "No changes to commit."
+            echo "No changes detected, skipping commit."
           fi

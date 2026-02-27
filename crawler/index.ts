@@ -41,6 +41,8 @@ const main = async (retry = 1) => {
     console.log(`>> 数据请求失败
 ==================================================
   `);
+    // 【修改点 1】通知 GitHub Action 任务失败
+    githubActionCore.setFailed('Bing 壁纸数据请求失败，已达到最大重试次数。');
     return;
   }
 
@@ -111,15 +113,28 @@ const main = async (retry = 1) => {
 ==================================================
       `);
 
+    // 这个输出已经写得很完美了
     githubActionCore.setOutput(
       'COMMIT_MESSAGE',
       `:robot: >> [${format(new Date(), 'dd/MM/yyyy')}] ADD ${
         bingWallpapersData.length - waitToUpdateDataCount
       }, UPDATE ${waitToUpdateDataCount}.`,
     );
+  } else {
+    // 【修改点 2】如果没有获取到数据，也给 Action 抛出一个明确的兜底信息
+    githubActionCore.setOutput('COMMIT_MESSAGE', `:robot: >> [${format(new Date(), 'dd/MM/yyyy')}] No new wallpapers today.`);
   }
 };
 
 (async () => {
-  await main();
+  try {
+    await main();
+  } catch (error) {
+    // 【修改点 3】捕获未处理的异常（如数据库连接失败、文件读写权限等），让 Action 报错而不是卡住
+    if (error instanceof Error) {
+      githubActionCore.setFailed(`执行发生致命错误: ${error.message}`);
+    } else {
+      githubActionCore.setFailed('执行发生未知致命错误');
+    }
+  }
 })();
