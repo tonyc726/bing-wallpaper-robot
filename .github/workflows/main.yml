@@ -1,92 +1,89 @@
-# This is a basic workflow to help you get started with Actions
+# Optimized Bing Wallpaper Robot Workflow
+name: Update Data & Deploy
 
-name: Update Data
-
-# Controls when the action will run.
 on:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    # ┌───────────── minute (0 - 59)
-    # │ ┌───────────── hour (0 - 23)
-    # │ │ ┌───────────── day of the month (1 - 31)
-    # │ │ │ ┌───────────── month (1 - 12 or JAN-DEC)
-    # │ │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
-    # │ │ │ │ │
-    # │ │ │ │ │
-    # │ │ │ │ │
-    # * * * * *
-    - cron: '0 18 * * *'
-  # Allows you to run this workflow manually from the Actions tab
+    - cron: '0 18 * * *' # 北京时间凌晨 2 点
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+permissions:
+  contents: write
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
+        with:
+          # 如果你要用自定义 PAT (ROBOT_TOKEN) 覆盖默认 Token 以触发其他 Action，请在这里传入
+          token: ${{ secrets.ROBOT_TOKEN || github.token }}
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        run: pip install -r requirements.txt
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 22.x
-
+      # 调换顺序：先安装 pnpm，后设置 node 与缓存
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Install dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Fetch Data
+      - name: Code Quality Check
+        run: |
+          pnpm run format:check
+          pnpm run lint
+
+      - name: Fetch & Process Data
         id: fetch-message
         env:
           IMAGEKIT_PUBLIC_KEY: '${{ secrets.IMAGEKIT_PUBLIC_KEY }}'
           IMAGEKIT_PRIVATE_KEY: '${{ secrets.IMAGEKIT_PRIVATE_KEY }}'
           IMAGEKIT_URL_ENDPOINT: '${{ secrets.IMAGEKIT_URL_ENDPOINT }}'
-        run: npm run fetch-data
+        run: pnpm run fetch-data
 
-      - name: Make Website
-        run: npm run build
+      - name: Full Application Build
+        run: pnpm run build
 
-      - name: Publish to NPM
+      - name: Automate Version & Publish
         run: |
           if [ "$(date +%m%d)" = "0101" ]; then
-            npm version major --no-git-tag-version
+            pnpm version major --no-git-tag-version
           elif [ "$(date +%d)" = "01" ]; then
-            npm version minor --no-git-tag-version
+            pnpm version minor --no-git-tag-version
           else
-            npm version patch --no-git-tag-version
+            pnpm version patch --no-git-tag-version
           fi
           npm config set //registry.npmjs.org/:_authToken ${NODE_AUTH_TOKEN}
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Commit changes
+      - name: Auto-Commit & Push Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "${{ steps.fetch-message.outputs.COMMIT_MESSAGE }}" -a
+          git add .
 
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.ROBOT_TOKEN }}
-          branch: ${{ github.ref }}
+          # 检查是否有改动，有改动才进行 commit 和 push
+          if [ -n "$(git status --porcelain)" ]; then
+            # 提供默认的回退 Commit Message，以防 outputs 拿不到值导致语法错误
+            git commit -m "${{ steps.fetch-message.outputs.COMMIT_MESSAGE || 'chore: automated data update and build' }}"
+            git push origin ${{ github.ref_name }}
+          else
+            echo "No changes to commit."
+          fi
