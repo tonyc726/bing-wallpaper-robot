@@ -5,6 +5,7 @@ import { registerSW } from 'virtual:pwa-register';
 
 class SWRegister {
   private updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   public getUpdateWorker() {
     return this.updateSW;
@@ -27,23 +28,29 @@ class SWRegister {
     try {
       this.updateSW = registerSW({
         onNeedRefresh: () => {
-          console.log('[SW] New content available, prompting for refresh...');
-          // 可以触发一个全局的 UI 提示用户刷新
-          if (confirm('发现新版本或新数据，是否刷新页面以应用？')) {
-            if (this.updateSW) {
-              this.updateSW(true);
-            } else {
-              window.location.reload();
-            }
-          }
+          console.log('[SW] New content available, dispatching update event');
+          // 发送自定义事件，让 UI 层显示非侵入式提示（如 Snackbar）
+          window.dispatchEvent(new CustomEvent('sw-update-available'));
         },
-        onOfflineReady() {
+        onOfflineReady: () => {
           console.log('[SW] App is ready to work offline');
         },
-        onRegisteredSW(swUrl, registration) {
-          console.log('[SW] Registered successfully:', swUrl, registration);
+        onRegisteredSW: (_swUrl, registration) => {
+          console.log('[SW] Registered successfully:', _swUrl, registration);
+          if (registration) {
+            // 清理旧的定时器（防止重复注册产生多个定时器）
+            if (this.intervalId) {
+              clearInterval(this.intervalId);
+            }
+
+            // 每小时检查一次更新
+            this.intervalId = setInterval(() => {
+              console.log('[SW] Polling for updates...');
+              registration.update();
+            }, 60 * 60 * 1000);
+          }
         },
-        onRegisterError(error) {
+        onRegisterError: (error) => {
           console.error('[SW] Registration failed:', error);
         }
       });

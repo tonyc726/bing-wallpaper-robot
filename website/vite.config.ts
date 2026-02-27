@@ -34,53 +34,86 @@ export default defineConfig({
     },
     VitePWA({
       registerType: 'prompt',
-      injectRegister: 'auto',
+      injectRegister: false,
       manifest: {
         name: "Horizon (地平线)",
         short_name: "Horizon",
-        description: "自动收集高质量Bing壁纸，每日更新，离线浏览，收藏管理",
-        theme_color: "#6750A4",
-        background_color: "#ffffff",
+        description: "Horizon - 自动收集高质量壁纸，每日更新，离线浏览，收藏管理",
+        theme_color: "#000000",
+        background_color: "#000000",
         display: "standalone",
+        display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
+        orientation: "portrait-primary",
+        start_url: ".",
+        scope: ".",
+        lang: "zh-CN",
+        dir: "ltr",
+        categories: ["photography", "entertainment", "lifestyle"],
         icons: [
           {
-            src: "/favicon-16x16.png",
+            src: "favicon-16x16.png",
             sizes: "16x16",
             type: "image/png"
           },
           {
-            src: "/favicon-32x32.png",
+            src: "favicon-32x32.png",
             sizes: "32x32",
             type: "image/png"
           },
           {
-            src: "/android-chrome-192x192.png",
+            src: "android-chrome-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any maskable"
           },
           {
-            src: "/android-chrome-512x512.png",
+            src: "android-chrome-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable"
           },
           {
-            src: "/apple-touch-icon.png",
+            src: "apple-touch-icon.png",
             sizes: "180x180",
             type: "image/png"
+          }
+        ],
+        shortcuts: [
+          {
+            name: "浏览最新壁纸",
+            short_name: "最新壁纸",
+            description: "查看最新添加的壁纸",
+            url: ".?action=latest",
+            icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
+          },
+          {
+            name: "我的收藏",
+            short_name: "收藏",
+            description: "查看收藏的壁纸",
+            url: ".?action=favorites",
+            icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
+          }
+        ],
+        screenshots: [
+          {
+            src: "android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Horizon 主界面"
           }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigationPreload: true,
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
         runtimeCaching: [
           {
-            // index.json and chunk jsons
-            urlPattern: /.*\/index\.json|.*\/chunks\/.*\.json/,
+            // index.json and chunk jsons/js (NPM CDN)
+            urlPattern: /.*\/(index\.json|chunks\/.*\.(json|js))/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'bing-wallpapers-json',
+              cacheName: 'bing-wallpapers-data',
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 30 * 24 * 60 * 60 // 30 Days

@@ -10,8 +10,12 @@ import {
   Fab,
   useScrollTrigger,
   Zoom,
+  Snackbar,
+  Button,
+  IconButton,
 } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import CloseIcon from '@mui/icons-material/Close';
 import WallpaperGrid from './components/WallpaperGrid';
 import ImageDialog from './components/ImageDialog';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -97,6 +101,9 @@ function App() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeSharedId, setActiveSharedId] = useState<string | null>(null);
 
+  // PWA 更新提示
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+
   // 稳定的gridData引用：直接映射整份 indexData.monthList 作为 DOM 渲染框架
   const gridData = useMemo(() => {
     if (!indexData) return [];
@@ -120,6 +127,15 @@ function App() {
       isInitializedRef.current = true;
       initializeApp();
     }
+
+    // 监听 SW 更新事件
+    const handleSWUpdate = () => {
+      console.log('[App] SW Update available event received');
+      setShowUpdateNotification(true);
+    };
+
+    window.addEventListener('sw-update-available', handleSWUpdate);
+    return () => window.removeEventListener('sw-update-available', handleSWUpdate);
   }, []); // 空依赖数组，只运行一次
 
   // ========== 本地存储同步 ==========
@@ -130,6 +146,15 @@ function App() {
   useEffect(() => {
     localStorage.setItem('favorites', JSON.stringify(Array.from(favorites)));
   }, [favorites]);
+
+  const handleUpdateApp = useCallback(() => {
+    const updateWorker = swRegister.getUpdateWorker();
+    if (updateWorker) {
+      updateWorker(true);
+    } else {
+      window.location.reload();
+    }
+  }, []);
 
   /**
    * 初始化应用
@@ -549,6 +574,29 @@ function App() {
 
       {/* PWA 安装提示 */}
       <PWAInstallPrompt />
+
+      {/* PWA 更新提示 Snackbar */}
+      <Snackbar
+        open={showUpdateNotification}
+        message="发现新版本或新数据"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        action={
+          <>
+            <Button color="secondary" size="small" onClick={handleUpdateApp}>
+              更新
+            </Button>
+            <IconButton
+              size="small"
+              aria-label="close"
+              color="inherit"
+              onClick={() => setShowUpdateNotification(false)}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </>
+        }
+        sx={{ bottom: { xs: 80, md: 24 } }} // 避开返回顶部按钮
+      />
       </LayoutGroup>
     </ThemeProvider>
   );

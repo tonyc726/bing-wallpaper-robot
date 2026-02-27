@@ -12,7 +12,7 @@
 import type { ChunkData, WallpaperData } from './types';
 
 const DB_NAME = 'bing-wallpapers-v4';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 // 对象存储名称
 const STORES = {
@@ -26,6 +26,7 @@ const STORES = {
 const CACHE_CONFIG = {
   // 内存缓存：按 globalIndex 的 LRU (6页 × 24张 = 144张)
   maxMemoryCache: 144,
+  maxHotEntries: 2000,         // 热存储最大条目数
   maxDBCache: 24,              // IndexedDB缓存最多24个月
   cleanupInterval: 24 * 60 * 60 * 1000,  // 24小时清理一次
 
@@ -80,6 +81,7 @@ class DBManager {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = (event.target as IDBOpenDBRequest).transaction;
         const oldVersion = event.oldVersion;
         const newStores: string[] = [];
 
@@ -101,7 +103,16 @@ class DBManager {
           });
           hotStore.createIndex('month', 'month', { unique: false });
           hotStore.createIndex('id', 'id', { unique: false });
+          hotStore.createIndex('cachedAt', 'cachedAt', { unique: false });
           newStores.push(STORES.WALLPAPERS_HOT);
+        }
+
+        // v6.0: 为热数据增加 cachedAt 索引 (如果之前没有)
+        if (oldVersion >= 5 && oldVersion < 6) {
+          const hotStore = transaction!.objectStore(STORES.WALLPAPERS_HOT);
+          if (!hotStore.indexNames.contains('cachedAt')) {
+            hotStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+          }
         }
 
         // v4.0 新增：冷数据 chunk 聚合
@@ -1033,6 +1044,8 @@ class DBManager {
       startGlobalIndex = range.start;
     }
 
+    // 在迁移前检查并清理空间
+    await this.cleanupHotStorage(wallpapers.length);
 
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readwrite');
@@ -1207,6 +1220,49 @@ class DBManager {
 
       request.onerror = () => reject(request.error);
     });
+  }
+
+  /**
+   * v6.0：热存储容量治理 - 如果超过限制则清理旧数据
+   * @param incomingCount 即将存入的数量
+   */
+  private async cleanupHotStorage(incomingCount: number): Promise<void> {
+    if (!this.db) return;
+
+    try {
+      const currentCount = await this._getHotStoreCount();
+      const overload = (currentCount + incomingCount) - CACHE_CONFIG.maxHotEntries;
+
+      if (overload <= 0) return;
+
+      // 清理过载数量 + 10% 的缓冲，避免频繁清理
+      const deleteLimit = overload + Math.floor(CACHE_CONFIG.maxHotEntries * 0.1);
+      
+      return new Promise((resolve, reject) => {
+        const tx = this.db!.transaction([STORES.WALLPAPERS_HOT], 'readwrite');
+        const store = tx.objectStore(STORES.WALLPAPERS_HOT);
+        const index = store.index('cachedAt');
+        
+        let deleted = 0;
+        const cursorRequest = index.openCursor(); // 默认升序（最旧的在前）
+
+        cursorRequest.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          if (cursor && deleted < deleteLimit) {
+            cursor.delete();
+            deleted++;
+            cursor.continue();
+          } else {
+            resolve();
+          }
+        };
+
+        cursorRequest.onerror = () => reject(cursorRequest.error);
+        tx.oncomplete = () => resolve();
+      });
+    } catch (e) {
+      console.error('[DB Cache] Hot storage cleanup failed:', e);
+    }
   }
 
   /**
