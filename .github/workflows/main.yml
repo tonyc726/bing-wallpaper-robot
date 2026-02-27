@@ -54,6 +54,11 @@ jobs:
         run: pnpm run fetch-data
 
       - name: Make Website (Build)
+        # GitHub Pages serves under /bing-wallpaper-robot/; other platforms
+        # (Vercel, Netlify, Cloudflare, custom domain) use their own build
+        # pipelines and do NOT set VITE_BASE_URL, so they get base='/'.
+        env:
+          VITE_BASE_URL: '/bing-wallpaper-robot/'
         run: pnpm run build
 
       - name: Publish to NPM
