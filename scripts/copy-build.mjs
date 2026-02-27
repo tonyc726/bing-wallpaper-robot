@@ -4,6 +4,13 @@ import path from 'path';
 const srcDir = path.resolve('website/dist');
 const destDir = path.resolve('docs');
 
+// 这些是由爬虫/数据生成脚本维护的目录，构建时不能清除
+// website/dist 里不会有这些目录，所以 copyRecursive 也不会覆盖
+const PRESERVE_DIRS = new Set(['thumbs', 'chunks']);
+
+// 这些是 Vite 构建产物目录，每次需要完整清空以避免残留文件
+const BUILD_DIRS = new Set(['assets']);
+
 console.log('Copying build from', srcDir, 'to', destDir);
 
 if (!fs.existsSync(srcDir)) {
@@ -11,7 +18,6 @@ if (!fs.existsSync(srcDir)) {
   process.exit(1);
 }
 
-// 复制文件
 function copyRecursive(src, dest) {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
@@ -23,28 +29,41 @@ function copyRecursive(src, dest) {
       copyRecursive(path.join(src, file), path.join(dest, file));
     }
   } else {
-    const destDir = path.dirname(dest);
-    if (!fs.existsSync(destDir)) {
-      fs.mkdirSync(destDir, { recursive: true });
+    const destDirPath = path.dirname(dest);
+    if (!fs.existsSync(destDirPath)) {
+      fs.mkdirSync(destDirPath, { recursive: true });
     }
     fs.copyFileSync(src, dest);
   }
 }
 
 try {
-  // 清空 docs 目录（除了 thumbs 等其他文件）
   if (fs.existsSync(destDir)) {
-    const files = fs.readdirSync(destDir);
-    for (const file of files) {
-      if (file !== 'thumbs' && !fs.statSync(path.join(destDir, file)).isDirectory()) {
-        fs.unlinkSync(path.join(destDir, file));
+    const entries = fs.readdirSync(destDir);
+    for (const entry of entries) {
+      const fullPath = path.join(destDir, entry);
+      const stat = fs.statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        if (BUILD_DIRS.has(entry)) {
+          // 构建产物目录：完整删除，防止旧文件残留（如过期的 assets/chunks/）
+          fs.rmSync(fullPath, { recursive: true, force: true });
+          console.log(`🗑️  Cleaned build dir: docs/${entry}/`);
+        } else if (PRESERVE_DIRS.has(entry)) {
+          // 数据目录：保留（由爬虫维护）
+          console.log(`⏭️  Preserved data dir: docs/${entry}/`);
+        }
+        // 其他目录忽略
+      } else {
+        // 根目录文件：全部删除（index.html、sw.js 等每次都会重新生成）
+        fs.unlinkSync(fullPath);
       }
     }
   }
 
   copyRecursive(srcDir, destDir);
   console.log('✅ Build successfully copied to docs/');
-  console.log(`   Total files copied: ${fs.readdirSync(destDir, { recursive: true }).length}`);
+  console.log(`   Total files: ${fs.readdirSync(destDir, { recursive: true }).length}`);
 } catch (error) {
   console.error('❌ Error copying build:', error);
   process.exit(1);
