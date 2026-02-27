@@ -36,8 +36,8 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: 'auto',
       manifest: {
-        name: "Bing 壁纸机器人",
-        short_name: "Bing壁纸",
+        name: "Horizon (地平线)",
+        short_name: "Horizon",
         description: "自动收集高质量Bing壁纸，每日更新，离线浏览，收藏管理",
         theme_color: "#6750A4",
         background_color: "#ffffff",

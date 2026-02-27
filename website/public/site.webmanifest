@@ -1,7 +1,7 @@
 {
-  "name": "Bing 壁纸机器人",
-  "short_name": "Bing壁纸",
-  "description": "自动收集高质量Bing壁纸，每日更新，离线浏览，收藏管理",
+  "name": "Horizon (地平线)",
+  "short_name": "Horizon",
+  "description": "Horizon - 自动收集高质量壁纸，每日更新，离线浏览，收藏管理",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -18,7 +18,7 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Bing 壁纸机器人主界面"
+      "label": "Horizon 主界面"
     }
   ],
   "icons": [

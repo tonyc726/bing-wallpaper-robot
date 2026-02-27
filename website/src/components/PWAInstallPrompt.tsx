@@ -175,7 +175,7 @@ const PWAInstallPrompt: React.FC = () => {
 
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h6" gutterBottom>
-              安装 Bing 壁纸
+              安装 Horizon
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               安装应用到主屏幕，享受更快的访问速度和离线浏览功能！
