@@ -1,14 +1,14 @@
 {
   "version": "2.0",
   "schemaVersion": 2,
-  "dataVersion": "md5:f8c2d6f8b426ed15c05fd00a1aa171f2",
-  "generatedAt": "2026-02-27T18:12:05.397Z",
-  "lastModified": "2026-02-27T18:12:05.397Z",
+  "dataVersion": "md5:c4b6d06e6c8a0cbe50ac3a8b8358a3e3",
+  "generatedAt": "2026-02-28T18:07:01.684Z",
+  "lastModified": "2026-02-28T18:07:01.684Z",
   "totalWallpapers": 1834,
   "chunks": {
     "2020-12": {
       "version": "md5:d5691d9ef07e146bc9529c594f4d7845",
-      "updatedAt": "2026-02-27T18:12:05.372Z",
+      "updatedAt": "2026-02-28T18:07:01.660Z",
       "isChanged": true,
       "recordCount": 15,
       "checksum": "md5:b30e187f414aeab4160d59554362cc5e",
@@ -16,7 +16,7 @@
     },
     "2021-01": {
       "version": "md5:b52a5e5caec1685d9336997803de97a9",
-      "updatedAt": "2026-02-27T18:12:05.373Z",
+      "updatedAt": "2026-02-28T18:07:01.660Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:3944ff94aa0f944cb0ffca9d5f18a668",
@@ -24,7 +24,7 @@
     },
     "2021-02": {
       "version": "md5:f0603c273e93290009c5498d6d736cbe",
-      "updatedAt": "2026-02-27T18:12:05.373Z",
+      "updatedAt": "2026-02-28T18:07:01.660Z",
       "isChanged": true,
       "recordCount": 28,
       "checksum": "md5:a33845381c88c3aa84da8ff1cd8aeb1a",
@@ -32,7 +32,7 @@
     },
     "2021-03": {
       "version": "md5:2e8fb85d91077c053e08c3951f71309e",
-      "updatedAt": "2026-02-27T18:12:05.373Z",
+      "updatedAt": "2026-02-28T18:07:01.661Z",
       "isChanged": true,
       "recordCount": 37,
       "checksum": "md5:09530acb156a56b857312d5594b96d09",
@@ -40,7 +40,7 @@
     },
     "2021-04": {
       "version": "md5:9f6b7fadb014af424f79a149dd3bd22f",
-      "updatedAt": "2026-02-27T18:12:05.374Z",
+      "updatedAt": "2026-02-28T18:07:01.661Z",
       "isChanged": true,
       "recordCount": 35,
       "checksum": "md5:5ddb347ddff9cab4076ddb8a59d4109f",
@@ -48,7 +48,7 @@
     },
     "2021-05": {
       "version": "md5:cf0bdd3cd15ac018b1eb04c3b2200d90",
-      "updatedAt": "2026-02-27T18:12:05.374Z",
+      "updatedAt": "2026-02-28T18:07:01.661Z",
       "isChanged": true,
       "recordCount": 38,
       "checksum": "md5:21e416cd500a05eed921d2e05fc00111",
@@ -56,7 +56,7 @@
     },
     "2021-06": {
       "version": "md5:85c8585890fcce2bffaa1d99fc768558",
-      "updatedAt": "2026-02-27T18:12:05.374Z",
+      "updatedAt": "2026-02-28T18:07:01.662Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:0c7dff9f4c70410b243d338c29297199",
@@ -64,7 +64,7 @@
     },
     "2021-07": {
       "version": "md5:fc62a1fda07ba2266b779272075ace6a",
-      "updatedAt": "2026-02-27T18:12:05.374Z",
+      "updatedAt": "2026-02-28T18:07:01.662Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:144ccc656ce39f43398b22fd1ba35c3c",
@@ -72,7 +72,7 @@
     },
     "2021-08": {
       "version": "md5:795f67fabff7a9c22f6c571cc2e61c62",
-      "updatedAt": "2026-02-27T18:12:05.375Z",
+      "updatedAt": "2026-02-28T18:07:01.662Z",
       "isChanged": true,
       "recordCount": 35,
       "checksum": "md5:3ac36acc771d62b5925057a5b51b8a69",
@@ -80,7 +80,7 @@
     },
     "2021-09": {
       "version": "md5:1a60abd266b1d4bc34a6d318b7fe2138",
-      "updatedAt": "2026-02-27T18:12:05.375Z",
+      "updatedAt": "2026-02-28T18:07:01.662Z",
       "isChanged": true,
       "recordCount": 38,
       "checksum": "md5:a25c4ddca5f9f91d6f75a12e831939b6",
@@ -88,7 +88,7 @@
     },
     "2021-10": {
       "version": "md5:1454a4d395887324b6cf1a21aafa9b79",
-      "updatedAt": "2026-02-27T18:12:05.376Z",
+      "updatedAt": "2026-02-28T18:07:01.663Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:3c0076ffa775e577806544e41bb3aadb",
@@ -96,7 +96,7 @@
     },
     "2021-11": {
       "version": "md5:9aa3833723d1e61c2e87f293875ce3b2",
-      "updatedAt": "2026-02-27T18:12:05.376Z",
+      "updatedAt": "2026-02-28T18:07:01.663Z",
       "isChanged": true,
       "recordCount": 39,
       "checksum": "md5:420cfec4f295680e59b4aa61beacf2bd",
@@ -104,7 +104,7 @@
     },
     "2021-12": {
       "version": "md5:bfb4e3b1d41c3e8a5515dd372e381e9b",
-      "updatedAt": "2026-02-27T18:12:05.376Z",
+      "updatedAt": "2026-02-28T18:07:01.664Z",
       "isChanged": true,
       "recordCount": 36,
       "checksum": "md5:0b1cb80effb9cfece4897f44abdbac52",
@@ -112,7 +112,7 @@
     },
     "2022-01": {
       "version": "md5:2c54daf0bb997b1fa3d94c90101956be",
-      "updatedAt": "2026-02-27T18:12:05.376Z",
+      "updatedAt": "2026-02-28T18:07:01.664Z",
       "isChanged": true,
       "recordCount": 5,
       "checksum": "md5:6f47023bd9652588357b413411bb02fb",
@@ -120,7 +120,7 @@
     },
     "2022-06": {
       "version": "md5:3862f437222cf1a67df1cb937e6f08bf",
-      "updatedAt": "2026-02-27T18:12:05.377Z",
+      "updatedAt": "2026-02-28T18:07:01.664Z",
       "isChanged": true,
       "recordCount": 16,
       "checksum": "md5:7e204d0749b984763aac0375224cfc80",
@@ -128,7 +128,7 @@
     },
     "2022-07": {
       "version": "md5:871d165730bdc40c357a2bed8f996a13",
-      "updatedAt": "2026-02-27T18:12:05.377Z",
+      "updatedAt": "2026-02-28T18:07:01.664Z",
       "isChanged": true,
       "recordCount": 36,
       "checksum": "md5:d3917487a6de2db4dac71b699f48c5ff",
@@ -136,7 +136,7 @@
     },
     "2022-08": {
       "version": "md5:bc0998fd436ad439cd6ebc2aa7971953",
-      "updatedAt": "2026-02-27T18:12:05.377Z",
+      "updatedAt": "2026-02-28T18:07:01.664Z",
       "isChanged": true,
       "recordCount": 35,
       "checksum": "md5:c4ca01d99898dfb2a9374c43c9622155",
@@ -144,7 +144,7 @@
     },
     "2022-09": {
       "version": "md5:ec8bb3835880cb74233b4b3f82fa6d36",
-      "updatedAt": "2026-02-27T18:12:05.377Z",
+      "updatedAt": "2026-02-28T18:07:01.665Z",
       "isChanged": true,
       "recordCount": 39,
       "checksum": "md5:fdfd5d7e13a30243a4e8f4fbb3565007",
@@ -152,7 +152,7 @@
     },
     "2022-10": {
       "version": "md5:d0599f5590aeed41afc9741458660b26",
-      "updatedAt": "2026-02-27T18:12:05.378Z",
+      "updatedAt": "2026-02-28T18:07:01.665Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:51a7f8269626cc5f37e90e949823f115",
@@ -160,7 +160,7 @@
     },
     "2022-11": {
       "version": "md5:dd13e319ac0bb29c2e6935b8845f4c09",
-      "updatedAt": "2026-02-27T18:12:05.378Z",
+      "updatedAt": "2026-02-28T18:07:01.665Z",
       "isChanged": true,
       "recordCount": 38,
       "checksum": "md5:31010d567eb652e6845749e0fdeb736c",
@@ -168,7 +168,7 @@
     },
     "2022-12": {
       "version": "md5:4dfd5741d0b2240153168ee13b7d0d6a",
-      "updatedAt": "2026-02-27T18:12:05.378Z",
+      "updatedAt": "2026-02-28T18:07:01.666Z",
       "isChanged": true,
       "recordCount": 40,
       "checksum": "md5:82919b4adeaff20138f7344ec69e3ea0",
@@ -176,7 +176,7 @@
     },
     "2023-01": {
       "version": "md5:4173ad92636c9917f7dae12858c76a34",
-      "updatedAt": "2026-02-27T18:12:05.379Z",
+      "updatedAt": "2026-02-28T18:07:01.666Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:30c02f81e0db357f4ee40807912fc3e8",
@@ -184,7 +184,7 @@
     },
     "2023-02": {
       "version": "md5:54e4139fb62efa51fbf1e3a8d7155d15",
-      "updatedAt": "2026-02-27T18:12:05.379Z",
+      "updatedAt": "2026-02-28T18:07:01.666Z",
       "isChanged": true,
       "recordCount": 36,
       "checksum": "md5:eb11e31ca02b935ef4a07c26b398c17e",
@@ -192,7 +192,7 @@
     },
     "2023-03": {
       "version": "md5:ca70b8f3dd6942c6f7fb246eb2373843",
-      "updatedAt": "2026-02-27T18:12:05.379Z",
+      "updatedAt": "2026-02-28T18:07:01.667Z",
       "isChanged": true,
       "recordCount": 37,
       "checksum": "md5:a39fee82bcbfe911ca6bd986c2410d81",
@@ -200,7 +200,7 @@
     },
     "2023-04": {
       "version": "md5:c58333c13671932ae0139e2c6e4f01a7",
-      "updatedAt": "2026-02-27T18:12:05.380Z",
+      "updatedAt": "2026-02-28T18:07:01.667Z",
       "isChanged": true,
       "recordCount": 40,
       "checksum": "md5:400abeb191e8b4448eb5dccefd861f9e",
@@ -208,7 +208,7 @@
     },
     "2023-05": {
       "version": "md5:69810586d3bd861e7108311a246f626b",
-      "updatedAt": "2026-02-27T18:12:05.380Z",
+      "updatedAt": "2026-02-28T18:07:01.667Z",
       "isChanged": true,
       "recordCount": 38,
       "checksum": "md5:bf10b73c64e4329afd8d0d3f1f53a478",
@@ -216,7 +216,7 @@
     },
     "2023-06": {
       "version": "md5:7c4ac47a7436d2bf3706ca31d5b6bd28",
-      "updatedAt": "2026-02-27T18:12:05.380Z",
+      "updatedAt": "2026-02-28T18:07:01.668Z",
       "isChanged": true,
       "recordCount": 36,
       "checksum": "md5:88eb61facef6651af2113657580d862e",
@@ -224,7 +224,7 @@
     },
     "2023-07": {
       "version": "md5:3971b0fce978607b159deb827cfb3bdc",
-      "updatedAt": "2026-02-27T18:12:05.380Z",
+      "updatedAt": "2026-02-28T18:07:01.668Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:5c16170debfa92bcf9c7d27eb60b6665",
@@ -232,7 +232,7 @@
     },
     "2023-08": {
       "version": "md5:373db042c89ffb7e08ebfaa3c1e4e3c8",
-      "updatedAt": "2026-02-27T18:12:05.381Z",
+      "updatedAt": "2026-02-28T18:07:01.668Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:81f45034e1668c17a7f9df453f322513",
@@ -240,7 +240,7 @@
     },
     "2023-09": {
       "version": "md5:113435ba6494b8ccbc5d86ebd6bdb709",
-      "updatedAt": "2026-02-27T18:12:05.381Z",
+      "updatedAt": "2026-02-28T18:07:01.668Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:adc24e79d567149eb6a2e2f69dd7e3c0",
@@ -248,7 +248,7 @@
     },
     "2023-10": {
       "version": "md5:ce4a4a44ad39b0a5a8ab187332ead02f",
-      "updatedAt": "2026-02-27T18:12:05.381Z",
+      "updatedAt": "2026-02-28T18:07:01.669Z",
       "isChanged": true,
       "recordCount": 36,
       "checksum": "md5:90461abe7719e807b97f825d5e382a74",
@@ -256,7 +256,7 @@
     },
     "2023-11": {
       "version": "md5:69fbffe912e94bc540bd3bd58bdc2fc2",
-      "updatedAt": "2026-02-27T18:12:05.382Z",
+      "updatedAt": "2026-02-28T18:07:01.669Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:fc2716df4c497e2b5bb6f26ae5f9270e",
@@ -264,7 +264,7 @@
     },
     "2023-12": {
       "version": "md5:3b0623e667b433d705342777c98a07db",
-      "updatedAt": "2026-02-27T18:12:05.382Z",
+      "updatedAt": "2026-02-28T18:07:01.669Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:9e3febc98669f2d952e47f9f8e898117",
@@ -272,7 +272,7 @@
     },
     "2024-01": {
       "version": "md5:842385fc473127964224414b1868f367",
-      "updatedAt": "2026-02-27T18:12:05.382Z",
+      "updatedAt": "2026-02-28T18:07:01.669Z",
       "isChanged": true,
       "recordCount": 32,
       "checksum": "md5:c830723061183e9133d93b4de9e6b968",
@@ -280,7 +280,7 @@
     },
     "2024-02": {
       "version": "md5:3196c9b7a7906134af1831813257a6ac",
-      "updatedAt": "2026-02-27T18:12:05.382Z",
+      "updatedAt": "2026-02-28T18:07:01.670Z",
       "isChanged": true,
       "recordCount": 35,
       "checksum": "md5:faf245aaf31b00a228f85afa25e1c553",
@@ -288,7 +288,7 @@
     },
     "2024-03": {
       "version": "md5:be85f6d4eda10b4ce8740f9fac7bb1e4",
-      "updatedAt": "2026-02-27T18:12:05.383Z",
+      "updatedAt": "2026-02-28T18:07:01.670Z",
       "isChanged": true,
       "recordCount": 38,
       "checksum": "md5:a3e5006fdddf9309012085833500d8a1",
@@ -296,7 +296,7 @@
     },
     "2024-04": {
       "version": "md5:8ee6837220d62fad2f5310b4835d0ea8",
-      "updatedAt": "2026-02-27T18:12:05.383Z",
+      "updatedAt": "2026-02-28T18:07:01.670Z",
       "isChanged": true,
       "recordCount": 32,
       "checksum": "md5:2e69c3d3cb27f04f8d334d398e09379a",
@@ -304,7 +304,7 @@
     },
     "2024-05": {
       "version": "md5:d94eb1b50aa5695abc5581eedb8424ef",
-      "updatedAt": "2026-02-27T18:12:05.383Z",
+      "updatedAt": "2026-02-28T18:07:01.670Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:e3ec80253e72d5e782a1989b68833020",
@@ -312,7 +312,7 @@
     },
     "2024-06": {
       "version": "md5:9e33f11602d539cf63fe354c6b372b62",
-      "updatedAt": "2026-02-27T18:12:05.383Z",
+      "updatedAt": "2026-02-28T18:07:01.671Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:7cec7670cd591448fc1eed27ae4cde4e",
@@ -320,7 +320,7 @@
     },
     "2024-07": {
       "version": "md5:8b4e9a840cc1e0afe8b9865eaa23543d",
-      "updatedAt": "2026-02-27T18:12:05.384Z",
+      "updatedAt": "2026-02-28T18:07:01.671Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:a3d524c30c30e977682302d5535d9ef5",
@@ -328,7 +328,7 @@
     },
     "2024-08": {
       "version": "md5:2770e7ef0fb0d78ea2c6a327434af55e",
-      "updatedAt": "2026-02-27T18:12:05.384Z",
+      "updatedAt": "2026-02-28T18:07:01.671Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:da6f5c66c7b85ed8216e381cd39eb92e",
@@ -336,7 +336,7 @@
     },
     "2024-09": {
       "version": "md5:f06aba853845f80ea4a3fc750b2858fe",
-      "updatedAt": "2026-02-27T18:12:05.384Z",
+      "updatedAt": "2026-02-28T18:07:01.671Z",
       "isChanged": true,
       "recordCount": 32,
       "checksum": "md5:496d1435aed0a93d28585c44364a0c8c",
@@ -344,7 +344,7 @@
     },
     "2024-10": {
       "version": "md5:6959ecda9633f10f08e93343ab30a55b",
-      "updatedAt": "2026-02-27T18:12:05.385Z",
+      "updatedAt": "2026-02-28T18:07:01.672Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:d0a0ee0177f2f7f508169fb885a12a8c",
@@ -352,7 +352,7 @@
     },
     "2024-11": {
       "version": "md5:6bf7932e31d041593f4c31a496123fce",
-      "updatedAt": "2026-02-27T18:12:05.385Z",
+      "updatedAt": "2026-02-28T18:07:01.672Z",
       "isChanged": true,
       "recordCount": 30,
       "checksum": "md5:8e6616ec830a00be5a29f10c266a11ad",
@@ -360,7 +360,7 @@
     },
     "2024-12": {
       "version": "md5:aa4019970da5fdc59f2bace916634656",
-      "updatedAt": "2026-02-27T18:12:05.385Z",
+      "updatedAt": "2026-02-28T18:07:01.672Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:5d5d01b0a0ef1f4d7a684f72ddbb1d6d",
@@ -368,7 +368,7 @@
     },
     "2025-01": {
       "version": "md5:739e41d829c6160894c6031acf54a173",
-      "updatedAt": "2026-02-27T18:12:05.385Z",
+      "updatedAt": "2026-02-28T18:07:01.673Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:130f058f979569c0403a43a578b35932",
@@ -376,7 +376,7 @@
     },
     "2025-02": {
       "version": "md5:9329384b4a01c5034900ad0a53fddcf9",
-      "updatedAt": "2026-02-27T18:12:05.386Z",
+      "updatedAt": "2026-02-28T18:07:01.673Z",
       "isChanged": true,
       "recordCount": 30,
       "checksum": "md5:5077bb87fffb37e99fdbb83774f453c8",
@@ -384,7 +384,7 @@
     },
     "2025-03": {
       "version": "md5:a504cb29a8cba109aef2cb97ccd9103f",
-      "updatedAt": "2026-02-27T18:12:05.386Z",
+      "updatedAt": "2026-02-28T18:07:01.673Z",
       "isChanged": true,
       "recordCount": 34,
       "checksum": "md5:dc9934dc386c116a888c257d05a9832d",
@@ -392,7 +392,7 @@
     },
     "2025-04": {
       "version": "md5:c74ed47946d103b29804af475cf5d550",
-      "updatedAt": "2026-02-27T18:12:05.386Z",
+      "updatedAt": "2026-02-28T18:07:01.673Z",
       "isChanged": true,
       "recordCount": 32,
       "checksum": "md5:549ded5600aa3dec21f083daa38379c0",
@@ -400,7 +400,7 @@
     },
     "2025-05": {
       "version": "md5:6ff5bdc362339bdaac600a1401aa4256",
-      "updatedAt": "2026-02-27T18:12:05.386Z",
+      "updatedAt": "2026-02-28T18:07:01.674Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:17aa41776e0ce3f24431d0db8d5cd469",
@@ -408,7 +408,7 @@
     },
     "2025-06": {
       "version": "md5:f67d5c2664a6b452edf2817e31ac2fa9",
-      "updatedAt": "2026-02-27T18:12:05.387Z",
+      "updatedAt": "2026-02-28T18:07:01.674Z",
       "isChanged": true,
       "recordCount": 29,
       "checksum": "md5:9ae061881ccdeaeb968ff9bf695f4057",
@@ -416,7 +416,7 @@
     },
     "2025-07": {
       "version": "md5:10c22a3f415fef95d9fd2336300a2863",
-      "updatedAt": "2026-02-27T18:12:05.387Z",
+      "updatedAt": "2026-02-28T18:07:01.674Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:31be7979a7a75b63eed62c692dc37ecd",
@@ -424,7 +424,7 @@
     },
     "2025-08": {
       "version": "md5:ca4437abfd399bdee177fc4ac0484bba",
-      "updatedAt": "2026-02-27T18:12:05.387Z",
+      "updatedAt": "2026-02-28T18:07:01.674Z",
       "isChanged": true,
       "recordCount": 32,
       "checksum": "md5:5167395304ab59d9eba2cfd0ebd9511f",
@@ -432,7 +432,7 @@
     },
     "2025-09": {
       "version": "md5:204f06a64278214db4b349cf2b848b78",
-      "updatedAt": "2026-02-27T18:12:05.387Z",
+      "updatedAt": "2026-02-28T18:07:01.675Z",
       "isChanged": true,
       "recordCount": 31,
       "checksum": "md5:46ecb19d9da5d32129c7ba59901aa30d",
@@ -440,7 +440,7 @@
     },
     "2025-10": {
       "version": "md5:cbd31e1c28a19317d524bc19d638763e",
-      "updatedAt": "2026-02-27T18:12:05.388Z",
+      "updatedAt": "2026-02-28T18:07:01.675Z",
       "isChanged": true,
       "recordCount": 33,
       "checksum": "md5:29f1909e503d32e9cadfdae0c2d75c39",
@@ -448,7 +448,7 @@
     },
     "2025-11": {
       "version": "md5:931b1524071012199bf84821b7c0a975",
-      "updatedAt": "2026-02-27T18:12:05.388Z",
+      "updatedAt": "2026-02-28T18:07:01.675Z",
       "isChanged": true,
       "recordCount": 5,
       "checksum": "md5:de1d2011c066900c46cb64f0b853cee7",
@@ -456,7 +456,7 @@
     },
     "2026-02": {
       "version": "md5:6504d48c4f5522f0f0d449b411f65540",
-      "updatedAt": "2026-02-27T18:12:05.388Z",
+      "updatedAt": "2026-02-28T18:07:01.675Z",
       "isChanged": true,
       "recordCount": 19,
       "checksum": "md5:9aaf532d1e3a668886d9b57e76629076",
