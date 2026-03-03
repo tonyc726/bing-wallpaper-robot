@@ -128,7 +128,7 @@ const ImageDialog = ({
 
   // 意念式控件：静止 3 秒后自动隐藏 UI (非 Zen Mode 下有效)
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     const resetTimer = () => {
       if (!zenMode) {
         setShowUI(true);
