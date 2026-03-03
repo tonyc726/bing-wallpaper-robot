@@ -1,4 +1,6 @@
 {
   "buildCommand": "pnpm run build:frontend && pnpm run build:copy",
-  "outputDirectory": "docs"
+  "outputDirectory": "docs",
+  "installCommand": "pnpm install",
+  "rootDirectory": null
 }
