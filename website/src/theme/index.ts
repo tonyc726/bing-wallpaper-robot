@@ -20,7 +20,14 @@ const ACCENT = {
   light: '#0078D4',
   main: '#0078D4',
   dark: '#005A9E',
-} as const;
+};
+
+/** 强调色类型 */
+interface AccentColor {
+  light: string;
+  main: string;
+  dark: string;
+}
 
 /** 功能色 */
 const STATUS = {
@@ -100,7 +107,7 @@ const BACKDROP = {
 
 declare module '@mui/material/styles' {
   interface Palette {
-    accent: typeof ACCENT;
+    accent: AccentColor;
     status: typeof STATUS;
     gradients: typeof GRADIENTS;
     glow: typeof GLOW;
@@ -108,7 +115,7 @@ declare module '@mui/material/styles' {
     colorFilters: typeof COLOR_FILTERS;
   }
   interface PaletteOptions {
-    accent?: typeof ACCENT;
+    accent?: AccentColor;
     status?: typeof STATUS;
     gradients?: typeof GRADIENTS;
     glow?: typeof GLOW;

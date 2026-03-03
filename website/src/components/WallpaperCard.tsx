@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useMotionTemplate } from 'framer-motion';
 import {
   Box,
@@ -20,7 +20,8 @@ interface Props {
   onToggleFavorite?: (wallpaper: WallpaperData) => void;
 }
 
-const WallpaperCard = ({
+// 性能优化：使用 memo 避免不必要的重渲染
+const WallpaperCard = React.memo(({
   wallpaper,
   onImageClick,
   isFavorite = false,
@@ -28,7 +29,32 @@ const WallpaperCard = ({
 }: Props) => {
   const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false); // 是否在可视区域内
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  // 使用 IntersectionObserver 精确控制图片加载：只在可视区域内才加载
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect(); // 只触发一次
+        }
+      },
+      {
+        rootMargin: '200px', // 提前 200px 开始加载
+        threshold: 0,
+      }
+    );
+
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
 
   // === Framer Motion 3D 悬浮物理系统 ===
   // 鼠标相对卡片中心的坐标 (-1 到 1)
@@ -155,16 +181,19 @@ const WallpaperCard = ({
       onClick={() => onImageClick(wallpaper)}
       >
         {/* 核心图片 - 赋予微弱的放大呼吸效果 */}
+        {/* 只有在可视区域内才加载图片，切换时框架先展示 */}
         <motion.img
+          ref={imgRef}
           layoutId={`wallpaper-image-${wallpaper.id}`} // 与大图模式的关联点，触发跨组件 Hero Transition
           className="wallpaper-img"
-          src={wallpaper.imageUrl}
+          src={isInView ? wallpaper.imageUrl : undefined} // 可视区域内才加载
           alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
           onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            // 图片加载失败时，使用 dominantColor 作为背景色占位
             const target = e.target as HTMLImageElement;
-            target.src = `https://via.placeholder.com/600x400/${wallpaper.dominantColor}/ffffff?text=Bing+Wallpaper`;
+            target.style.display = 'none';
             setImageLoaded(true);
           }}
           variants={{
@@ -313,6 +342,13 @@ const WallpaperCard = ({
       </Box>
     </Box>
   );
-};
+}, (prevProps: Props, nextProps: Props) => {
+  // 性能优化：只有当 wallpaper 关键字段变化时才重渲染
+  // TODO: 收藏功能重新启用时需添加 isFavorite 比较
+  if (prevProps.wallpaper.id !== nextProps.wallpaper.id) return false;
+  if (prevProps.wallpaper.date !== nextProps.wallpaper.date) return false;
+  if (prevProps.wallpaper.title !== nextProps.wallpaper.title) return false;
+  return true;
+});
 
 export default WallpaperCard;

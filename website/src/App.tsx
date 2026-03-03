@@ -103,6 +103,27 @@ function App() {
     return new Set(saved ? JSON.parse(saved) : []);
   });
 
+  // 收藏 localStorage 写入优化：使用 ref + debounce 避免频繁写入
+  const favoritesRef = useRef(favorites);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  favoritesRef.current = favorites;
+
+  useEffect(() => {
+    // 清除之前的 timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // debounce 300ms 后写入
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem('favorites', JSON.stringify(Array.from(favoritesRef.current)));
+    }, 300);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [favorites]);
+
   // 图片查看
   const [selectedImage, setSelectedImage] = useState<WallpaperData | null>(null);
   // 【新增】图片所在的当前上下文（搜索结果/过滤结果），代替全局 allWallpapers
@@ -151,10 +172,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
-
-  useEffect(() => {
-    localStorage.setItem('favorites', JSON.stringify(Array.from(favorites)));
-  }, [favorites]);
 
   const handleUpdateApp = useCallback(() => {
     const updateWorker = swRegister.getUpdateWorker();
@@ -396,19 +413,21 @@ function App() {
   }, [wallpaperData, indexData, loadAllData, handleImageClick]);
 
   /**
-   * 切换收藏
+   * 切换收藏 - 使用函数式更新避免依赖外部状态
    */
   const handleToggleFavorite = useCallback(
     (wallpaper: WallpaperData) => {
-      const newFavorites = new Set(favorites);
-      if (newFavorites.has(wallpaper.id)) {
-        newFavorites.delete(wallpaper.id);
-      } else {
-        newFavorites.add(wallpaper.id);
-      }
-      setFavorites(newFavorites);
+      setFavorites((prev) => {
+        const newFavorites = new Set(prev);
+        if (newFavorites.has(wallpaper.id)) {
+          newFavorites.delete(wallpaper.id);
+        } else {
+          newFavorites.add(wallpaper.id);
+        }
+        return newFavorites;
+      });
     },
-    [favorites],
+    [], // 空依赖，使用函数式更新
   );
 
 
