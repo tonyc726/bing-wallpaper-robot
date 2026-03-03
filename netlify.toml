@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm run build:frontend && pnpm run build:copy"
+  command = "pnpm install && pnpm run build:frontend && pnpm run build:copy"
   publish = "docs"
 
 [build.environment]
