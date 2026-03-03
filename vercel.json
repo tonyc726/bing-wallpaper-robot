@@ -1,5 +1,6 @@
 {
   "buildCommand": "pnpm install && pnpm run build:frontend && pnpm run build:copy",
   "outputDirectory": "docs",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install",
+  "framework": "vite"
 }
