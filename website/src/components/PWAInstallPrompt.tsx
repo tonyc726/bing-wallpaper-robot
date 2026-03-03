@@ -16,8 +16,11 @@ import {
   Paper,
   Stack,
   IconButton,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import { Download, Close, GetApp } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -33,6 +36,7 @@ function SlideTransition(props: SlideProps) {
 }
 
 const PWAInstallPrompt: React.FC = () => {
+  const theme = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -147,68 +151,113 @@ const PWAInstallPrompt: React.FC = () => {
         },
       }}
     >
-      <Paper
-        elevation={6}
-        sx={{
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          p: 2,
-          maxWidth: 400,
-          mx: 2,
-        }}
+      <motion.div
+        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       >
-        <Box display="flex" alignItems="flex-start" gap={2}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <GetApp sx={{ color: 'white', fontSize: 28 }} />
-          </Box>
-
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" gutterBottom>
-              安装 Horizon
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              安装应用到主屏幕，享受更快的访问速度和离线浏览功能！
-            </Typography>
-
-            <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Button
-                size="small"
-                onClick={handleDismiss}
-                sx={{ minWidth: 'auto' }}
+        <Paper
+          elevation={6}
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            p: 2.5,
+            maxWidth: 400,
+            mx: 2,
+            overflow: 'hidden',
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              background: `linear-gradient(90deg, ${theme.palette.accent?.main ?? '#0078D4'}, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.7)}, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.5)})`,
+            },
+          }}
+        >
+          <Box display="flex" alignItems="flex-start" gap={2}>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 500 }}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${theme.palette.accent?.main ?? '#0078D4'} 0%, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.7)} 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: `0 4px 14px ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.4)}`,
+                }}
               >
-                稍后
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={handleInstallClick}
-                startIcon={<Download />}
-              >
-                安装
-              </Button>
-            </Stack>
-          </Box>
+                <GetApp sx={{ color: 'white', fontSize: 28 }} />
+              </Box>
+            </motion.div>
 
-          <IconButton
-            size="small"
-            onClick={handleDismiss}
-            sx={{ alignSelf: 'flex-start' }}
-          >
-            <Close fontSize="small" />
-          </IconButton>
+            <Box sx={{ flexGrow: 1 }}>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  安装 Horizon
+                </Typography>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 2 }}>
+                  安装应用到主屏幕，享受更快的访问速度和离线浏览功能！
+                </Typography>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Button
+                    size="small"
+                    onClick={handleDismiss}
+                    sx={{ minWidth: 'auto', borderRadius: 1.5 }}
+                  >
+                    稍后
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={handleInstallClick}
+                    startIcon={<Download />}
+                    sx={{ borderRadius: 1.5 }}
+                  >
+                    安装
+                  </Button>
+                </Stack>
+              </motion.div>
+            </Box>
+
+            <IconButton
+              size="small"
+              onClick={handleDismiss}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
         </Box>
       </Paper>
+      </motion.div>
     </Snackbar>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { LayoutGroup } from 'framer-motion';
+import { LayoutGroup, AnimatePresence, motion } from 'framer-motion';
 import {
   Typography,
   Box,
@@ -13,9 +13,12 @@ import {
   Snackbar,
   Button,
   IconButton,
+  Card,
 } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CloseIcon from '@mui/icons-material/Close';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import WallpaperGrid from './components/WallpaperGrid';
 import ImageDialog from './components/ImageDialog';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -23,7 +26,6 @@ import type { IndexData, WallpaperData } from './types';
 import { initDataLoader, fetchIndexData, fetchChunksBatch, getCacheStatus } from './dataLoader';
 import { swRegister } from './utils/swRegister';
 import { lightTheme, darkTheme } from './theme';
-import { AnimatePresence } from 'framer-motion';
 
 // 滚动回顶按钮组件
 function ScrollTop(props: { children: React.ReactElement }) {
@@ -484,18 +486,133 @@ function App() {
             alignItems: 'center',
             justifyContent: 'center',
             minHeight: '100vh',
-            gap: 2,
+            background: currentTheme.palette.gradients?.overlay?.[currentTheme.palette.mode] ?? (
+              currentTheme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+            ),
+            overflow: 'hidden',
+            position: 'relative',
           }}
         >
-          <CircularProgress size={60} />
-          <Typography variant="h6" color="text.secondary">
-            加载壁纸数据中...
-          </Typography>
-          {loadingProgress > 0 && loadingProgress < 100 && (
-            <Box sx={{ width: 300 }}>
-              <LinearProgress variant="determinate" value={loadingProgress} />
+          {/* 装饰性光晕 */}
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            style={{
+              position: 'absolute',
+              width: 400,
+              height: 400,
+              borderRadius: '50%',
+              background: currentTheme.palette.accent?.main ?? currentTheme.palette.primary.main,
+              filter: 'blur(100px)',
+              top: '30%',
+            }}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              {/* 动画加载图标 */}
+              <motion.div
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              >
+                <CircularProgress
+                  size={60}
+                  sx={{
+                    color: currentTheme.palette.primary.main,
+                    '& .MuiCircularProgress-circle': {
+                      strokeLinecap: 'round',
+                    },
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: 'text.primary',
+                    mt: 3,
+                    fontWeight: 500,
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  正在准备壁纸画廊
+                </Typography>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'text.secondary',
+                    mt: 1,
+                  }}
+                >
+                  稍等片刻，马上就好
+                </Typography>
+              </motion.div>
+
+              {loadingProgress > 0 && loadingProgress < 100 && (
+                <motion.div
+                  initial={{ opacity: 0, scaleX: 0 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Box sx={{ width: 240, mt: 3 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={loadingProgress}
+                      sx={{
+                        height: 4,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        mt: 0.5,
+                        display: 'block',
+                      }}
+                    >
+                      {Math.round(loadingProgress)}%
+                    </Typography>
+                  </Box>
+                </motion.div>
+              )}
             </Box>
-          )}
+          </motion.div>
         </Box>
       </ThemeProvider>
     );
@@ -512,11 +629,164 @@ function App() {
             alignItems: 'center',
             justifyContent: 'center',
             minHeight: '100vh',
+            background: currentTheme.palette.gradients?.overlay?.[currentTheme.palette.mode] ?? (
+              currentTheme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+            ),
+            overflow: 'hidden',
+            position: 'relative',
           }}
         >
-          <Typography variant="h6" color="error">
-            无法加载数据，请检查网络连接
-          </Typography>
+          {/* 装饰性圆形 - 左侧 */}
+          <motion.div
+            initial={{ opacity: 0, x: -100 }}
+            animate={{ opacity: 0.3, x: 0 }}
+            transition={{ duration: 1.5, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              width: 300,
+              height: 300,
+              borderRadius: '50%',
+              background: currentTheme.palette.accent?.main ?? currentTheme.palette.primary.main,
+              filter: 'blur(80px)',
+              left: -50,
+              top: '20%',
+            }}
+          />
+          {/* 装饰性圆形 - 右侧 */}
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 0.2, x: 0 }}
+            transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
+            style={{
+              position: 'absolute',
+              width: 250,
+              height: 250,
+              borderRadius: '50%',
+              background: currentTheme.palette.secondary.main,
+              filter: 'blur(60px)',
+              right: -30,
+              bottom: '20%',
+            }}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Card
+              sx={{
+                maxWidth: 420,
+                mx: 3,
+                textAlign: 'center',
+                p: 5,
+                borderRadius: 4,
+                boxShadow: currentTheme.palette.mode === 'dark'
+                  ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                  : '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                backdropFilter: 'blur(10px)',
+                background: currentTheme.palette.backdrop?.card?.[currentTheme.palette.mode] ?? (
+                  currentTheme.palette.mode === 'dark'
+                    ? 'rgba(30, 30, 46, 0.8)'
+                    : 'rgba(255, 255, 255, 0.85)'
+                ),
+              }}
+            >
+              <motion.div
+                animate={{
+                  y: [0, -8, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                <CloudOffIcon
+                  sx={{
+                    fontSize: 80,
+                    color: currentTheme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.7)'
+                      : 'rgba(0, 0, 0, 0.5)',
+                    mb: 3,
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    mb: 1.5,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  无法加载数据
+                </Typography>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'text.secondary',
+                    mb: 4,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  似乎网络与我们失去了联系
+                  <br />
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    sx={{ color: 'text.secondary', opacity: 0.7 }}
+                  >
+                    请检查您的网络连接后重试
+                  </Typography>
+                </Typography>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => window.location.reload()}
+                  sx={{
+                    borderRadius: 2.5,
+                    px: 4,
+                    py: 1.5,
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.2)',
+                    },
+                  }}
+                >
+                  重新加载
+                </Button>
+              </motion.div>
+            </Card>
+          </motion.div>
         </Box>
       </ThemeProvider>
     );

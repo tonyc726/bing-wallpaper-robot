@@ -6,6 +6,7 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  useTheme,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -25,6 +26,7 @@ const WallpaperCard = ({
   isFavorite = false,
   onToggleFavorite,
 }: Props) => {
+  const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -242,7 +244,7 @@ const WallpaperCard = ({
                 sx={{
                   bgcolor: 'rgba(255, 255, 255, 0.1)',
                   backdropFilter: 'blur(8px)',
-                  color: isFavorite ? '#ef4444' : 'white', // tailwind red-500
+                  color: isFavorite ? (theme.palette.status?.error?.main ?? '#ef4444') : 'white',
                   '&:hover': {
                     bgcolor: 'rgba(255, 255, 255, 0.2)'
                   },

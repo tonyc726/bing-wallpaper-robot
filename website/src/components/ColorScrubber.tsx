@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, useTheme, alpha, useMediaQuery } from '@mui/material';
+import { getColorFilterHex } from '../theme';
 import type { ColorCategory } from '../utils/colorUtils';
 
 interface ColorProps {
@@ -22,19 +23,16 @@ const ColorScrubber = ({ colors, onScrubRequest }: ColorProps) => {
 
   // === 颜色到展示颜色的映射关系 ===
   const getColorHex = (cat: string) => {
-    switch (cat) {
-      case '红色系': return '#ef4444'; // Red-500
-      case '橙色系': return '#f97316'; // Orange-500
-      case '黄色系': return '#eab308'; // Yellow-500
-      case '绿色系': return '#22c55e'; // Green-500
-      case '青色系': return '#06b6d4'; // Cyan-500
-      case '蓝色系': return '#3b82f6'; // Blue-500
-      case '紫色系': return '#a855f7'; // Purple-500
-      case '粉色系': return '#ec4899'; // Pink-500
-      case '无彩色 (黑白灰)': 
-        return theme.palette.mode === 'dark' ? '#d1d5db' : '#4b5563'; // Gray-300 / Gray-600
-      default: return theme.palette.text.primary;
+    // 优先使用统一的色彩筛选器配置
+    const centralizedColor = getColorFilterHex(cat);
+    if (centralizedColor) return centralizedColor;
+
+    // 无彩色 (黑白灰)
+    if (cat === '无彩色 (黑白灰)') {
+      return theme.palette.mode === 'dark' ? '#d1d5db' : '#4b5563';
     }
+
+    return theme.palette.text.primary;
   };
 
   // 1. 侦测滚动，高亮色系

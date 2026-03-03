@@ -643,3 +643,4 @@ xcuserdata/
 
 # playwright
 .playwright-mcp
+.vercel
