@@ -8,6 +8,9 @@ const destDir = path.resolve('docs');
 // website/dist 里不会有这些目录，所以 copyRecursive 也不会覆盖
 const PRESERVE_DIRS = new Set(['thumbs', 'chunks']);
 
+// 这些是由爬虫/数据生成脚本维护的文件，构建时不能删除
+const PRESERVE_FILES = new Set(['index.json', 'utils.js', 'index.js', 'all.js']);
+
 // 这些是 Vite 构建产物目录，每次需要完整清空以避免残留文件
 const BUILD_DIRS = new Set(['assets']);
 
@@ -55,8 +58,14 @@ try {
         }
         // 其他目录忽略
       } else {
-        // 根目录文件：全部删除（index.html、sw.js 等每次都会重新生成）
-        fs.unlinkSync(fullPath);
+        // 根目录文件：检查是否需要保留
+        const fileName = path.basename(fullPath);
+        if (PRESERVE_FILES.has(fileName)) {
+          console.log(`⏭️  Preserved data file: docs/${fileName}`);
+        } else {
+          // 删除其他文件（index.html、sw.js 等每次都会重新生成）
+          fs.unlinkSync(fullPath);
+        }
       }
     }
   }
