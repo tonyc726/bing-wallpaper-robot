@@ -21,9 +21,11 @@ GitHub Action (scheduled daily)
   ↓
 fetch-data → get-multiple-bing-wallpaper-info → add-or-update-wallpaper
   ↓                              ↓
-make-html ←──── upload-to-imagekit ←──── download-image
+makePreviewJSON ←─── upload-to-imagekit ←──── download-image
   ↓                              ↓
 SQLite DB ←──── python image analysis
+        ↓
+    push to GitHub → triggers Vercel/Netlify/Cloudflare rebuild
 ```
 
 ### Database Schema (TypeORM)
@@ -102,13 +104,13 @@ pnpm install
 pnpm run dev                 # Start dev server at http://localhost:3000
 pnpm run build:frontend     # Build frontend only (website/)
 pnpm run build:data         # Generate JSON data from database
-pnpm run build:copy         # Copy build to docs/ (uses scripts/copy-build.js)
-pnpm run build              # Full build: data + frontend + copy
+pnpm run build:copy         # Copy build to docs/ (preserves thumbs/, chunks/)
+pnpm run build              # Full build: frontend + copy + data
 
 # Legacy workflow (EJS template - deprecated)
 pnpm run fetch-data         # Fetch Bing wallpaper data
 pnpm run make-html          # Generate HTML (old way)
-pnpm start                  # Run full legacy workflow
+pnpm start                  # Run fetch-data + build
 
 # TypeORM migrations
 pnpm run migration:run        # Run pending migrations
@@ -212,13 +214,21 @@ Run migrations with: `pnpm run run-migration`
 **Flow:**
 
 1. Checkout repository
-2. Setup Python 3.9
+2. Setup Python 3.12
 3. Setup Node.js 22.x
-4. Install dependencies (`npm ci`)
-5. Run `npm run fetch-data`
-6. Run `npm run make-html`
-7. Commit changes with auto-generated message
-8. Push to `main` branch
+4. Install dependencies (`pnpm install`)
+5. Run `pnpm run fetch-data` (fetch Bing wallpaper data)
+6. Run `pnpm run build` (frontend + copy + data)
+7. Publish to NPM (optional)
+8. Commit and push changes to `main` branch
+
+**Multi-Platform Deployment:**
+
+The commit triggers Vercel, Netlify, and Cloudflare Pages to rebuild via webhook:
+
+- **Vercel**: Uses `vercel.json` (output: docs)
+- **Netlify**: Uses `netlify.toml` (output: docs)
+- **Cloudflare**: Uses `docs/_headers` for SPA routing
 
 ## Configuration Files
 
@@ -227,8 +237,12 @@ Run migrations with: `pnpm run run-migration`
 **.eslintrc.js** - Alloy TypeScript config + explicit-member-accessibility rule
 **.prettierrc.js** - Prettier formatting rules
 **scripts/** - Build and utility scripts:
-  - `copy-build.js` - Copies frontend build to `docs/` directory
+  - `copy-build.mjs` - Copies frontend build to `docs/` (preserves `thumbs/`, `chunks/`)
   - `updateReadmeCount.ts` - Updates wallpaper count in README
+**Multi-Platform Deployment:**
+  - `vercel.json` - Vercel build configuration
+  - `netlify.toml` - Netlify build configuration
+  - `docs/_headers` - Cloudflare Pages SPA routing
 
 ## Development Notes
 
@@ -236,10 +250,11 @@ Run migrations with: `pnpm run run-migration`
 - **Retry Logic:** Built into data fetching operations (max 5 attempts)
 - **Deduplication:** Similar image detection via Hamming distance comparison of perceptual hashes
 - **File Storage:** Thumbnails in `docs/thumbs/` with ImageKit ID as filename
-- **HTML Generation:** EJS templating + minification for static gallery at `docs/index.html`
+- **Multi-Platform Deployment:** Data fetched only on GitHub Actions; Vercel/Netlify/Cloudflare only build static pages from GitHub repo
+- **Data Directory Protection:** `copy-build.mjs` preserves `docs/thumbs/` and `docs/chunks/` during build
 - **Python Integration:** Image analysis via `exec-python.ts` wrapper
 - **Linting:** ESLint with alloy config + `@typescript-eslint/explicit-member-accessibility` rule set to "warn"
-- **Workflow Automation:** GitHub Actions run daily at 18:00 UTC, auto-commit results
+- **Workflow Automation:** GitHub Actions run daily at 18:00 UTC, auto-commit results, triggers other platforms
 
 ## Common Tasks
 
