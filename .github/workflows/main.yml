@@ -54,11 +54,10 @@ jobs:
         run: pnpm run fetch-data
 
       - name: Make Website (Build)
-        # GitHub Pages serves under /bing-wallpaper-robot/; other platforms
-        # (Vercel, Netlify, Cloudflare, custom domain) use their own build
-        # pipelines and do NOT set VITE_BASE_URL, so they get base='/'.
-        env:
-          VITE_BASE_URL: '/bing-wallpaper-robot/'
+        # 使用相对路径 base='./'，兼容所有平台：
+        # - 根域名部署 (Vercel, Netlify, Cloudflare, 自定义域名)
+        # - 子路径部署 (GitHub Pages: /bing-wallpaper-robot/)
+        # 不再需要设置 VITE_BASE_URL
         run: pnpm run build
 
       - name: Publish to NPM

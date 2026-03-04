@@ -9,13 +9,16 @@ import fs from 'fs';
  *
  *  VITE_BASE_URL env var   → use that value (CI can inject per-platform)
  *  development mode        → '/' (local dev always root)
- *  otherwise               → '/'  (Vercel / Netlify / Cloudflare / custom domain all serve at root)
+ *  otherwise               → './' (relative path for multi-platform compatibility)
  *
- * For GitHub Pages only (subpath deploy), the GitHub Actions workflow
- * must pass `VITE_BASE_URL=/bing-wallpaper-robot/` at build time.
+ * Using relative path './' ensures the app works on:
+ * - Root domain (Vercel, Netlify, Cloudflare, custom domain)
+ * - Subpath (GitHub Pages: /bing-wallpaper-robot/)
+ *
+ * The trade-off: Service Worker scope is limited to the deployment path.
  */
 export default defineConfig(({ mode }) => {
-  const base = process.env.VITE_BASE_URL || (mode === 'development' ? '/' : '/');
+  const base = process.env.VITE_BASE_URL || (mode === 'development' ? '/' : './');
 
   return {
     // Add a local dev plugin to serve data from ../docs
@@ -57,8 +60,9 @@ export default defineConfig(({ mode }) => {
           display: "standalone",
           display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
           orientation: "portrait-primary",
-          start_url: base === '/' ? '/' : base,
-          scope: base === '/' ? '/' : base,
+          // PWA scope: always use relative path for cross-platform compatibility
+          start_url: '.',
+          scope: '.',
           lang: "zh-CN",
           dir: "ltr",
           categories: ["photography", "entertainment", "lifestyle"],
@@ -96,14 +100,14 @@ export default defineConfig(({ mode }) => {
               name: "浏览最新壁纸",
               short_name: "最新壁纸",
               description: "查看最新添加的壁纸",
-              url: base === '/' ? '/?action=latest' : `${base}?action=latest`,
+              url: ".?action=latest",
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             },
             {
               name: "我的收藏",
               short_name: "收藏",
               description: "查看收藏的壁纸",
-              url: base === '/' ? '/?action=favorites' : `${base}?action=favorites`,
+              url: ".?action=favorites",
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             }
           ],
