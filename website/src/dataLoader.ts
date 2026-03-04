@@ -127,10 +127,9 @@ export async function fetchChunkData(
     
     try {
       // 降级时直接拉取本站源的紧凑 JS 数据块
-      // 注意：动态 import 使用相对路径时会被解析为相对于当前 JS 文件位置
-      // 所以需要使用绝对路径（以 / 开头）确保从根路径解析
-      const baseUrl = import.meta.env.BASE_URL;
-      const chunkPath = baseUrl === './' ? `/chunks/${month}.js` : `${baseUrl}/chunks/${month}.js`;
+      // 使用 URL 构造函数自动解析相对于当前文档位置的路径
+      // 这样可以兼容所有部署平台（根域名、子路径等）
+      const chunkPath = new URL(`./chunks/${month}.js`, window.location.href).href;
       const module = await import(/* @vite-ignore */ chunkPath);
       const compactRows = module.default;
       const wallpapers = unpackChunk(compactRows);
@@ -274,9 +273,8 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
     console.warn(`[Network] Falling back to local/github pages for all.js`, error);
 
     try {
-      // 动态 import 需要使用绝对路径确保从根路径解析
-      const baseUrl = import.meta.env.BASE_URL;
-      const allPath = baseUrl === './' ? '/all.js' : `${baseUrl}/all.js`;
+      // 使用 URL 构造函数自动解析相对于当前文档位置的路径
+      const allPath = new URL('./all.js', window.location.href).href;
       const module = await import(/* @vite-ignore */ allPath);
       wallpapers = unpackChunk(module.default);
     } catch (fallbackError) {
