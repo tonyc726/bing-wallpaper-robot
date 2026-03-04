@@ -1,0 +1,21 @@
+# Cloudflare Pages SPA 路由配置
+/*
+  X-Robots-Tag: noindex
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 静态资源缓存
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 缩略图缓存
+/thumbs/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service Worker
+/sw.js
+  Cache-Control: no-cache
+
+# index.html 需要返回 200 以支持 SPA 路由
+/index.html
+  X-Robots-Tag: noindex
+  Cache-Control: public, max-age=0, must-revalidate

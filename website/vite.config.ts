@@ -57,8 +57,8 @@ export default defineConfig(({ mode }) => {
           display: "standalone",
           display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
           orientation: "portrait-primary",
-          start_url: ".",
-          scope: ".",
+          start_url: base === '/' ? '/' : base,
+          scope: base === '/' ? '/' : base,
           lang: "zh-CN",
           dir: "ltr",
           categories: ["photography", "entertainment", "lifestyle"],
@@ -96,14 +96,14 @@ export default defineConfig(({ mode }) => {
               name: "浏览最新壁纸",
               short_name: "最新壁纸",
               description: "查看最新添加的壁纸",
-              url: ".?action=latest",
+              url: base === '/' ? '/?action=latest' : `${base}?action=latest`,
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             },
             {
               name: "我的收藏",
               short_name: "收藏",
               description: "查看收藏的壁纸",
-              url: ".?action=favorites",
+              url: base === '/' ? '/?action=favorites' : `${base}?action=favorites`,
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             }
           ],

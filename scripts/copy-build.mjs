@@ -9,7 +9,7 @@ const destDir = path.resolve('docs');
 const PRESERVE_DIRS = new Set(['thumbs', 'chunks']);
 
 // 这些是由爬虫/数据生成脚本维护的文件，构建时不能删除
-const PRESERVE_FILES = new Set(['index.json', 'utils.js', 'index.js', 'all.js']);
+const PRESERVE_FILES = new Set(['index.json', 'utils.js', 'index.js', 'all.js', '_headers']);
 
 // 这些是 Vite 构建产物目录，每次需要完整清空以避免残留文件
 const BUILD_DIRS = new Set(['assets']);
