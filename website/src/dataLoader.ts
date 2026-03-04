@@ -37,6 +37,7 @@ async function checkAndFixMonthIndex(): Promise<void> {
  * 获取index.json索引数据
  */
 export async function fetchIndexData(): Promise<IndexData> {
+  // 动态 import 之外的 fetch 使用相对路径是可以的，因为它相对于 HTML 文档
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
   const response = await fetch(`${baseUrl}/index.json`, {
     cache: 'no-cache'
@@ -126,8 +127,11 @@ export async function fetchChunkData(
     
     try {
       // 降级时直接拉取本站源的紧凑 JS 数据块
-      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
-      const module = await import(/* @vite-ignore */ `${baseUrl}/chunks/${month}.js`);
+      // 注意：动态 import 使用相对路径时会被解析为相对于当前 JS 文件位置
+      // 所以需要使用绝对路径（以 / 开头）确保从根路径解析
+      const baseUrl = import.meta.env.BASE_URL;
+      const chunkPath = baseUrl === './' ? `/chunks/${month}.js` : `${baseUrl}/chunks/${month}.js`;
+      const module = await import(/* @vite-ignore */ chunkPath);
       const compactRows = module.default;
       const wallpapers = unpackChunk(compactRows);
       
@@ -270,8 +274,10 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
     console.warn(`[Network] Falling back to local/github pages for all.js`, error);
 
     try {
-      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
-      const module = await import(/* @vite-ignore */ `${baseUrl}/all.js`);
+      // 动态 import 需要使用绝对路径确保从根路径解析
+      const baseUrl = import.meta.env.BASE_URL;
+      const allPath = baseUrl === './' ? '/all.js' : `${baseUrl}/all.js`;
+      const module = await import(/* @vite-ignore */ allPath);
       wallpapers = unpackChunk(module.default);
     } catch (fallbackError) {
       console.error(`Failed to download all.js from both sources:`, fallbackError);
