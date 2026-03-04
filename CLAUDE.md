@@ -255,6 +255,8 @@ The commit triggers Vercel, Netlify, and Cloudflare Pages to rebuild via webhook
 - **Python Integration:** Image analysis via `exec-python.ts` wrapper
 - **Linting:** ESLint with alloy config + `@typescript-eslint/explicit-member-accessibility` rule set to "warn"
 - **Workflow Automation:** GitHub Actions run daily at 18:00 UTC, auto-commit results, triggers other platforms
+- **PWA Configuration:** 使用 `navigateFallbackDenylist` 排除 chunks 和 index.json，避免 Service Worker 错误拦截返回 index.html
+- **Dynamic Import Path Resolution:** 使用 `new URL('./chunks/xxx.js', window.location.href).href` 自动解析动态 import 路径，兼容所有部署平台（根域名 / 子路径）
 
 ## Common Tasks
 
