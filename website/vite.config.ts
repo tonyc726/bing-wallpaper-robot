@@ -122,6 +122,11 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           navigationPreload: false,
+          // 排除 chunks 和 index.json，不让 NavigationRoute 拦截这些请求
+          navigateFallbackDenylist: [
+            /^\/chunks\//,       // 动态加载的 chunk 数据
+            /^\/index\.json/,    // 索引文件
+          ],
           globPatterns: ['**/*.{js,css,html,ico,svg,png,jpg,webp,woff2}'],
           runtimeCaching: [
             {
