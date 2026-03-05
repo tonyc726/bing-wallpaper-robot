@@ -47,7 +47,7 @@ const ImageDialog = ({
     if (currentIndex !== page) {
       setPage([currentIndex, currentIndex > page ? 1 : -1]);
     }
-  }, [currentIndex, page]);
+  }, [currentIndex]); // 只依赖 currentIndex，避免 page 变化触发死循环 (不加 page 到依赖数组)
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -351,11 +351,10 @@ const ImageDialog = ({
           />
 
           {/* 核心图片：基于 AnimatePresence 的无缝切换与触屏手势层 */}
-          <AnimatePresence initial={false} custom={direction}>
+          <AnimatePresence initial={false} custom={direction} mode="popLayout">
             {/* 主图展示区 */}
             <motion.div
-              key={`wallpaper-container-${wallpaper.id}`} // Keep the key for AnimatePresence
-              layoutId={`wallpaper-image-${wallpaper.id}`} // 英雄动画，与卡片关联
+              key={`wallpaper-container-${wallpaper.id}`}
               custom={direction}
               variants={slideVariants}
               initial="enter"
@@ -379,8 +378,10 @@ const ImageDialog = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: isMobile ? 0 : '4vmin',
-                position: 'absolute', // CRITICAL: absolute positioning prevents flex layout thrashing during simultaneous Enter/Exit animations
+                position: 'absolute',
+                inset: 0, // 简洁等价于 top/left/right/bottom: 0
                 zIndex: 1,
+                willChange: 'transform, opacity', // 提示浏览器预创建合成层
               }}
               // 随拖拽位移与变形的动态滤镜效果
               whileDrag={{ scale: 0.9, borderRadius: '32px' }}
