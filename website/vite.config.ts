@@ -102,13 +102,6 @@ export default defineConfig(({ mode }) => {
               description: "查看最新添加的壁纸",
               url: ".?action=latest",
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
-            },
-            {
-              name: "我的收藏",
-              short_name: "收藏",
-              description: "查看收藏的壁纸",
-              url: ".?action=favorites",
-              icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             }
           ],
           screenshots: [

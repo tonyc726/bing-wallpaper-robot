@@ -6,28 +6,20 @@ import {
   Typography,
   IconButton,
   Tooltip,
-  useTheme,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import type { WallpaperData } from '../types';
 
 interface Props {
   wallpaper: WallpaperData;
   onImageClick: (wallpaper: WallpaperData) => void;
-  isFavorite?: boolean;
-  onToggleFavorite?: (wallpaper: WallpaperData) => void;
 }
 
 // 性能优化：使用 memo 避免不必要的重渲染
 const WallpaperCard = React.memo(({
   wallpaper,
   onImageClick,
-  isFavorite = false,
-  onToggleFavorite,
 }: Props) => {
-  const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false); // 是否在可视区域内
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -265,28 +257,6 @@ const WallpaperCard = React.memo(({
               <DownloadIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-
-          {onToggleFavorite && (
-            <Tooltip title={isFavorite ? "取消收藏" : "添加收藏"} placement="left">
-              <IconButton
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(8px)',
-                  color: isFavorite ? (theme.palette.status?.error?.main ?? '#ef4444') : 'white',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.2)'
-                  },
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFavorite(wallpaper);
-                }}
-              >
-                {isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-          )}
         </Box>
 
         {/* 底部：文本信息区 */}
@@ -344,7 +314,6 @@ const WallpaperCard = React.memo(({
   );
 }, (prevProps: Props, nextProps: Props) => {
   // 性能优化：只有当 wallpaper 关键字段变化时才重渲染
-  // TODO: 收藏功能重新启用时需添加 isFavorite 比较
   if (prevProps.wallpaper.id !== nextProps.wallpaper.id) return false;
   if (prevProps.wallpaper.date !== nextProps.wallpaper.date) return false;
   if (prevProps.wallpaper.title !== nextProps.wallpaper.title) return false;

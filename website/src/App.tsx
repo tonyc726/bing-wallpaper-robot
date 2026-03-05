@@ -97,32 +97,11 @@ function App() {
     });
   }, []);
 
-  // 收藏
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('favorites');
-    return new Set(saved ? JSON.parse(saved) : []);
-  });
-
-  // 收藏 localStorage 写入优化：使用 ref + debounce 避免频繁写入
-  const favoritesRef = useRef(favorites);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  favoritesRef.current = favorites;
-
+  // === 遗留数据清理 ===
+  // 彻底清除残留的收藏数据，满足激进清理的需求
   useEffect(() => {
-    // 清除之前的 timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    // debounce 300ms 后写入
-    saveTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem('favorites', JSON.stringify(Array.from(favoritesRef.current)));
-    }, 300);
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [favorites]);
+    localStorage.removeItem('favorites');
+  }, []);
 
   // 图片查看
   const [selectedImage, setSelectedImage] = useState<WallpaperData | null>(null);
@@ -411,25 +390,6 @@ function App() {
       window.history.replaceState({path: newUrl}, '', newUrl);
     }
   }, [wallpaperData, indexData, loadAllData, handleImageClick]);
-
-  /**
-   * 切换收藏 - 使用函数式更新避免依赖外部状态
-   */
-  const handleToggleFavorite = useCallback(
-    (wallpaper: WallpaperData) => {
-      setFavorites((prev) => {
-        const newFavorites = new Set(prev);
-        if (newFavorites.has(wallpaper.id)) {
-          newFavorites.delete(wallpaper.id);
-        } else {
-          newFavorites.add(wallpaper.id);
-        }
-        return newFavorites;
-      });
-    },
-    [], // 空依赖，使用函数式更新
-  );
-
 
   // ========== Deep Link 触发（在数据加载完成后） ==========
   // 🔑 关键修复：React 的 setState 是异步的。
@@ -823,8 +783,6 @@ function App() {
         <WallpaperGrid
           data={gridData}
           onImageClick={handleImageClick}
-          favorites={favorites}
-          onToggleFavorite={handleToggleFavorite}
           indexData={indexData}
           loadingMonths={loadingMonths}
           loadMonthData={loadMonthData}

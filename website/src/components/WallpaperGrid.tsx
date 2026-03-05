@@ -32,8 +32,6 @@ import type { WallpaperData, WallpapersGroupData, IndexData } from '../types';
 interface Props {
   data: WallpapersGroupData[];
   onImageClick: (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => void;
-  favorites: Set<string>;
-  onToggleFavorite: (wallpaper: WallpaperData) => void;
   indexData: IndexData | null;
   loadingMonths: Set<string>;
   loadMonthData: (month: string) => Promise<void>;
@@ -53,13 +51,11 @@ interface MonthSectionProps {
   loadMonthData: (month: string) => void;
   onImageClick: (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => void;
   contextWallpapers: WallpaperData[]; // 传入当前过滤后的上下文合集
-  favorites: Set<string>;
-  onToggleFavorite: (wallpaper: WallpaperData) => void;
   sortBy?: string | null;
 }
 
 const MonthSection: React.FC<MonthSectionProps> = React.memo(
-  ({ group, loading, loadMonthData, onImageClick, contextWallpapers, favorites, onToggleFavorite }) => {
+  ({ group, loading, loadMonthData, onImageClick, contextWallpapers }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const theme = useTheme();
 
@@ -371,8 +367,6 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
                       <WallpaperCard
                         wallpaper={wallpaper}
                         onImageClick={(w) => onImageClick(w, contextWallpapers)}
-                        isFavorite={favorites.has(wallpaper.id)}
-                        onToggleFavorite={onToggleFavorite}
                       />
                     </Box>
                   </Grid>
@@ -386,16 +380,6 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
     if (prevProps.group.groupMonth !== nextProps.group.groupMonth) return false;
     if (prevProps.loading !== nextProps.loading) return false;
     if (prevProps.sortBy !== nextProps.sortBy) return false;
-
-    // Custom check for favorites: only re-render if a wallpaper IN THIS GROUP changed favorite status
-    // (Prevents entire Timeline from re-rendering when one image is favorited)
-    const prevFavs = prevProps.favorites;
-    const nextFavs = nextProps.favorites;
-    for (const w of prevProps.group.wallpapers) {
-      if (prevFavs.has(w.id) !== nextFavs.has(w.id)) {
-        return false;
-      }
-    }
     return true;
   },
 );
@@ -404,8 +388,6 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
 const WallpaperGrid: React.FC<Props> = ({
   data,
   onImageClick,
-  favorites,
-  onToggleFavorite,
   loadingMonths,
   loadMonthData,
   loadAllData,
@@ -418,16 +400,11 @@ const WallpaperGrid: React.FC<Props> = ({
   const [, startTransition] = useTransition();
 
   // === URL 状态管理 ===
-  const [searchTerm, setSearchTerm] = useQueryState(
-    'q',
-    parseAsString.withOptions({ startTransition })
-  );
+  const [searchTerm, setSearchTerm] = useQueryState('q', parseAsString.withOptions({ startTransition }));
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [sortBy, setSortBy] = useQueryState(
     'sort',
-    parseAsString
-      .withDefault('date-desc')
-      .withOptions({ startTransition })
+    parseAsString.withDefault('date-desc').withOptions({ startTransition }),
   );
 
   const [localSearch, setLocalSearch] = useState(searchTerm || '');
@@ -472,19 +449,7 @@ const WallpaperGrid: React.FC<Props> = ({
       // 顺利跑到 if (isComposingRef.current) return; 的时候发现是 false，从而走通正常防抖流程
     }
   };
-  const [selectedYear] = useQueryState(
-    'year',
-    parseAsString
-      .withDefault('all')
-      .withOptions({ startTransition })
-  );
-  // TODO: 收藏功能暂时隐藏
-  // const [showFavoritesOnly, setShowFavoritesOnly] = useQueryState('fav', {
-  //   parse: Boolean,
-  //   defaultValue: false,
-  //   transition: true,
-  // });
-  const showFavoritesOnly = false;
+  const [selectedYear] = useQueryState('year', parseAsString.withDefault('all').withOptions({ startTransition }));
 
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const loadingRef = useRef<HTMLDivElement>(null);
@@ -504,12 +469,6 @@ const WallpaperGrid: React.FC<Props> = ({
   // === 第二步：过滤 ===
   const filteredWallpapers = useMemo(() => {
     let result = allWallpapers;
-
-    // 收藏过滤
-    const showFav = showFavoritesOnly;
-    if (showFav) {
-      result = result.filter((w) => favorites.has(w.id));
-    }
 
     // 搜索过滤
     if (searchTerm) {
@@ -536,11 +495,10 @@ const WallpaperGrid: React.FC<Props> = ({
     }
 
     return result;
-    // 优化：使用 favorites.size 代替 favorites Set 对象，避免引用变化导致重复计算
-  }, [allWallpapers, selectedYear, showFavoritesOnly, searchTerm, favorites.size]);
+  }, [allWallpapers, selectedYear, searchTerm]);
 
   // === 使用 useDeferredValue 延迟处理大量数据变化 ===
-  // 当 fav、search 等过滤条件变化时，优先保证 UI 响应
+  // 当 search 等过滤条件变化时，优先保证 UI 响应
   const deferredFilteredWallpapers = useDeferredValue(filteredWallpapers);
 
   // === 第三步：排序（基于延迟值） ===
@@ -572,7 +530,6 @@ const WallpaperGrid: React.FC<Props> = ({
   const isTimelineMode =
     !searchTerm &&
     !localSearch &&
-    !showFavoritesOnly &&
     (sortBy === 'date-desc' || sortBy === 'date-asc') &&
     selectedYear === 'all';
 
@@ -654,16 +611,14 @@ const WallpaperGrid: React.FC<Props> = ({
   }, [data, isTimelineMode, sortBy]);
 
   // === 状态重置 ===
-  // 非 timeline 模式（搜索、收藏过滤、颜色排序等）使用更少的初始加载，避免卡顿
   useEffect(() => {
     const isTimeline =
       !searchTerm &&
       !localSearch &&
-      !showFavoritesOnly &&
       (sortBy === 'date-desc' || sortBy === 'date-asc') &&
       selectedYear === 'all';
     setVisibleCount(isTimeline ? ITEMS_PER_PAGE : ITEMS_PER_PAGE_NON_TIMELINE);
-  }, [searchTerm, sortBy, selectedYear, showFavoritesOnly, localSearch]);
+  }, [searchTerm, sortBy, selectedYear, localSearch]);
 
   // === 无限滚动侦听 ===
   useEffect(() => {
@@ -678,7 +633,6 @@ const WallpaperGrid: React.FC<Props> = ({
           const isTimeline =
             !searchTerm &&
             !localSearch &&
-            !showFavoritesOnly &&
             (sortBy === 'date-desc' || sortBy === 'date-asc') &&
             selectedYear === 'all';
           const increment = isTimeline ? ITEMS_PER_PAGE : ITEMS_PER_PAGE_NON_TIMELINE;
@@ -991,19 +945,6 @@ const WallpaperGrid: React.FC<Props> = ({
               </Select>
             </FormControl>
 
-            {/* <Tooltip title={showFavoritesOnly ? "显示全部" : "仅显示收藏"}>
-              <IconButton
-                onClick={() => setShowFavoritesOnly((prev) => !prev)}
-                sx={{
-                  bgcolor: (showFavoritesOnly ?? false) ? alpha(theme.palette.error.main, 0.1) : 'transparent',
-                  color: (showFavoritesOnly ?? false) ? theme.palette.error.main : 'text.secondary',
-                  '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) }
-                }}
-              >
-                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>❤️</span>
-              </IconButton>
-            </Tooltip> */}
-
             {/* 主题与 Github：移动端空间紧张，可以依旧保留，但利用前方的 flex 折叠 */}
             <Tooltip title={darkMode ? '切换到亮色' : '切换到暗色'}>
               <IconButton
@@ -1074,8 +1015,6 @@ const WallpaperGrid: React.FC<Props> = ({
                 loadMonthData={loadMonthData}
                 onImageClick={onImageClick}
                 contextWallpapers={sortedWallpapers}
-                favorites={favorites}
-                onToggleFavorite={onToggleFavorite}
                 sortBy={sortBy}
               />
             ))
@@ -1091,8 +1030,6 @@ const WallpaperGrid: React.FC<Props> = ({
                   loadMonthData={() => {}}
                   onImageClick={onImageClick}
                   contextWallpapers={sortedWallpapers}
-                  favorites={favorites}
-                  onToggleFavorite={onToggleFavorite}
                 />
               ))}
 
