@@ -379,7 +379,7 @@ const ImageDialog = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: isMobile ? 0 : '4vmin',
-                position: 'relative',
+                position: 'absolute', // CRITICAL: absolute positioning prevents flex layout thrashing during simultaneous Enter/Exit animations
                 zIndex: 1,
               }}
               // 随拖拽位移与变形的动态滤镜效果
@@ -435,9 +435,10 @@ const ImageDialog = ({
                 }}
               >
                 <motion.img
-                  src={wallpaper.downloadUrl}
+                  src={wallpaper.imageUrl}
                   alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
                   onLoad={() => setImageLoaded(true)}
+                  decoding="async"
                   style={{
                     maxWidth: '100vw', // 解除边距限制，图片可以直接顶满屏幕
                     maxHeight: '100vh',
