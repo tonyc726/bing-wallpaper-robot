@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent, useCallback } from 'react';
+import { useEffect, useState, useRef, type SyntheticEvent, useCallback } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useQueryState } from 'nuqs';
 import {
@@ -127,20 +127,25 @@ const ImageDialog = ({
   }, [wallpaper, currentIndex, allWallpapers.length, onClose, onPrevious, onNext]);
 
   // 意念式控件：静止 3 秒后自动隐藏 UI (非 Zen Mode 下有效)
+  const showUIState = useRef(showUI);
+  useEffect(() => {
+    showUIState.current = showUI;
+  }, [showUI]);
+
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     const resetTimer = () => {
       if (!zenMode) {
-        setShowUI(true);
+        if (!showUIState.current) setShowUI(true);
         clearTimeout(timeout);
         timeout = setTimeout(() => setShowUI(false), 3000);
       }
     };
 
     // 监听各类交互事件来唤醒 UI
-    window.addEventListener('mousemove', resetTimer);
-    window.addEventListener('touchstart', resetTimer);
-    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('mousemove', resetTimer, { passive: true });
+    window.addEventListener('touchstart', resetTimer, { passive: true });
+    window.addEventListener('keydown', resetTimer, { passive: true });
 
     // 初始启动倒计时
     resetTimer();
@@ -151,7 +156,7 @@ const ImageDialog = ({
       window.removeEventListener('touchstart', resetTimer);
       window.removeEventListener('keydown', resetTimer);
     };
-  }, [zenMode, currentIndex]);
+  }, [zenMode]); // 彻底移除 currentIndex 依赖，避免每次切图引发不必要的全局解绑与重新绑定
 
   // 全沉浸“禅模式” (Zero-UI Focus)
   const toggleZenMode = (e: React.MouseEvent) => {

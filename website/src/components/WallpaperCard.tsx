@@ -176,7 +176,6 @@ const WallpaperCard = React.memo(({
         {/* 只有在可视区域内才加载图片，切换时框架先展示 */}
         <motion.img
           ref={imgRef}
-          layoutId={`wallpaper-image-${wallpaper.id}`} // 与大图模式的关联点，触发跨组件 Hero Transition
           className="wallpaper-img"
           src={isInView ? wallpaper.imageUrl : undefined} // 可视区域内才加载
           alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}

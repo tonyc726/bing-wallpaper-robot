@@ -364,6 +364,40 @@ function App() {
   );
 
   /**
+   * Dialog 导航回调
+   */
+  const handleDialogClose = useCallback(() => {
+    setSelectedImage((prev) => {
+      if (prev) setActiveSharedId(prev.id);
+      return null;
+    });
+  }, []);
+
+  const handleDialogPrevious = useCallback(() => {
+    setCurrentImageIndex((prevIndex) => {
+      if (prevIndex > 0) {
+        setActiveSharedId('NONE');
+        const newIndex = prevIndex - 1;
+        setSelectedImage(activeContextWallpapers[newIndex]);
+        return newIndex;
+      }
+      return prevIndex;
+    });
+  }, [activeContextWallpapers]);
+
+  const handleDialogNext = useCallback(() => {
+    setCurrentImageIndex((prevIndex) => {
+      if (prevIndex < activeContextWallpapers.length - 1) {
+        setActiveSharedId('NONE');
+        const newIndex = prevIndex + 1;
+        setSelectedImage(activeContextWallpapers[newIndex]);
+        return newIndex;
+      }
+      return prevIndex;
+    });
+  }, [activeContextWallpapers]);
+
+  /**
    * 处理直达分享链接的深潜唤起
    * 使用 useCallback 确保可安全作为 useEffect 依赖
    */
@@ -801,26 +835,9 @@ function App() {
             wallpaper={selectedImage}
             allWallpapers={activeContextWallpapers}
             currentIndex={currentImageIndex}
-            onClose={() => {
-              setActiveSharedId(selectedImage.id); // Enable fly-back to grid target map
-              setSelectedImage(null);
-            }}
-            onPrevious={() => {
-              if (currentImageIndex > 0) {
-                setActiveSharedId('NONE'); // Disable grid fly-in layout origin for slides
-                const newIndex = currentImageIndex - 1;
-                setCurrentImageIndex(newIndex);
-                setSelectedImage(activeContextWallpapers[newIndex]);
-              }
-            }}
-            onNext={() => {
-              if (currentImageIndex < activeContextWallpapers.length - 1) {
-                setActiveSharedId('NONE'); // Disable grid fly-in layout origin for slides
-                const newIndex = currentImageIndex + 1;
-                setCurrentImageIndex(newIndex);
-                setSelectedImage(activeContextWallpapers[newIndex]);
-              }
-            }}
+            onClose={handleDialogClose}
+            onPrevious={handleDialogPrevious}
+            onNext={handleDialogNext}
           />
         )}
       </AnimatePresence>
