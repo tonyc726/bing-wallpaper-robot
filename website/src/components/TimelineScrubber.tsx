@@ -336,4 +336,4 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   );
 };
 
-export default TimelineScrubber;
+export default React.memo(TimelineScrubber);

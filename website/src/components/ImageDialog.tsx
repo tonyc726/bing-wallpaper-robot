@@ -272,7 +272,7 @@ const ImageDialog = ({
 
     // 构造带参数的 Deep Link 专属链接
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${wallpaper.id}`;
-    const shareTitle = `分享一张必应壁纸: ${wallpaper.title || wallpaper.copyright || wallpaper.id}`;
+    const shareTitle = `来自拾影阁的珍藏: ${wallpaper.title || wallpaper.copyright || wallpaper.id}`;
 
     if (navigator.share) {
       try {
@@ -470,7 +470,7 @@ const ImageDialog = ({
               >
                 <motion.img
                   src={dialogImageUrl}
-                  alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
+                  alt={wallpaper.title || wallpaper.copyright || '拾影阁馆藏'}
                   onLoad={() => setImageLoaded(true)}
                   decoding="async"
                   style={{
@@ -486,7 +486,7 @@ const ImageDialog = ({
                     if (target.src !== wallpaper.imageUrl) {
                       target.src = wallpaper.imageUrl;
                     } else {
-                      target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || 'Bing Wallpaper')}`;
+                      target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || '拾影阁馆藏')}`;
                       setImageLoaded(true);
                     }
                   }}

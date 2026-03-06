@@ -246,7 +246,7 @@ const PWAInstallPrompt: React.FC = () => {
                     textTransform: 'uppercase',
                   }}
                 >
-                  INSTALL GALLERY
+                  安装拾影阁
                 </Typography>
                 <Typography
                   variant="caption"
@@ -256,7 +256,7 @@ const PWAInstallPrompt: React.FC = () => {
                     letterSpacing: '0.02em',
                   }}
                 >
-                  Get the immersive App experience.
+                  获得沉浸式画廊体验
                 </Typography>
               </Box>
 

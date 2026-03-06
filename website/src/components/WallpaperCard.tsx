@@ -154,7 +154,7 @@ const WallpaperCard = React.memo(({
           ref={imgRef}
           className="wallpaper-img"
           src={isInView ? wallpaper.imageUrl : undefined}
-          alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
+          alt={wallpaper.title || wallpaper.copyright || '拾影阁馆藏'}
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
           onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {

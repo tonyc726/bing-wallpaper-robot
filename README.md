@@ -4,13 +4,16 @@
   </a>
 </p>
 
+<h3 align="center">拾影阁 · Lumina Pavilion</h3>
+<p align="center"><em>收藏世界的光影，打造极简且纯粹的数字画廊</em></p>
+
 ## :memo: 简介
 
 ![Github Action](https://github.com/tonyc726/bing-wallpaper-robot/actions/workflows/main.yml/badge.svg?branch=main)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/4048a6c6-c825-4db0-9adb-729431bef620/deploy-status)](https://app.netlify.com/sites/bing-wallpaper-robot/deploys)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/tonyc726/bing-wallpaper-robot)
 
-通过 Github Action，每日自动记录 Bing 壁纸数据，同步壁纸(原图)至 [imagekit.io](https://imagekit.io/registration?code=45js2315)，生成预览地址，当前已经记录了 2684 条壁纸数据。
+拾影阁是一个轻量级、高颜值的现代化 Web 在线壁纸博物馆。通过 Github Action 每日自动归档 Bing 壁纸数据，同步壁纸(原图)至 [imagekit.io](https://imagekit.io/registration?code=45js2315)，当前已沉淀 2684 张原生高质量影像。
 
 ### :monocle_face: 在线预览
 

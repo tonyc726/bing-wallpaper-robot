@@ -52,9 +52,9 @@ export default defineConfig(({ mode }) => {
         registerType: 'prompt',
         injectRegister: false,
         manifest: {
-          name: "Horizon (地平线)",
-          short_name: "Horizon",
-          description: "Horizon - 自动收集高质量壁纸，每日更新，离线浏览，收藏管理",
+          name: "拾影阁 · Lumina Pavilion",
+          short_name: "拾影阁",
+          description: "收藏世界的光影 — 极简纯粹的数字壁纸画廊",
           theme_color: "#000000",
           background_color: "#000000",
           display: "standalone",
@@ -97,9 +97,9 @@ export default defineConfig(({ mode }) => {
           ],
           shortcuts: [
             {
-              name: "浏览最新壁纸",
-              short_name: "最新壁纸",
-              description: "查看最新添加的壁纸",
+              name: "浏览最新馆藏",
+              short_name: "最新馆藏",
+              description: "查看最新归档的壁纸",
               url: ".?action=latest",
               icons: [{ src: "android-chrome-192x192.png", sizes: "192x192" }]
             }
@@ -109,7 +109,7 @@ export default defineConfig(({ mode }) => {
               src: "android-chrome-512x512.png",
               sizes: "512x512",
               type: "image/png",
-              label: "Horizon 主界面"
+              label: "拾影阁主界面"
             }
           ]
         },

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useDeferredValue, useTransition } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import { useQueryState, parseAsString } from 'nuqs';
 import {
@@ -51,12 +51,17 @@ interface MonthSectionProps {
   onImageClick: (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => void;
   contextWallpapers: WallpaperData[]; // 传入当前过滤后的上下文合集
   sortBy?: string | null;
+  disableUrlSync?: boolean; // 新增：是否禁用视口滚动时的URL同步
+  forceRender?: boolean; // 新增：即使没有进入视口，也强制渲染真实数据（用于搜索过滤结果）
 }
 
 const MonthSection: React.FC<MonthSectionProps> = React.memo(
-  ({ group, loading, loadMonthData, onImageClick, contextWallpapers }) => {
+  ({ group, loading, loadMonthData, onImageClick, contextWallpapers, disableUrlSync, forceRender }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const theme = useTheme();
+    
+    // 视口水闸锁定状态：只有进入过视口附近，才允许将海量数据渲染为真实 DOM
+    const [hasIntersected, setHasIntersected] = useState(false);
 
     // 用于浅路由状态同步
     const [, setQueryMonth] = useQueryState('month', {
@@ -69,41 +74,41 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
     if (!containerEl) return;
 
     // === 合并为单一 Observer，分别处理「数据加载」和「URL 同步」两个职责 ===
-    // rootMargin 选用「数据加载」的更激进值 (400px)，使其触发更早
-    const loadObserver = new IntersectionObserver(
+    // 节省了 58 个 IntersectionObserver 实例
+    const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          // 职责 A: 惰性加载月份数据
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          // 职责 A: 惰性加载月份数据 (在视口接近 400px 时) / 解开视口渲染水闸
+          if (!hasIntersected) {
+            setHasIntersected(true);
+          }
           if (group.wallpapers.length === 0 && !loading) {
             loadMonthData(group.groupMonth);
           }
+          
+          // 职责 B: URL 同步 (仅当元素有较大比例进入核心视口)
+          // 通过判断 intersectionRatio 加上我们设定的 threshold，如果被禁用了（例如正在打字搜索期）则绝对不要回推URL
+          if (entry.intersectionRatio > 0.3 && !disableUrlSync) {
+            setQueryMonth(group.groupMonth);
+          }
         }
       },
-      { rootMargin: '400px' },
+      { rootMargin: '400px 0px -40% 0px', threshold: [0, 0.4] }
     );
 
-    // 独立的 URL 同步 Observer：触发区域限定在核心视口，避免轻微滚动乱跳
-    const syncObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setQueryMonth(group.groupMonth);
-        }
-      },
-      { rootMargin: '-10% 0px -50% 0px' },
-    );
-
-    loadObserver.observe(containerEl);
-    syncObserver.observe(containerEl);
+    observer.observe(containerEl);
 
     return () => {
-      loadObserver.disconnect();
-      syncObserver.disconnect();
+      observer.disconnect();
     };
-  }, [group.groupMonth, group.wallpapers.length, loading, loadMonthData, setQueryMonth]);
+  }, [group.groupMonth, group.wallpapers.length, loading, loadMonthData, setQueryMonth, disableUrlSync, hasIntersected]);
 
-    // 如果没有数据，渲染骨架屏
-    const isSkeleton = group.wallpapers.length === 0;
-    const renderCount = isSkeleton ? group.totalCount || 0 : group.wallpapers.length;
+    // ==== 如果没有数据，或者被视口水闸锁死了，渲染骨架屏 ====
+    // 即便后台因为搜索动作把 1839 条数据塞进了本月份的 group.wallpapers 里，
+    // 只要这段区域目前不在屏幕可见范围，那就强行剥夺它渲染这几百个 3D 卡片的资格，维持骨架屏！
+    const isSkeleton = group.wallpapers.length === 0 || (!hasIntersected && !forceRender);
+    const renderCount = (group.wallpapers.length === 0) ? (group.totalCount || 0) : group.wallpapers.length;
 
     if (renderCount === 0) return null;
 
@@ -363,6 +368,7 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
   },
   (prevProps: MonthSectionProps, nextProps: MonthSectionProps) => {
     if (prevProps.group.groupMonth !== nextProps.group.groupMonth) return false;
+    if (prevProps.group.wallpapers.length !== nextProps.group.wallpapers.length) return false;
     if (prevProps.loading !== nextProps.loading) return false;
     if (prevProps.sortBy !== nextProps.sortBy) return false;
     return true;
@@ -382,18 +388,17 @@ const WallpaperGrid: React.FC<Props> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [, startTransition] = useTransition();
 
   // === URL 状态管理 ===
-  const [searchTerm, setSearchTerm] = useQueryState('q', parseAsString.withOptions({ startTransition }));
+  // 核心修复 A：移除危险的 startTransition，在输入框强交互处避免引发并发调度的时空裂痕
+  const [searchTerm, setSearchTerm] = useQueryState('q', parseAsString);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [sortBy, setSortBy] = useQueryState(
-    'sort',
-    parseAsString.withDefault('date-desc').withOptions({ startTransition }),
-  );
+  const [sortBy, setSortBy] = useQueryState('sort', parseAsString.withDefault('date-desc'));
 
   const [localSearch, setLocalSearch] = useState(searchTerm || '');
   const isComposingRef = useRef(false);
+  // 【新增防线】专门用来抵御未完成打字过程中的 URL 强制倒灌
+  const isTypingRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -406,53 +411,58 @@ const WallpaperGrid: React.FC<Props> = ({
       if (searchTerm !== val) {
         setSearchTerm(val);
       }
+      // 防抖彻底走完，证明用户已经完全停止打字动作了，可以释放“防御锁”
+      isTypingRef.current = false;
     }, 400); // 400ms 毫秒防抖
     return () => clearTimeout(timer);
   }, [localSearch, searchTerm, setSearchTerm]);
 
   useEffect(() => {
-    // 【核心修复】如果用户正在使用输入法（比如还没打完“中国”），坚决不要用外面的 searchTerm 去覆盖 localSearch！
-    // 此外，只要输入框正处于焦点/激活状态（isSearchExpanded 为 true），即使用户敲了 Backspace 导致防抖定时器尚未触发，
-    // URL的searchTerm和此刻的localSearch不一致，也绝不可以去强行覆盖，否则就会导致“删不掉”的退格吞噬现象。
-    if (
-      !isComposingRef.current &&
-      !isSearchExpanded &&
-      searchTerm !== localSearch &&
-      (searchTerm || '') !== localSearch
-    ) {
-      setLocalSearch(searchTerm || '');
+    // 【核心修复 B】只要是在纯打字期、或者是拼音拼一半的时候，绝对不可以动用外部旧的 searchTerm 覆写输入框
+    if (isTypingRef.current || isComposingRef.current) return;
+
+    const normSearchTerm = searchTerm || '';
+    if (normSearchTerm !== localSearch) {
+      setLocalSearch(normSearchTerm);
     }
-  }, [searchTerm, localSearch, isSearchExpanded]);
+  }, [searchTerm, localSearch]);
 
   const handleComposition = (e: React.CompositionEvent<HTMLInputElement>) => {
     if (e.type === 'compositionstart') {
       isComposingRef.current = true;
     } else if (e.type === 'compositionend') {
       isComposingRef.current = false;
-      // 当拼音输入结束时，我们不再在这里直接去把 state 写进 searchTerm（因为会跳过防抖）
-      // 我们仅仅释放 isComposingRef，让刚才那个因为依赖项 [localSearch] 已经被触发的 useEffect 计时器
-      // 顺利跑到 if (isComposingRef.current) return; 的时候发现是 false，从而走通正常防抖流程
+      // 当拼音输入结束时，仅释放组合判定
     }
   };
-  const [selectedYear] = useQueryState('year', parseAsString.withDefault('all').withOptions({ startTransition }));
+  const [selectedYear] = useQueryState('year', parseAsString.withDefault('all'));
 
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const loadingRef = useRef<HTMLDivElement>(null);
 
-  // === 第一步：全量数据提取与去重 ===
+  // === 第一步：全量数据提取与去重 + 搜索串预计算 ===
   const allWallpapers = useMemo(() => {
+    const t0 = performance.now();
     const flat = data.flatMap((group) => group.wallpapers);
     const uniqueMap = new Map<string, WallpaperData>();
     flat.forEach((w) => {
       if (!uniqueMap.has(w.id)) {
-        uniqueMap.set(w.id, w);
+        // Fix B: 空间换时间，将巨重的字符串拼接及全小写操作提前在此（且仅一次）执行
+        // 并直接作为隐式属性挂载
+        const clone: WallpaperData & { _searchStr?: string } = { ...w };
+        clone._searchStr = `${clone.title || ''} ${clone.copyright || ''} ${clone.id || ''}`.toLowerCase();
+        uniqueMap.set(w.id, clone);
       }
     });
-    return Array.from(uniqueMap.values());
+    const result = Array.from(uniqueMap.values());
+    const t1 = performance.now();
+    console.log(`[Perf] 🔍 allWallpapers (parse & string cache): ${(t1 - t0).toFixed(2)}ms, items: ${result.length}`);
+    return result;
   }, [data]);
 
   // === 第二步：过滤 ===
   const filteredWallpapers = useMemo(() => {
+    const t0 = performance.now();
     let result = allWallpapers;
 
     // 搜索过滤
@@ -461,8 +471,8 @@ const WallpaperGrid: React.FC<Props> = ({
       const terms = searchTerm.toLowerCase().split(' ').filter(Boolean);
 
       result = result.filter((w) => {
-        // 构建全信息检索长文本
-        const searchableText = [w.title || '', w.copyright || '', w.id || ''].join(' ').toLowerCase();
+        // O(1) 取出预先拼接小写化的全信息文本
+        const searchableText = (w as any)._searchStr || `${w.title || ''} ${w.copyright || ''} ${w.id || ''}`.toLowerCase();
 
         // 只有当所有的搜索词段都在这张壁纸的相关信息中找到时，才算匹配成功（AND 关系）
         return terms.every((term) => searchableText.includes(term));
@@ -479,6 +489,8 @@ const WallpaperGrid: React.FC<Props> = ({
       });
     }
 
+    const t1 = performance.now();
+    console.log(`[Perf] 🔍 filteredWallpapers (search/filter): ${(t1 - t0).toFixed(2)}ms, matched: ${result.length}/${allWallpapers.length}`);
     return result;
   }, [allWallpapers, selectedYear, searchTerm]);
 
@@ -488,6 +500,7 @@ const WallpaperGrid: React.FC<Props> = ({
 
   // === 第三步：排序（基于延迟值） ===
   const sortedWallpapers = useMemo(() => {
+    const t0 = performance.now();
     const result = [...deferredFilteredWallpapers];
     const sortKey = sortBy ?? 'date-desc';
     result.sort((a, b) => {
@@ -504,30 +517,41 @@ const WallpaperGrid: React.FC<Props> = ({
           return b.date - a.date;
       }
     });
+    const t1 = performance.now();
+    console.log(`[Perf] 🔍 sortedWallpapers (sort): ${(t1 - t0).toFixed(2)}ms, items: ${result.length}`);
     return result;
   }, [deferredFilteredWallpapers, sortBy]);
 
   // === 第四步：截取当前可见数量 (Client Pagination) ===
   const visibleWallpapers = sortedWallpapers.slice(0, visibleCount);
 
-  // 판단是否处于纯净的时间线模式（无过滤，支持正序或倒序）
-  // 这里把 localSearch 也加进来，只要用户在框里打字了，哪怕还没防抖成 searchTerm，也应该立即摘除 isTimelineMode 进而触发 loadAllData
+  // 判断是否处于纯净的时间线模式（无过滤，支持正序或倒序）
+  // 新增：只要本地搜索框有内容（即便还在防抖阶段），立刻退出时间轴模式，直接踢入拥有 24 个数量限制的虚拟分页过滤模式
+  // 这避免了 1839 个重型 CSS 3D 卡片组件在后台数据拉取瞬间被全部实例化塞入 DOM 引发长达数秒的死机海啸
   const isTimelineMode =
-    !searchTerm &&
-    !localSearch &&
+    !localSearch && !searchTerm &&
     (sortBy === 'date-desc' || sortBy === 'date-asc') &&
     selectedYear === 'all';
 
   // === 后台全局拉取 ===
   useEffect(() => {
     if (!isTimelineMode) {
-      // 只要不是时间线模式（即开启了搜索、输入了字符、颜色排序、仅喜爱、特定年份），全部加载
       loadAllData();
     }
   }, [isTimelineMode, loadAllData]);
 
+  // 新增：就算 searchTerm 正在防抖拦截，一旦输入了也提前触发加载
+  useEffect(() => {
+    if (localSearch) {
+      loadAllData();
+    }
+  }, [localSearch, loadAllData]);
+
   // === 第五步：按特征分组 (Group by Month or Color for Headers) ===
   const groupedData = useMemo(() => {
+    const t0 = performance.now();
+    let finalGroups: { monthStr: string; items: WallpaperData[] }[] = [];
+
     if (sortBy === 'color') {
       // 按颜色归类
       const colorMap = new Map<string, WallpaperData[]>();
@@ -542,17 +566,14 @@ const WallpaperGrid: React.FC<Props> = ({
         }
       });
 
-      const groups: { monthStr: string; items: WallpaperData[] }[] = [];
       COLOR_ORDER.forEach((c) => {
         const items = colorMap.get(c);
         if (items && items.length > 0) {
-          groups.push({ monthStr: c, items });
+          finalGroups.push({ monthStr: c, items });
         }
       });
-      return groups;
     } else {
       // 原有逻辑：按年月或其他模式聚合
-      const groups: { monthStr: string; items: WallpaperData[] }[] = [];
       let currentGroupMonth = '';
       let currentItems: WallpaperData[] = [];
 
@@ -566,7 +587,7 @@ const WallpaperGrid: React.FC<Props> = ({
 
         if (monthStr !== currentGroupMonth) {
           if (currentItems.length > 0) {
-            groups.push({ monthStr: currentGroupMonth, items: currentItems });
+            finalGroups.push({ monthStr: currentGroupMonth, items: currentItems });
           }
           currentGroupMonth = monthStr;
           currentItems = [w];
@@ -576,11 +597,13 @@ const WallpaperGrid: React.FC<Props> = ({
       });
 
       if (currentItems.length > 0) {
-        groups.push({ monthStr: currentGroupMonth, items: currentItems });
+        finalGroups.push({ monthStr: currentGroupMonth, items: currentItems });
       }
-
-      return groups;
     }
+    
+    const t1 = performance.now();
+    console.log(`[Perf] 🔍 groupedData (grouping ${visibleWallpapers.length} visible items): ${(t1 - t0).toFixed(2)}ms`);
+    return finalGroups;
   }, [visibleWallpapers, sortBy]);
 
   // 用于时间线模式的正倒序映射数据
@@ -598,12 +621,11 @@ const WallpaperGrid: React.FC<Props> = ({
   // === 状态重置 ===
   useEffect(() => {
     const isTimeline =
-      !searchTerm &&
-      !localSearch &&
+      !localSearch && !searchTerm &&
       (sortBy === 'date-desc' || sortBy === 'date-asc') &&
       selectedYear === 'all';
     setVisibleCount(isTimeline ? ITEMS_PER_PAGE : ITEMS_PER_PAGE_NON_TIMELINE);
-  }, [searchTerm, sortBy, selectedYear, localSearch]);
+  }, [localSearch, searchTerm, sortBy, selectedYear]);
 
   // === 无限滚动侦听 ===
   useEffect(() => {
@@ -617,7 +639,6 @@ const WallpaperGrid: React.FC<Props> = ({
           // 非 timeline 模式使用更小的增量，避免一次加载太多
           const isTimeline =
             !searchTerm &&
-            !localSearch &&
             (sortBy === 'date-desc' || sortBy === 'date-asc') &&
             selectedYear === 'all';
           const increment = isTimeline ? ITEMS_PER_PAGE : ITEMS_PER_PAGE_NON_TIMELINE;
@@ -682,6 +703,21 @@ const WallpaperGrid: React.FC<Props> = ({
 
     lastScrollY.current = latest;
   });
+
+  // 性能优化：给 TimelineScrubber 稳定固定的数据与函数引用
+  const scrubberMonths = useMemo(
+    () => (isTimelineMode ? timelineData.map((g) => g.groupMonth) : []),
+    [isTimelineMode, timelineData]
+  );
+  
+  const handleScrubRequest = useCallback((month: string) => {
+    const id = `month-${month.replace('年', '-').replace('月', '')}`;
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 64; // header padding offset
+      window.scrollTo({ top: y, behavior: 'instant' });
+    }
+  }, []);
 
   return (
     <Box>
@@ -781,9 +817,12 @@ const WallpaperGrid: React.FC<Props> = ({
             <TextField
               inputRef={searchInputRef}
               size="small"
-              placeholder="搜索壁纸..."
+              placeholder="探索馆藏…"
               value={localSearch || ''}
-              onChange={(e) => setLocalSearch(e.target.value)}
+              onChange={(e) => {
+                isTypingRef.current = true; // 用户确实在这里敲击了
+                setLocalSearch(e.target.value);
+              }}
               onCompositionStart={handleComposition}
               onCompositionUpdate={handleComposition}
               onCompositionEnd={handleComposition}
@@ -978,12 +1017,12 @@ const WallpaperGrid: React.FC<Props> = ({
                 }}
               />
               <Typography variant="body2" color="text.secondary">
-                正在检索全部壁纸...
+                正在检索全部馆藏…
               </Typography>
             </>
           ) : (
             <Typography variant="h6" color="text.secondary">
-              无匹配壁纸
+              未找到匹配的馆藏
             </Typography>
           )}
         </Paper>
@@ -994,13 +1033,14 @@ const WallpaperGrid: React.FC<Props> = ({
             /* 拥有完整骨架，依靠 IntersectionObserver 按需加载 */
             timelineData.map((group) => (
               <MonthSection
-                key={`group-${group.groupMonth}`}
+                key={group.groupMonth}
                 group={group}
                 loading={loadingMonths.has(group.groupMonth)}
                 loadMonthData={loadMonthData}
                 onImageClick={onImageClick}
                 contextWallpapers={sortedWallpapers}
                 sortBy={sortBy}
+                disableUrlSync={!!localSearch || !!searchTerm} // 正在搜素/打字途中，绝对不要动 URL！
               />
             ))
           ) : (
@@ -1009,12 +1049,14 @@ const WallpaperGrid: React.FC<Props> = ({
             <Box>
               {groupedData.map((group) => (
                 <MonthSection
-                  key={`filter-group-${group.monthStr}`}
+                  key={group.monthStr}
                   group={{ groupMonth: group.monthStr, wallpapers: group.items, totalCount: group.items.length }}
                   loading={false}
                   loadMonthData={() => {}}
                   onImageClick={onImageClick}
                   contextWallpapers={sortedWallpapers}
+                  disableUrlSync={true} // 过滤模式下也不再通过月份覆盖 URL
+                  forceRender={true} // 过滤模式数据极少（<=24），为了防止闪烁，无论视口在哪直接强制渲染
                 />
               ))}
 
@@ -1046,15 +1088,8 @@ const WallpaperGrid: React.FC<Props> = ({
       {/* 沉浸式侧边时光轴 (仅纯净日期模式显示) */}
       {isTimelineMode && (
         <TimelineScrubber
-          months={isTimelineMode ? timelineData.map((g) => g.groupMonth) : []}
-          onScrubRequest={(month) => {
-            const id = `month-${month.replace('年', '-').replace('月', '')}`;
-            const el = document.getElementById(id);
-            if (el) {
-              const y = el.getBoundingClientRect().top + window.scrollY - 64; // header padding offset
-              window.scrollTo({ top: y, behavior: 'instant' });
-            }
-          }}
+          months={scrubberMonths}
+          onScrubRequest={handleScrubRequest}
         />
       )}
 

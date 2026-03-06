@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**bing-wallpaper-robot** is an automated system that:
+**拾影阁 (Lumina Pavilion)** — 收藏世界的光影，打造极简且纯粹的数字画廊。
+
+**bing-wallpaper-robot** is the underlying automated system that:
 
 - Fetches Bing wallpaper data daily via GitHub Actions
 - Stores wallpaper metadata in SQLite database using TypeORM
@@ -56,7 +58,6 @@ SQLite DB ←──── python image analysis
   - `website/src/components/` - React components:
     - `WallpaperCard.tsx` - Individual wallpaper display card
     - `WallpaperGrid.tsx` - Masonry grid with search/filter (uses nuqs for URL state)
-    - `StatsPanel.tsx` - Statistics dashboard
     - `ImageDialog.tsx` - Full-screen preview dialog
   - `website/src/theme/index.ts` - Material-UI theme configuration
   - `website/src/types/index.ts` - TypeScript type definitions
@@ -64,10 +65,10 @@ SQLite DB ←──── python image analysis
   - `website/vite.config.ts` - Vite build configuration (port 3000)
 
 **URL State Management (nuqs):**
+
 - Search: `?q=关键词`
 - Sort: `?sort=date-desc` (date-asc, color, title)
 - Year filter: `?year=2025` (all, 2024, 2023...)
-- Favorites only: `?fav=1`
 - Example: `http://localhost:3000/?q=日本&year=2025&sort=date-desc`
 
 **Data Flow:**
@@ -129,6 +130,7 @@ pnpm exec jest <test-file>
 ```
 
 **Note:**
+
 - This project uses **pnpm** instead of npm for faster installs and disk space efficiency
 - Python 3.9+ is required for image analysis scripts
 - All commands use `pnpm run` prefix (not `npm run`)
@@ -237,12 +239,13 @@ The commit triggers Vercel, Netlify, and Cloudflare Pages to rebuild via webhook
 **.eslintrc.js** - Alloy TypeScript config + explicit-member-accessibility rule
 **.prettierrc.js** - Prettier formatting rules
 **scripts/** - Build and utility scripts:
-  - `copy-build.mjs` - Copies frontend build to `docs/` (preserves `thumbs/`, `chunks/`)
-  - `updateReadmeCount.ts` - Updates wallpaper count in README
-**Multi-Platform Deployment:**
-  - `vercel.json` - Vercel build configuration
-  - `netlify.toml` - Netlify build configuration
-  - `docs/_headers` - Cloudflare Pages SPA routing
+
+- `copy-build.mjs` - Copies frontend build to `docs/` (preserves `thumbs/`, `chunks/`)
+- `updateReadmeCount.ts` - Updates wallpaper count in README
+  **Multi-Platform Deployment:**
+- `vercel.json` - Vercel build configuration
+- `netlify.toml` - Netlify build configuration
+- `docs/_headers` - Cloudflare Pages SPA routing
 
 ## Development Notes
 
@@ -319,9 +322,10 @@ pnpm run preview
 ```
 
 **URL State Sharing:**
+
 - Search filters are stored in URL (shareable links)
 - Use `nuqs` for state management without router
-- Example: `/?q=枫叶&year=2025&sort=date-asc&fav=1`
+- Example: `/?q=枫叶&year=2025&sort=date-asc`
 
 **Architecture Migration:**
 

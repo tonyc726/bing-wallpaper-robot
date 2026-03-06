@@ -80,10 +80,17 @@ function App() {
   const [isLoadingAllData, setIsLoadingAllData] = useState(false); // 全量数据加载中（搜索触发）
   const isInitializedRef = useRef(false);
 
+  // 稳定 ref：让 loadAllData 能读到最新 wallpaperData，而不把它加入 useCallback 依赖
+  const wallpaperDataRef = useRef(wallpaperData);
+  wallpaperDataRef.current = wallpaperData;
+
+  // 整个生命周期只全量加载一次的 flag
+  const isAllDataLoaded = useRef(false);
+
   // 主题
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
+    return saved ? JSON.parse(saved) : true;
   });
   const currentTheme = darkMode ? darkTheme : lightTheme;
 
@@ -110,6 +117,14 @@ function App() {
   // PWA 更新提示
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
 
+  // Fix 3: 使用衍生 key（月份集合 + 各月数量）替代 Map 引用作为 dep，避免每次 new Map() 都重算
+  const wallpaperDataKey = useMemo(
+    () => `${wallpaperData.size}:${Array.from(wallpaperData.entries())
+      .map(([m, arr]) => `${m}=${arr.length}`)
+      .join(',')}`,
+    [wallpaperData]
+  );
+
   // 稳定的gridData引用：直接映射整份 indexData.monthList 作为 DOM 渲染框架
   const gridData = useMemo(() => {
     if (!indexData) return [];
@@ -124,7 +139,7 @@ function App() {
       `[App] Memoized gridData: months=${data.length}, loaded_wallpapers=${totalCount}`,
     );
     return data;
-  }, [indexData, wallpaperData]);
+  }, [indexData, wallpaperDataKey]);
 
   // ========== 初始化 ==========
   useEffect(() => {
@@ -166,7 +181,7 @@ function App() {
 
     try {
       setInitializing(true);
-      log('%c🚀 ===== Bing Wallpaper System v4.0 =====', 'color: #2196F3; font-weight: bold; font-size: 16px');
+      log('%c🚀 ===== Lumina Pavilion (拾影阁) v4.0 =====', 'color: #0078D4; font-weight: bold; font-size: 16px');
       log('%c📊 System Information:', 'color: #4CAF50; font-weight: bold');
       log(`   - Platform: ${navigator.platform}`);
       log(`   - User Agent: ${navigator.userAgent.substring(0, 100)}...`);
@@ -313,10 +328,27 @@ function App() {
 
   /**
    * 按需触发的全局极速加载（当进入非 Timeline 过滤或排序模式时触发）
+   *
+   * Fix 1: 依赖数组只包含 indexData（初始化后不变）。
+   *        通过 wallpaperDataRef.current 读取 wallpaperData 最新值，
+   *        确保 useCallback 引用在整个生命周期内只创建一次，
+   *        彻底切断 setWallpaperData → size 变化 → 回调重建 → useEffect 重触发的死循环。
+   *
+   * Fix 5: isAllDataLoaded ref 作为硬性终止条件，一旦全量数据加载成功，
+   *        后续任何触发都直接返回缓存，不走 setWallpaperData。
    */
   const loadAllData = useCallback(async (): Promise<Map<string, WallpaperData[]> | undefined> => {
     if (!indexData) return;
-    if (wallpaperData.size >= indexData.monthList.length) return wallpaperData; // 已经加载完毕
+
+    // Fix 5: 整个生命周期内最多执行一次全量加载
+    if (isAllDataLoaded.current) return wallpaperDataRef.current;
+
+    // Fix 4: 容错 guard（-2 容差），防止 all.js 和 index.json 月份数不一致
+    if (wallpaperDataRef.current.size >= indexData.monthList.length - 2) {
+      isAllDataLoaded.current = true;
+      return wallpaperDataRef.current;
+    }
+
     if (isGlobalFetching.current) return;
 
     isGlobalFetching.current = true;
@@ -336,8 +368,34 @@ function App() {
         if (!groupedData.has(mKey)) groupedData.set(mKey, []);
         groupedData.get(mKey)!.push(w);
       }
-      
-      setWallpaperData(groupedData);
+
+      // Fix 2: 合并而非覆盖，并通过相同性检测跳过无意义的 re-render
+      setWallpaperData(prev => {
+        // 检测内容是否实质相同（月份集合 + 各月数量一致）
+        if (prev.size === groupedData.size) {
+          let identical = true;
+          for (const [key, arr] of groupedData) {
+            const existing = prev.get(key);
+            if (!existing || existing.length !== arr.length) {
+              identical = false;
+              break;
+            }
+          }
+          // 内容相同 → 返回原引用，React 将跳过这次 re-render
+          if (identical) return prev;
+        }
+        // 合并：以 all.js 数据为基础，保留 chunk 中更新的月份数据
+        const merged = new Map(groupedData);
+        for (const [key, arr] of prev) {
+          // 优先使用已有的增量加载数据（chunk 通常比 all.js 更新）
+          if (!merged.has(key) || (merged.get(key)!.length < arr.length)) {
+            merged.set(key, arr);
+          }
+        }
+        return merged;
+      });
+
+      isAllDataLoaded.current = true;
       return groupedData;
     } catch (e) {
       console.error(`[App] Failed to load all data.`, e);
@@ -346,7 +404,8 @@ function App() {
       isGlobalFetching.current = false;
       setIsLoadingAllData(false);
     }
-  }, [indexData, wallpaperData.size]);
+  // Fix 1: 只依赖 indexData，回调引用终身稳定
+  }, [indexData]);
 
   /**
    * 处理图片点击
@@ -572,7 +631,7 @@ function App() {
                     letterSpacing: '0.05em',
                   }}
                 >
-                  正在准备壁纸画廊
+                  正在进入拾影阁…
                 </Typography>
               </motion.div>
 
@@ -588,7 +647,7 @@ function App() {
                     mt: 1,
                   }}
                 >
-                  稍等片刻，马上就好
+                  光影加载中
                 </Typography>
               </motion.div>
 
