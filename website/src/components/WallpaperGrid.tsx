@@ -66,49 +66,41 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
     });
 
     useEffect(() => {
-      // 只有在数据未加载且不在 loading 中才观测
-      if (group.wallpapers.length > 0 || loading) return;
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
+    // === 合并为单一 Observer，分别处理「数据加载」和「URL 同步」两个职责 ===
+    // rootMargin 选用「数据加载」的更激进值 (400px)，使其触发更早
+    const loadObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          // 职责 A: 惰性加载月份数据
+          if (group.wallpapers.length === 0 && !loading) {
             loadMonthData(group.groupMonth);
           }
-        },
-        { rootMargin: '400px' }, // 提前 400px 触发加载
-      );
+        }
+      },
+      { rootMargin: '400px' },
+    );
 
-      if (containerRef.current) {
-        observer.observe(containerRef.current);
-      }
+    // 独立的 URL 同步 Observer：触发区域限定在核心视口，避免轻微滚动乱跳
+    const syncObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setQueryMonth(group.groupMonth);
+        }
+      },
+      { rootMargin: '-10% 0px -50% 0px' },
+    );
 
-      return () => {
-        observer.disconnect();
-      };
-    }, [group.groupMonth, group.wallpapers.length, loading, loadMonthData]);
+    loadObserver.observe(containerEl);
+    syncObserver.observe(containerEl);
 
-    // 独立的 URL 同步观察器，不受数据加载状态限制（常驻）
-    useEffect(() => {
-      // 专门用于 URL 同步的观察器，触发区域限定在屏幕上半部分
-      const syncObserver = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            // 当前月份块的主体进入了屏幕视界中心，静默更新 URL
-            setQueryMonth(group.groupMonth);
-          }
-        },
-        // rootMargin 逻辑：只在元素进入视口顶部 10% 到 50% 的核心区域时触发，避免轻微滚动导致的乱跳
-        { rootMargin: '-10% 0px -50% 0px' },
-      );
-
-      if (containerRef.current) {
-        syncObserver.observe(containerRef.current);
-      }
-
-      return () => {
-        syncObserver.disconnect();
-      };
-    }, [group.groupMonth, setQueryMonth]);
+    return () => {
+      loadObserver.disconnect();
+      syncObserver.disconnect();
+    };
+  }, [group.groupMonth, group.wallpapers.length, loading, loadMonthData, setQueryMonth]);
 
     // 如果没有数据，渲染骨架屏
     const isSkeleton = group.wallpapers.length === 0;
@@ -336,18 +328,12 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
                 );
               })
             : group.wallpapers.map((wallpaper, index) => {
-                // ====== 核心算法：杂志级混排 (Magazine Grid) ======
-                // 通过赋予特定的图片更大的跨度（Span），打破平庸的网格
-                // 规则：每 7 张图出一次大图（跨度翻倍）。平板下每 5 张出一次。
-                // 但如果最后一张落单，导致排版碎裂，需要额外的补齐逻辑，这里优先简单数学律
                 const isFeatured = index % 7 === 0;
                 const isTabletFeatured = index % 5 === 0;
-
-                // 响应式 Span 计算
-                const spanXs = 6; // 手机上依然是 2 列，保证可读性
-                const spanSm = isTabletFeatured ? 8 : 4; // Flat 8/4 = 2/1 比例
-                const spanMd = isFeatured ? 6 : 3; // 12列制：特色图占一半，普通占 1/4
-                const spanLg = isFeatured ? 4 : 2; // 12列制：特色占 1/3，普通占 1/6
+                const spanXs = 6;
+                const spanSm = isTabletFeatured ? 8 : 4;
+                const spanMd = isFeatured ? 6 : 3;
+                const spanLg = isFeatured ? 4 : 2;
                 const spanXl = isFeatured ? 3 : 1.5;
 
                 return (

@@ -38,27 +38,38 @@ const ColorScrubber = ({ colors, onScrubRequest }: ColorProps) => {
   // 1. 侦测滚动，高亮色系
   useEffect(() => {
     if (isDragging) return; 
-    const handleScroll = () => {
-      let closestColor = '';
-      let minDistance = Infinity;
 
-      for (const col of colors) {
-        const id = `month-${col}`;
-        const el = document.getElementById(id);
-        if (el) {
+    // 将 color id 到 DOM 元素的映射提前构建，避免每帧 getElementById
+    const elCache = new Map<string, HTMLElement>();
+    for (const col of colors) {
+      const id = `month-${col}`;
+      const el = document.getElementById(id);
+      if (el) elCache.set(col, el);
+    }
+
+    let rafId: number | null = null;
+
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        let closestColor = '';
+        let minDistance = Infinity;
+
+        for (const [col, el] of elCache) {
           const rect = el.getBoundingClientRect();
           if (rect.top <= 120 && Math.abs(rect.top) < minDistance) {
             minDistance = Math.abs(rect.top);
             closestColor = col;
           }
         }
-      }
 
-      if (closestColor) {
-        setActiveColor(prev => prev !== closestColor ? closestColor : prev);
-      } else if (colors.length > 0) {
-        setActiveColor(prev => prev !== colors[0] ? colors[0] : prev);
-      }
+        if (closestColor) {
+          setActiveColor(prev => prev !== closestColor ? closestColor : prev);
+        } else if (colors.length > 0) {
+          setActiveColor(prev => prev !== colors[0] ? colors[0] : prev);
+        }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -68,6 +79,7 @@ const ColorScrubber = ({ colors, onScrubRequest }: ColorProps) => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(timer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [colors, isDragging]);
 

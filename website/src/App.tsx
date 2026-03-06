@@ -344,7 +344,7 @@ function App() {
       isGlobalFetching.current = false;
       setIsLoadingAllData(false);
     }
-  }, [indexData, wallpaperData.size, wallpaperData]);
+  }, [indexData, wallpaperData.size]);
 
   /**
    * 处理图片点击

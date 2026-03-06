@@ -22,27 +22,38 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
   // 1. 侦测滚动，高亮年月
   useEffect(() => {
     if (isDragging) return; // 拖拽时由拖拽主导
-    const handleScroll = () => {
-      let closestMonth = '';
-      let minDistance = Infinity;
 
-      for (const month of months) {
-        const id = `month-${month.replace('年', '-').replace('月', '')}`;
-        const el = document.getElementById(id);
-        if (el) {
+    // 将 month id 到 DOM 元素的映射提前构建，避免每帧 getElementById
+    const elCache = new Map<string, HTMLElement>();
+    for (const month of months) {
+      const id = `month-${month.replace('年', '-').replace('月', '')}`;
+      const el = document.getElementById(id);
+      if (el) elCache.set(month, el);
+    }
+
+    let rafId: number | null = null;
+
+    const handleScroll = () => {
+      if (rafId !== null) return; // 已有 rAF 排队，跳过
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        let closestMonth = '';
+        let minDistance = Infinity;
+
+        for (const [month, el] of elCache) {
           const rect = el.getBoundingClientRect();
           if (rect.top <= 120 && Math.abs(rect.top) < minDistance) {
             minDistance = Math.abs(rect.top);
             closestMonth = month;
           }
         }
-      }
 
-      if (closestMonth) {
-        setActiveMonth(prev => prev !== closestMonth ? closestMonth : prev);
-      } else if (months.length > 0) {
-        setActiveMonth(prev => prev !== months[0] ? months[0] : prev);
-      }
+        if (closestMonth) {
+          setActiveMonth(prev => prev !== closestMonth ? closestMonth : prev);
+        } else if (months.length > 0) {
+          setActiveMonth(prev => prev !== months[0] ? months[0] : prev);
+        }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -52,6 +63,7 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(timer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [months, isDragging]);
 

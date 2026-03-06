@@ -24,8 +24,8 @@ const STORES = {
 
 // 缓存配置 (v4.0 优化)
 const CACHE_CONFIG = {
-  // 内存缓存：按 globalIndex 的 LRU (6页 × 24张 = 144张)
-  maxMemoryCache: 144,
+  maxMonthCache: 24,           // 月份内存缓存上限（月份数）
+  maxMemoryCache: 144,         // globalIndex LRU 缓存上限（条目数）
   maxHotEntries: 2000,         // 热存储最大条目数
   maxDBCache: 24,              // IndexedDB缓存最多24个月
   cleanupInterval: 24 * 60 * 60 * 1000,  // 24小时清理一次
@@ -84,12 +84,16 @@ class DBManager {
         // 检查是否需要重建 monthIndex
         try {
           await this.checkAndRebuildMonthIndex();
-        } catch (e) {}
+        } catch (e) {
+          console.warn('[DBManager] checkAndRebuildMonthIndex failed:', e);
+        }
 
         // 🚀 性能优化：将全部 MONTH_INDEX 载入内存，消除高频读路径的事务开销
         try {
           await this.loadMonthIndexToMemory();
-        } catch (e) {}
+        } catch (e) {
+          console.warn('[DBManager] loadMonthIndexToMemory failed:', e);
+        }
 
         resolve();
       };
@@ -749,9 +753,9 @@ class DBManager {
    * 添加到内存缓存（LRU管理）
    */
   private addToMemoryCache(month: string, data: ChunkData): void {
-    // 超过限制时移除最久未使用的
-    if (this.memoryCache.size >= CACHE_CONFIG.maxMemoryCache) {
-      const lruMonth = this.accessOrder.pop();
+    // 超过限制时移除最久未使用的（accessOrder 头部是最新，尾部是最旧）
+    if (this.memoryCache.size >= CACHE_CONFIG.maxMonthCache) {
+      const lruMonth = this.accessOrder.pop(); // pop() 取尾部 = 最久未访问
       if (lruMonth) {
         this.memoryCache.delete(lruMonth);
       }
