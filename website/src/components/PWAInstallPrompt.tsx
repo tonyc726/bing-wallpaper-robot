@@ -5,22 +5,19 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import type {
-  SlideProps} from '@mui/material';
 import {
   Box,
-  Snackbar,
   Button,
-  Slide,
   Typography,
   Paper,
   Stack,
   IconButton,
+  Tooltip,
   useTheme,
   alpha,
 } from '@mui/material';
-import { Download, Close, GetApp } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { Close } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -29,10 +26,6 @@ interface BeforeInstallPromptEvent extends Event {
     platform: string;
   }>;
   prompt: () => Promise<void>;
-}
-
-function SlideTransition(props: SlideProps) {
-  return <Slide {...props} direction="up" />;
 }
 
 const PWAInstallPrompt: React.FC = () => {
@@ -137,128 +130,187 @@ const PWAInstallPrompt: React.FC = () => {
     return null;
   }
 
+  // Cinematic Capsule Design
   return (
-    <Snackbar
-      open={showInstallPrompt}
-      onClose={handleDismiss}
-      TransitionComponent={SlideTransition}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    <Box
       sx={{
-        '& .MuiSnackbarContent-root': {
-          bgcolor: 'transparent',
-          padding: 0,
-          boxShadow: 'none',
-        },
+        position: 'fixed',
+        bottom: { xs: 24, md: 40 },
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 2000,
+        pointerEvents: 'none', // 背景不阻挡点击
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        px: 2,
       }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 50, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            bgcolor: 'background.paper',
-            borderRadius: 3,
-            p: 2.5,
-            maxWidth: 400,
-            mx: 2,
-            overflow: 'hidden',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: `linear-gradient(90deg, ${theme.palette.accent?.main ?? '#0078D4'}, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.7)}, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.5)})`,
-            },
-          }}
-        >
-          <Box display="flex" alignItems="flex-start" gap={2}>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: 'spring', stiffness: 500 }}
+      <AnimatePresence>
+        {showInstallPrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: 20, scale: 0.95, filter: 'blur(10px)' }}
+            transition={{
+              type: 'spring',
+              stiffness: 300,
+              damping: 25,
+            }}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: { xs: 1.5, md: 2 },
+                pl: { xs: 2, md: 3 },
+                pr: { xs: 1, md: 1.5 },
+                borderRadius: '100px', // 完美的胶囊形状
+                background:
+                  theme.palette.mode === 'dark'
+                    ? 'linear-gradient(145deg, rgba(30,30,30,0.85) 0%, rgba(20,20,20,0.95) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(240,240,240,0.95) 100%)',
+                backdropFilter: 'blur(40px) saturate(250%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(250%)',
+                border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.1 : 0.05)}`,
+                borderTop: `1px solid ${alpha(theme.palette.common.white, theme.palette.mode === 'dark' ? 0.2 : 0.5)}`,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? `0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)`
+                  : `0 20px 40px -10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.6)`,
+                overflow: 'hidden',
+                // Noise 特效贴图
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background:
+                    "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+                  opacity: theme.palette.mode === 'dark' ? 0.04 : 0.02,
+                  pointerEvents: 'none',
+                  mixBlendMode: 'overlay',
+                },
+              }}
             >
+              {/* 会呼吸的星光图标 */}
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '16px',
-                  background: `linear-gradient(135deg, ${theme.palette.accent?.main ?? '#0078D4'} 0%, ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.7)} 100%)`,
+                  position: 'relative',
+                  width: 32,
+                  height: 32,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  boxShadow: `0 4px 14px ${alpha(theme.palette.accent?.main ?? '#0078D4', 0.4)}`,
                 }}
               >
-                <GetApp sx={{ color: 'white', fontSize: 28 }} />
+                {/* 发光模糊背景 */}
+                <Box
+                  component={motion.div}
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    background: theme.palette.text.primary,
+                    filter: 'blur(12px)',
+                    zIndex: 0,
+                  }}
+                />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                  style={{ zIndex: 1, display: 'flex' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"
+                      fill={theme.palette.text.primary}
+                    />
+                  </svg>
+                </motion.div>
               </Box>
-            </motion.div>
 
-            <Box sx={{ flexGrow: 1 }}>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 }}
-              >
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  安装 Horizon
+              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pr: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 800,
+                    letterSpacing: '0.05em',
+                    lineHeight: 1.2,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  INSTALL GALLERY
                 </Typography>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 2 }}>
-                  安装应用到主屏幕，享受更快的访问速度和离线浏览功能！
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 400,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Get the immersive App experience.
                 </Typography>
-              </motion.div>
+              </Box>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-              >
-                <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ position: 'relative', zIndex: 2 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
+                    size="small"
+                    onClick={handleInstallClick}
+                    sx={{
+                      minWidth: 'auto',
+                      borderRadius: '100px',
+                      px: 2.5,
+                      py: 0.8,
+                      color: theme.palette.mode === 'dark' ? '#000' : '#fff',
+                      bgcolor: theme.palette.text.primary,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.text.primary, 0.2)}`,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: theme.palette.text.primary,
+                        boxShadow: `0 6px 16px ${alpha(theme.palette.text.primary, 0.4)}`,
+                        transform: 'translateY(-1px)',
+                      },
+                    }}
+                  >
+                    GET
+                  </Button>
+                </motion.div>
+                
+                <Tooltip title="Not now">
+                  <IconButton
                     size="small"
                     onClick={handleDismiss}
-                    sx={{ minWidth: 'auto', borderRadius: 1.5 }}
+                    sx={{
+                      color: 'text.secondary',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        color: 'text.primary',
+                        bgcolor: alpha(theme.palette.text.primary, 0.05),
+                      },
+                    }}
                   >
-                    稍后
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={handleInstallClick}
-                    startIcon={<Download />}
-                    sx={{ borderRadius: 1.5 }}
-                  >
-                    安装
-                  </Button>
-                </Stack>
-              </motion.div>
-            </Box>
-
-            <IconButton
-              size="small"
-              onClick={handleDismiss}
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              <Close fontSize="small" />
-            </IconButton>
-        </Box>
-      </Paper>
-      </motion.div>
-    </Snackbar>
+                    <Close fontSize="small" sx={{ fontSize: '1.2rem' }} />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Paper>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Box>
   );
 };
 

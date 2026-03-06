@@ -13,12 +13,10 @@ import {
   Snackbar,
   Button,
   IconButton,
-  Card,
+  alpha,
 } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CloseIcon from '@mui/icons-material/Close';
-import CloudOffIcon from '@mui/icons-material/CloudOff';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import WallpaperGrid from './components/WallpaperGrid';
 import ImageDialog from './components/ImageDialog';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -644,164 +642,233 @@ function App() {
             alignItems: 'center',
             justifyContent: 'center',
             minHeight: '100vh',
-            background: currentTheme.palette.gradients?.overlay?.[currentTheme.palette.mode] ?? (
-              currentTheme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-                : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
-            ),
+            bgcolor: 'background.default',
             overflow: 'hidden',
             position: 'relative',
           }}
         >
-          {/* 装饰性圆形 - 左侧 */}
-          <motion.div
-            initial={{ opacity: 0, x: -100 }}
-            animate={{ opacity: 0.3, x: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            style={{
+          {/* 故障艺术背景噪点层 */}
+          <Box
+            sx={{
               position: 'absolute',
-              width: 300,
-              height: 300,
-              borderRadius: '50%',
-              background: currentTheme.palette.accent?.main ?? currentTheme.palette.primary.main,
-              filter: 'blur(80px)',
-              left: -50,
-              top: '20%',
-            }}
-          />
-          {/* 装饰性圆形 - 右侧 */}
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 0.2, x: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
-            style={{
-              position: 'absolute',
-              width: 250,
-              height: 250,
-              borderRadius: '50%',
-              background: currentTheme.palette.secondary.main,
-              filter: 'blur(60px)',
-              right: -30,
-              bottom: '20%',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              opacity: currentTheme.palette.mode === 'dark' ? 0.08 : 0.04,
+              pointerEvents: 'none',
+              background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              mixBlendMode: currentTheme.palette.mode === 'dark' ? 'screen' : 'multiply',
             }}
           />
 
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          {/* 出血级背景文字水印 */}
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: currentTheme.palette.mode === 'dark' ? 0.03 : 0.02, scale: 1 }}
+            transition={{ duration: 2, ease: 'easeOut' }}
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              textAlign: 'center',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
           >
-            <Card
+            <Typography
+              variant="h1"
               sx={{
-                maxWidth: 420,
-                mx: 3,
-                textAlign: 'center',
-                p: 5,
-                borderRadius: 4,
-                boxShadow: currentTheme.palette.mode === 'dark'
-                  ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-                  : '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-                backdropFilter: 'blur(10px)',
-                background: currentTheme.palette.backdrop?.card?.[currentTheme.palette.mode] ?? (
-                  currentTheme.palette.mode === 'dark'
-                    ? 'rgba(30, 30, 46, 0.8)'
-                    : 'rgba(255, 255, 255, 0.85)'
-                ),
+                fontWeight: 900,
+                fontSize: { xs: '8rem', sm: '15rem', md: '25rem' },
+                lineHeight: 0.8,
+                letterSpacing: '-0.05em',
+                color: 'transparent',
+                WebkitTextStroke: `2px ${currentTheme.palette.text.primary}`,
+                textTransform: 'uppercase',
+                fontFamily: '"Inter", "Helvetica", sans-serif',
+                whiteSpace: 'nowrap',
               }}
             >
-              <motion.div
-                animate={{
-                  y: [0, -8, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
+              LOST
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              position: 'relative',
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              px: 3,
+            }}
+          >
+            {/* 顶部的技术状态指示器 */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+            >
+              <Typography
+                variant="overline"
+                sx={{
+                  letterSpacing: '0.3em',
+                  color: currentTheme.palette.error.main,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mb: 6,
+                  fontFamily: '"JetBrains Mono", "Courier New", monospace',
                 }}
               >
-                <CloudOffIcon
+                <Box
+                  component={motion.div}
+                  animate={{ opacity: [1, 0.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
                   sx={{
-                    fontSize: 80,
-                    color: currentTheme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.7)'
-                      : 'rgba(0, 0, 0, 0.5)',
-                    mb: 3,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    bgcolor: currentTheme.palette.error.main,
+                    boxShadow: `0 0 10px ${currentTheme.palette.error.main}`,
                   }}
                 />
-              </motion.div>
+                ERROR_CODE: 404_NETWORK_LOST
+              </Typography>
+            </motion.div>
 
+            {/* 极简故障艺术图标 */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{
+                type: 'spring',
+                stiffness: 100,
+                damping: 20,
+                delay: 0.3,
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: 80,
+                  height: 80,
+                  mb: 5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {/* 环形断裂效果 */}
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <motion.circle
+                    cx="40"
+                    cy="40"
+                    r="38"
+                    stroke={currentTheme.palette.text.secondary}
+                    strokeWidth="1"
+                    strokeDasharray="4 8"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <motion.path
+                    d="M20 40H35M45 40H60M40 20V35M40 45V60"
+                    stroke={currentTheme.palette.text.primary}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    animate={{
+                      opacity: [1, 0.4, 1],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                </svg>
+              </Box>
+            </motion.div>
+
+            {/* 主标题 */}
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
               >
                 <Typography
-                  variant="h5"
+                  variant="h3"
                   sx={{
-                    fontWeight: 600,
+                    fontWeight: 800,
+                    letterSpacing: { xs: '0.1em', md: '0.2em' },
                     color: 'text.primary',
-                    mb: 1.5,
-                    letterSpacing: '-0.02em',
+                    textTransform: 'uppercase',
+                    mb: 2,
+                    fontFamily: '"Inter", "Helvetica", sans-serif',
                   }}
                 >
-                  无法加载数据
+                  CONNECTION LOST
                 </Typography>
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7, duration: 1 }}
               >
                 <Typography
                   variant="body1"
                   sx={{
                     color: 'text.secondary',
-                    mb: 4,
-                    lineHeight: 1.7,
+                    fontWeight: 300,
+                    letterSpacing: '0.05em',
+                    maxWidth: 400,
+                    mx: 'auto',
+                    lineHeight: 1.8,
                   }}
                 >
-                  似乎网络与我们失去了联系
-                  <br />
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    sx={{ color: 'text.secondary', opacity: 0.7 }}
-                  >
-                    请检查您的网络连接后重试
-                  </Typography>
+                  似乎网络与我们失去了联系。<br/>
+                  请检查您的网络连接后重试。
                 </Typography>
               </motion.div>
+            </Box>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+            {/* 磁性极简按钮 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                onClick={() => window.location.reload()}
+                sx={{
+                  mt: 2,
+                  px: 4,
+                  py: 1.5,
+                  color: 'text.primary',
+                  border: `1px solid ${alpha(currentTheme.palette.text.primary, 0.2)}`,
+                  borderRadius: 10,
+                  background: 'transparent',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.15em',
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    border: `1px solid ${currentTheme.palette.text.primary}`,
+                    background: alpha(currentTheme.palette.text.primary, 0.05),
+                    boxShadow: `0 0 20px ${alpha(currentTheme.palette.text.primary, 0.1)}`,
+                  },
+                }}
               >
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={<RefreshIcon />}
-                  onClick={() => window.location.reload()}
-                  sx={{
-                    borderRadius: 2.5,
-                    px: 4,
-                    py: 1.5,
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    boxShadow: 'none',
-                    '&:hover': {
-                      boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.2)',
-                    },
-                  }}
-                >
-                  重新加载
-                </Button>
-              </motion.div>
-            </Card>
-          </motion.div>
+                重新连接
+              </Button>
+            </motion.div>
+          </Box>
         </Box>
       </ThemeProvider>
     );
