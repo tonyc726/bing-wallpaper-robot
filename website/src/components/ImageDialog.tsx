@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type SyntheticEvent, useCallback } from 'react';
+import { useEffect, useState, useRef, useMemo, type SyntheticEvent, useCallback } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useQueryState } from 'nuqs';
 import {
@@ -17,6 +17,30 @@ import ShareIcon from '@mui/icons-material/Share';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import type { WallpaperData } from '../types';
+
+// Bing 图片 API 支持的标准宽度断点
+const BING_WIDTH_BREAKPOINTS = [800, 1366, 1920, 2560, 3840] as const;
+
+/**
+ * 根据当前屏幕尺寸和 DPR 计算最适合 Dialog 展示的 Bing URL
+ * 将屏幕展示宽度 × devicePixelRatio 向上取整到最近的断点
+ */
+function getDialogImageUrl(wallpaperId: string): string {
+  const BASE = 'https://cn.bing.com/th?id=';
+  // SSR 防守：若没有 window 则返回最高分辨率
+  if (typeof window === 'undefined') {
+    return `${BASE}${wallpaperId}_UHD.jpg`;
+  }
+
+  // 屏幕实际物理像素宽度 = 显示区域宽度 × DPR
+  const physicalWidth = Math.round(window.innerWidth * (window.devicePixelRatio || 1));
+
+  // 向上取整到最近的 Bing 支持断点
+  const targetWidth = BING_WIDTH_BREAKPOINTS.find((bp) => bp >= physicalWidth)
+    ?? BING_WIDTH_BREAKPOINTS[BING_WIDTH_BREAKPOINTS.length - 1];
+
+  return `${BASE}${wallpaperId}_UHD.jpg&w=${targetWidth}&c=1`;
+}
 
 interface Props {
   wallpaper: WallpaperData | null;
@@ -41,6 +65,12 @@ const ImageDialog = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [zenMode, setZenMode] = useState(false);
 
+  // 高清图片 URL：根据屏幕实际尺寸动态计算，切图时重新计算
+  const dialogImageUrl = useMemo(() => {
+    if (!wallpaper) return '';
+    return getDialogImageUrl(wallpaper.id);
+  }, [wallpaper?.id]);
+
   // Swipe Direction tracking for animations
   const [[page, direction], setPage] = useState([currentIndex, 0]);
   useEffect(() => {
@@ -63,22 +93,20 @@ const ImageDialog = ({
     history: 'push' // 关键点：大图模式开启时必须 Push History，从而劫持返回键
   });
 
-  // 挂载和更新时同步 ID 与锁定背景滚动
+  // 开启时锁定背景滚动；解锁由 App.tsx 的 onExitComplete 负责（退场动画完成后）
   useEffect(() => {
     if (wallpaper?.id) {
       setSharedId(wallpaper.id);
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    // 不在这里做 cleanup overflow，避免退场动画进行时触发大规模 Reflow
   }, [wallpaper?.id, setSharedId]);
 
-  // 关闭对话框并清除 URL ID 的核心方法
+  // 关闭对话框并清除 URL id 参数的核心方法
   const handleClose = useCallback(async () => {
-    await setSharedId(null);
+    // 必须使用 nuqs 的 API 进行清理，否则会被 nuqs 的内部状态在重新渲染时覆盖回来
+    // 传入 { history: 'replace' } 避免污染浏览器历史栈
+    await setSharedId(null, { history: 'replace' });
     onClose();
   }, [onClose, setSharedId]);
 
@@ -90,7 +118,7 @@ const ImageDialog = ({
       // 当用户按下手机的侧滑返回或浏览器的后退键时触发
       // 我们拦截默认行为，直接调用关闭对话框
       e.preventDefault();
-      onClose(); // 不调用 handleClose 因为 URL 在 popstate 时已经被浏览器 pop 掉了，再次 setSharedId 会打乱历史
+      handleClose(); // 使用统一的关闭函数，确保 id 参数被 nuqs 正确清理
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -372,7 +400,7 @@ const ImageDialog = ({
               onDragEnd={(_, info) => {
                 // 如果滑动速度快，或者绝对拖拽距离过高，则触发关闭动画 (Physics Drag-to-Dismiss)
                 if (Math.abs(info.offset.y) > 150 || Math.abs(info.velocity.y) > 500) {
-                  onClose();
+                  handleClose();
                 }
               }}
               transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] as const }} // 极具进攻性的爽快弹射曲线
@@ -441,21 +469,26 @@ const ImageDialog = ({
                 }}
               >
                 <motion.img
-                  src={wallpaper.imageUrl}
+                  src={dialogImageUrl}
                   alt={wallpaper.title || wallpaper.copyright || 'Bing Wallpaper'}
                   onLoad={() => setImageLoaded(true)}
                   decoding="async"
                   style={{
-                    maxWidth: '100vw', // 解除边距限制，图片可以直接顶满屏幕
+                    maxWidth: '100vw',
                     maxHeight: '100vh',
                     objectFit: 'contain',
                     display: 'block',
-                    opacity: imageLoaded ? 1 : 0, // 隐藏直到加载完成（骨架屏透出）
+                    opacity: imageLoaded ? 1 : 0,
                   }}
                   onError={(e: SyntheticEvent<HTMLImageElement, Event>) => {
+                    // 高清版加载失败时回退到缩略图
                     const target = e.target as HTMLImageElement;
-                    target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || 'Bing Wallpaper')}`;
-                    setImageLoaded(true);
+                    if (target.src !== wallpaper.imageUrl) {
+                      target.src = wallpaper.imageUrl;
+                    } else {
+                      target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || 'Bing Wallpaper')}`;
+                      setImageLoaded(true);
+                    }
                   }}
                 />
               </Box>
@@ -492,7 +525,7 @@ const ImageDialog = ({
               }}
             >
               <IconButton
-                onClick={onClose}
+                onClick={handleClose}
                 sx={{
                   width: 48,
                   height: 48,

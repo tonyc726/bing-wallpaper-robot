@@ -36,10 +36,9 @@ interface Props {
   loadingMonths: Set<string>;
   loadMonthData: (month: string) => Promise<void>;
   loadAllData: () => Promise<Map<string, WallpaperData[]> | undefined>;
-  isLoadingAllData?: boolean; // 全量数据异步加载中（搜索触发）
+  isLoadingAllData?: boolean;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
-  activeSharedId?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;

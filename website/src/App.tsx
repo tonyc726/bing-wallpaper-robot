@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { LayoutGroup, AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Typography,
   Box,
@@ -108,7 +108,6 @@ function App() {
   // 【新增】图片所在的当前上下文（搜索结果/过滤结果），代替全局 allWallpapers
   const [activeContextWallpapers, setActiveContextWallpapers] = useState<WallpaperData[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [activeSharedId, setActiveSharedId] = useState<string | null>(null);
 
   // PWA 更新提示
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
@@ -193,10 +192,13 @@ function App() {
         log(`   - LRU Cache: ${cacheStatus.lruCache.size}/${cacheStatus.lruCache.max}`);
       }
 
-      // 1.9. 注册 Service Worker
-      log('%c📡 Step 3/4: Registering Service Worker', 'color: #FF9800; font-weight: bold');
-      await swRegister.register();
-      log('✅ Service Worker initialization completed');
+      // 1.9. 注册 Service Worker（fire-and-forget，不阻塞主流程）
+      log('%c📡 Step 3/4: Registering Service Worker (async)', 'color: #FF9800; font-weight: bold');
+      swRegister.register().then(() => {
+        log('✅ Service Worker initialization completed (background)');
+      }).catch((e: unknown) => {
+        console.warn('[App] SW registration failed (non-fatal):', e);
+      });
 
       // 2. 获取索引数据
       log('%c📄 Step 4/4: Fetching Index Data', 'color: #FF9800; font-weight: bold');
@@ -232,9 +234,9 @@ function App() {
 
       log(`   - Months: ${initialMonths.length} total`);
 
-      // 4. 批量加载首屏数据
+      // 4. 批量加载首屏数据（将 index 直接传入，避免闭包读到 null state）
       const loadStart = Date.now();
-      await loadInitialData(initialMonths);
+      await loadInitialData(initialMonths, index);
       const loadDuration = Date.now() - loadStart;
 
       log('');
@@ -257,14 +259,16 @@ function App() {
 
   /**
    * 加载初始数据
+   * @param months 要加载的月份列表
+   * @param index  直接传入 IndexData 对象，避免读取闭包中尚未更新的 React state
    */
-  const loadInitialData = async (months: string[]) => {
+  const loadInitialData = async (months: string[], index: IndexData) => {
     setLoadingProgress(10);
 
     const expectedVersions = new Map<string, string>();
     for (const m of months) {
-      if (indexData?.chunks[m]) {
-        expectedVersions.set(m, indexData.chunks[m].version);
+      if (index.chunks[m]) {
+        expectedVersions.set(m, index.chunks[m].version);
       }
     }
 
@@ -352,31 +356,26 @@ function App() {
   const handleImageClick = useCallback(
     (wallpaper: WallpaperData, contextWallpapers: WallpaperData[]) => {
       if (!indexData) return;
-
-      setActiveSharedId(wallpaper.id); // Enable shared layout origin exclusively for the clicked image
-      
       const index = contextWallpapers.findIndex((w) => w.id === wallpaper.id);
       setActiveContextWallpapers(contextWallpapers);
       setCurrentImageIndex(index >= 0 ? index : 0);
       setSelectedImage(wallpaper);
     },
-    [indexData, setActiveSharedId],
+    [indexData],
   );
 
   /**
    * Dialog 导航回调
    */
   const handleDialogClose = useCallback(() => {
-    setSelectedImage((prev) => {
-      if (prev) setActiveSharedId(prev.id);
-      return null;
-    });
+    // 将两个 setState 平齐放入同一批次，避免嵌套 updater 反模式
+    setSelectedImage(null);
+    setActiveContextWallpapers([]); // 释放内存：关闭后不需要保留上下文列表
   }, []);
 
   const handleDialogPrevious = useCallback(() => {
     setCurrentImageIndex((prevIndex) => {
       if (prevIndex > 0) {
-        setActiveSharedId('NONE');
         const newIndex = prevIndex - 1;
         setSelectedImage(activeContextWallpapers[newIndex]);
         return newIndex;
@@ -388,7 +387,6 @@ function App() {
   const handleDialogNext = useCallback(() => {
     setCurrentImageIndex((prevIndex) => {
       if (prevIndex < activeContextWallpapers.length - 1) {
-        setActiveSharedId('NONE');
         const newIndex = prevIndex + 1;
         setSelectedImage(activeContextWallpapers[newIndex]);
         return newIndex;
@@ -402,28 +400,27 @@ function App() {
    * 使用 useCallback 确保可安全作为 useEffect 依赖
    */
   const handleDeepLink = useCallback(async (targetId: string) => {
-    // 强制获取全量数据（因为它一定带有图片所属列表上下文）
+    // ✅ 优先在已加载的数据中查找，避免触发 500KB 全量下载
     let targetMap = wallpaperData;
-    if (targetMap.size < (indexData?.monthList.length || 0)) {
-      setLoading(true); // 唤起小绿条遮蔽，保证体验连贯
+    let flatPool = Array.from(targetMap.values()).flat();
+    let wp = flatPool.find((w) => w.id === targetId);
+
+    if (!wp) {
+      // 已加载数据中没有，才扩大范围加载全量
+      setLoading(true);
       const fullData = await loadAllData();
-      if (fullData) targetMap = fullData;
       setLoading(false);
+      if (fullData) {
+        targetMap = fullData;
+        flatPool = Array.from(targetMap.values()).flat();
+        wp = flatPool.find((w) => w.id === targetId);
+      }
     }
-    
-    // 从字典中打平以进行查找
-    const flatPool = Array.from(targetMap.values()).flat();
-    const wp = flatPool.find(w => w.id === targetId);
-    
+
     if (wp) {
-      // 通过构造一个含有它所在的全局上下文来直接唤醒展示
       handleImageClick(wp, flatPool);
-      
-      // 抹除 URL 参数，避免刷新再次触发（不插入历史记录）
-      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-      window.history.replaceState({path: newUrl}, '', newUrl);
     }
-  }, [wallpaperData, indexData, loadAllData, handleImageClick]);
+  }, [wallpaperData, loadAllData, handleImageClick]);
 
   // ========== Deep Link 触发（在数据加载完成后） ==========
   // 🔑 关键修复：React 的 setState 是异步的。
@@ -439,15 +436,20 @@ function App() {
       }
 
       if (targetMonth) {
-        setTimeout(() => {
-          const anchor = document.getElementById(
-            `month-${targetMonth.replace(/年|月/g, '').replace(/\./g, '-')}`
-          );
+        // ✅ 使用 rAF 轮询等待目标 DOM 元素出现，替代固定 500ms 盲等
+        const targetId = `month-${targetMonth.replace(/年|月/g, '').replace(/\./g, '-')}`;
+        let rafAttempts = 0;
+        const MAX_ATTEMPTS = 60; // 最多轮询 ~1s (每帧 ~16ms)
+        const scrollWhenReady = () => {
+          const anchor = document.getElementById(targetId);
           if (anchor) {
             anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else if (++rafAttempts < MAX_ATTEMPTS) {
+            requestAnimationFrame(scrollWhenReady);
           }
-        }, 500);
-        initialUrlIntent.current.targetMonth = null; // 消费后清空
+        };
+        requestAnimationFrame(scrollWhenReady);
+        initialUrlIntent.current.targetMonth = null;
       }
     }
   }, [loading, indexData]); // handleDeepLink 依赖 wallpaperData/indexData，loading 变化时已是最新值
@@ -807,8 +809,7 @@ function App() {
 
   return (
     <ThemeProvider theme={currentTheme}>
-      <LayoutGroup>
-        <CssBaseline />
+      <CssBaseline />
 
       {/* 主内容 - 真正的 Edge to Edge (消融边界) */}
       <Box sx={{ px: 0, py: 0, overflowX: 'hidden' }}>
@@ -822,14 +823,16 @@ function App() {
           loadMonthData={loadMonthData}
           loadAllData={loadAllData}
           isLoadingAllData={isLoadingAllData}
-          activeSharedId={activeSharedId}
           darkMode={darkMode}
           setDarkMode={handleThemeToggle}
         />
       </Box>
 
       {/* 图片查看器 */}
-      <AnimatePresence onExitComplete={() => setActiveSharedId(null)}>
+      <AnimatePresence onExitComplete={() => {
+        // 退场动画完成后才解冻背景滚动，避免在动画进行中触发大规模 Reflow
+        document.body.style.overflow = '';
+      }}>
         {selectedImage && (
           <ImageDialog
             wallpaper={selectedImage}
@@ -887,7 +890,6 @@ function App() {
         }
         sx={{ bottom: { xs: 80, md: 24 } }} // 避开返回顶部按钮
       />
-      </LayoutGroup>
     </ThemeProvider>
   );
 }
