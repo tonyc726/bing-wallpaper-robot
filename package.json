@@ -1,6 +1,6 @@
 {
   "name": "bing-wallpaper-robot",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "Daily updated, compacted metadata chunks of Bing Wallpapers",
   "private": false,
   "publishConfig": {
