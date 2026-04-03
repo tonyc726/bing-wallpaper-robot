@@ -56,4 +56,14 @@ export class Analytics {
     nullable: true,
   })
   dominantColor!: string | null;
+
+  /**
+   * RGB Color histogram (bins=16, 4096 dimensions), normalized to sum=1.
+   * Used for fast color distribution similarity check.
+   */
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  colorHist!: string | null;
 }

@@ -14,8 +14,9 @@ import transformFilenameToHashId from './transform-filename-to-hash-id';
 import transformFilenameFromUrlbase from './transform-filename-from-urlbase';
 import downloadImage from './download-image';
 import execPython from './exec-python';
-import isSimilarImage from './is-similar-image';
+import isSimilarImage, { colorHistDist } from './is-similar-image';
 import uploadToImagekit from './upload-to-imagekit';
+import { downloadTo } from './download-thumbnail';
 
 /**
  * 新增或者更新 Bing壁纸 数据
@@ -129,6 +130,19 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       throw new Error(`addOrUpdateWallpaper: get analytics of image(${thumbImageUrl}) use python failed.`);
     }
 
+    // [STAGE.2-B] >> 计算颜色直方图（用于颜色预过滤）
+    console.log(`>>> [STAGE.2-B] >> 计算颜色直方图...`);
+    let colorHistJson: string | null = null;
+    try {
+      const colorHistResult = await execPython('./crawler/computeColorHist.py', thumbTmpImageFilePath);
+      const colorHistData = JSON.parse(colorHistResult);
+      if (colorHistData.colorHist) {
+        colorHistJson = JSON.stringify(colorHistData.colorHist);
+      }
+    } catch (e) {
+      console.log(`>>> [STAGE.2-B] colorHist computation skipped: ${e}`);
+    }
+
     // [STAGE.3] >> 新建分析数据的对象，并保存上一阶段的分析结果
     console.log(`>>> [STAGE.3] >> 新建分析数据的对象，并保存上一阶段的分析结果...`);
     const analytics = new Analytics();
@@ -137,13 +151,17 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     analytics.wHash = thumbImageAnalytics.wHash;
     analytics.pHash = thumbImageAnalytics.pHash;
     analytics.dominantColor = thumbImageAnalytics.dominantColor;
+    if (colorHistJson !== null) {
+      analytics.colorHist = colorHistJson;
+    }
 
     await analyticsRepository.save(analytics);
 
-    // [STAGE.4] >> 获取已有壁纸数据（包含分析数据）
-    // 同时通过计算`aHash`、`dHash`、`wHash`、`pHash`的汉明距离
-    // 寻找相似图片，用于同一图片爬取多次时的去重工作
-    console.log(`>>> [STAGE.4] >> 获取已有壁纸数据（包含分析数据）...`);
+    // [STAGE.4] >> 三阶段去重检测
+    // Phase 1: 哈希预过滤
+    // Phase 1.5: 颜色直方图过滤
+    // Phase 2: SSIM 精细确认
+    console.log(`>>> [STAGE.4] >> 获取已有壁纸数据（包含分析数据），开始三阶段去重检测...`);
     const existingWallpapers = await wallpaperRepository.find({
       order: {
         date: 'DESC',
@@ -157,20 +175,29 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     // 通过汉明距离检测相似图片
     let similarWallpaper: any = null;
     let similarWallpaperImageKit: any = null;
+    const SSIM_THRESHOLD = 0.85;
+    const COLOR_HIST_THRESHOLD = 0.3;
+
     if (existingWallpapers.length > 0) {
-      existingWallpapers.forEach((existingWallpaper: any) => {
+      for (const existingWallpaper of existingWallpapers) {
         const existingAnalytics = get(existingWallpaper, ['analytics']);
         if (
-          existingAnalytics &&
-          existingAnalytics.pHash &&
-          existingAnalytics.wHash &&
-          existingAnalytics.aHash &&
-          existingAnalytics.dHash &&
-          analytics.aHash &&
-          analytics.dHash &&
-          analytics.wHash &&
-          analytics.pHash &&
-          isSimilarImage(
+          !existingAnalytics ||
+          !existingAnalytics.pHash ||
+          !existingAnalytics.wHash ||
+          !existingAnalytics.aHash ||
+          !existingAnalytics.dHash ||
+          !analytics.aHash ||
+          !analytics.dHash ||
+          !analytics.wHash ||
+          !analytics.pHash
+        ) {
+          continue;
+        }
+
+        // ----- Phase 1: 哈希预过滤 -----
+        if (
+          !isSimilarImage(
             {
               pHash: existingAnalytics.pHash,
               wHash: existingAnalytics.wHash,
@@ -185,11 +212,52 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
             },
           )
         ) {
+          continue;
+        }
+
+        // ----- Phase 1.5: 颜色直方图过滤 -----
+        if (existingAnalytics.colorHist && analytics.colorHist) {
+          try {
+            const histA = JSON.parse(existingAnalytics.colorHist) as number[];
+            const histB = JSON.parse(analytics.colorHist) as number[];
+            const dist = colorHistDist(histA, histB);
+            if (dist > COLOR_HIST_THRESHOLD) {
+              continue;
+            }
+          } catch {
+            // 解析失败，跳过颜色检查继续
+          }
+        }
+
+        // ----- Phase 2: SSIM 精细确认 -----
+        let ssimConfirmed = true;
+        try {
+          const existingFilename = get(existingWallpaper, ['filename']);
+          if (existingFilename) {
+            const existingThumbUrl = `https://cn.bing.com/th?id=${existingFilename}_UHD.jpg&w=256&c=1`;
+            const tmpPath = `/tmp/ssim-thumb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+            await downloadTo(existingThumbUrl, tmpPath);
+            const ssimResult = await execPython('./crawler/ssim-compare.py', `${thumbTmpImageFilePath} ${tmpPath}`);
+            const ssimData = JSON.parse(ssimResult);
+            if (ssimData.ssim !== undefined) {
+              ssimConfirmed = ssimData.ssim >= SSIM_THRESHOLD;
+              console.log(`>>> [STAGE.4-B] SSIM=${ssimData.ssim.toFixed(3)} MAE=${ssimData.mae.toFixed(1)} confirmed=${ssimConfirmed}`);
+            }
+            try {
+              fs.unlinkSync(tmpPath);
+            } catch {}
+          }
+        } catch (ssimError) {
+          console.log(`>>> [STAGE.4-B] SSIM comparison failed, falling back to hash+color: ${ssimError}`);
+          ssimConfirmed = true;
+        }
+
+        if (ssimConfirmed) {
           similarWallpaper = existingWallpaper;
           similarWallpaperImageKit = get(existingWallpaper, ['imagekit']);
-          return;
+          break;
         }
-      });
+      }
     }
 
     let imagekit = null;
@@ -374,21 +442,33 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
         throw new Error(`addOrUpdateWallpaper: get analytics of image(${thumbImageUrl}) use python failed.`);
       }
 
-      // [STAGE.3-3] >> 新建分析数据的对象，并保存上一阶段的分析结果
-      console.log(`>>> [STAGE.3-3] >> 新建分析数据的对象，并保存上一阶段的分析结果...`);
+      // [STAGE.3-3] >> 计算颜色直方图
+      let colorHistJson: string | null = null;
+      try {
+        const colorHistResult = await execPython('./crawler/computeColorHist.py', thumbTmpImageFilePath);
+        const colorHistData = JSON.parse(colorHistResult);
+        if (colorHistData.colorHist) {
+          colorHistJson = JSON.stringify(colorHistData.colorHist);
+        }
+      } catch (e) {
+        console.log(`>>> [STAGE.3-3] colorHist computation skipped: ${e}`);
+      }
+
+      // [STAGE.3-4] >> 更新分析数据的对象
       console.log(`>>> [STAGE.3-4] >> 更新分析数据的对象...`);
+      const updateData: Record<string, any> = {
+        aHash: thumbImageAnalytics.aHash,
+        dHash: thumbImageAnalytics.dHash,
+        wHash: thumbImageAnalytics.wHash,
+        pHash: thumbImageAnalytics.pHash,
+        dominantColor: thumbImageAnalytics.dominantColor,
+      };
+      if (colorHistJson !== null) {
+        updateData.colorHist = colorHistJson;
+      }
       await analyticsRepository.update(
         get(nextWallpaper, ['analytics', 'id']),
-        pickBy(
-          {
-            aHash: thumbImageAnalytics.aHash,
-            dHash: thumbImageAnalytics.dHash,
-            wHash: thumbImageAnalytics.wHash,
-            pHash: thumbImageAnalytics.pHash,
-            dominantColor: thumbImageAnalytics.dominantColor,
-          },
-          identity,
-        ),
+        pickBy(updateData, identity),
       );
 
       // 依据壁纸`imagekit.id`，已经存在时，持久化存储缩略图，否则删除临时图片

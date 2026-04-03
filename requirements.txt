@@ -15,3 +15,6 @@ urllib3>=2.0.3
 # Utilities
 python-dateutil>=2.8.2
 typing_extensions>=4.12.2
+
+# Image Structure Similarity (SSIM)
+scikit-image>=0.22.0
