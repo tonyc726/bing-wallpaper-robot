@@ -1,19 +1,15 @@
-from __future__ import print_function
-import sys
 import json
+import sys
+
 import numpy as np
 from PIL import Image
 
 
-def computeColorHist(imagePath, bins=16):
-    """
-    Compute the RGB color histogram of an image.
-    Divides each RGB channel into 'bins' intervals, producing a bins^3 dimensional histogram.
-    Returns a normalized histogram array as a JSON list.
-    """
-    img = Image.open(imagePath).convert('RGB')
-    img = img.resize((64, 64), Image.LANCZOS)
-    pixels = np.array(img).reshape(-1, 3)
+def compute_color_hist(image_path: str, bins: int = 16) -> list[float]:
+    """Compute RGB color histogram with bins^3 dimensions, normalized."""
+    with Image.open(image_path) as img:
+        img = img.convert("RGB").resize((64, 64), Image.LANCZOS)
+        pixels = np.array(img).reshape(-1, 3)
 
     hist, _ = np.histogramdd(
         pixels,
@@ -34,10 +30,9 @@ if __name__ == "__main__":
         print(json.dumps({"error": "image path required"}))
         sys.exit(1)
 
-    imagePath = sys.argv[1]
     try:
-        colorHist = computeColorHist(imagePath)
-        print(json.dumps({"colorHist": colorHist}))
+        color_hist = compute_color_hist(sys.argv[1])
+        print(json.dumps({"colorHist": color_hist}))
     except Exception as e:
         print(json.dumps({"error": str(e)}))
         sys.exit(1)

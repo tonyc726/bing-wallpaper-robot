@@ -1,18 +1,16 @@
-import { isString } from 'lodash';
-import { exec } from 'child_process';
+import { isString, isNil } from 'lodash';
+import { execFile } from 'child_process';
 import * as path from 'path';
-import * as fs from 'fs';
 
 // Get the project root directory
 const projectRoot = path.resolve(__dirname, '../../');
 
-// Determine Python interpreter: prefer .venv if it exists, fallback to system python3
+// Determine Python interpreter: prefer crawler/.venv if it exists, fallback to system python3
 function getPythonPath(): string {
-  const venvPython = path.join(projectRoot, '.venv', 'bin', 'python3');
-  if (fs.existsSync(venvPython)) {
+  const venvPython = path.join(projectRoot, 'crawler', '.venv', 'bin', 'python3');
+  if (require('fs').existsSync(venvPython)) {
     return venvPython;
   }
-  // Fallback for CI environments (GitHub Actions, etc.)
   return 'python3';
 }
 
@@ -26,7 +24,8 @@ export default (pyFilePath: string, args?: string): Promise<any> =>
     const pythonPath = getPythonPath();
     const fullPyFilePath = path.isAbsolute(pyFilePath) ? pyFilePath : path.join(projectRoot, pyFilePath);
 
-    exec(`${pythonPath} ${fullPyFilePath} ${args}`, (err, stdout, stderr) => {
+    const scriptArgs = isString(args) && args.length > 0 ? args.split(' ') : [];
+    execFile(pythonPath, [fullPyFilePath, ...scriptArgs], (err, stdout, stderr) => {
       if (err) {
         reject(new Error(`Python execution failed: ${err.message}`));
         return;
@@ -36,10 +35,7 @@ export default (pyFilePath: string, args?: string): Promise<any> =>
         return;
       }
       if (stdout) {
-        let result = stdout;
-        result = result.replace('\r\n', '');
-        result = result.replace('\r', '');
-        result = result.replace('\n', '');
+        const result = stdout.replace(/\r?\n$/, '');
         resolve(result);
       }
     });

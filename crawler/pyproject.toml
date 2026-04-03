@@ -1,0 +1,27 @@
+[project]
+name = "crawler"
+version = "0.1.0"
+description = "Image analysis scripts for bing-wallpaper-robot"
+requires-python = ">=3.12"
+dependencies = [
+    "imagehash>=4.3.2",
+    "numpy>=2.4.4",
+    "pillow>=12.2.0",
+    "scikit-image>=0.26.0",
+    "scipy>=1.17.1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "TCH"]
+ignore = [
+    "E501", # let formatter handle line-length
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.9",
+]

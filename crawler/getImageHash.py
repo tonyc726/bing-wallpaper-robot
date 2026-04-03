@@ -1,40 +1,35 @@
-from __future__ import print_function
-import sys
-import PIL
 import json
+import sys
+
 import imagehash
+import PIL.Image
 
-from getImageDominantColor import findDominantMostCommonColorInAnImageFile
 
+def compute_hashes(image_path: str) -> dict[str, str]:
+    """Compute 4 perceptual image hashes: pHash, wHash, aHash, dHash."""
+    image = PIL.Image.open(image_path)
 
-def main(wallpaperFilePath):
-    wallpaperFile = PIL.Image.open(wallpaperFilePath)
+    p_hash = str(imagehash.phash(image))
+    w_hash = str(imagehash.whash(image))
+    a_hash = str(imagehash.average_hash(image))
+    d_hash = str(imagehash.dhash(image))
 
-    pHash = imagehash.phash(wallpaperFile)
-    # print('pHash: ', pHash)
-    wHash = imagehash.whash(wallpaperFile)
-    # print('wHash: ', wHash)
-    aHash = imagehash.average_hash(wallpaperFile)
-    # print('aHash: ', aHash)
-    dHash = imagehash.dhash(wallpaperFile)
-    # print('dHash: ', dHash)
-
-    dominantColor = findDominantMostCommonColorInAnImageFile(
-        wallpaperFile)
-
-    return [str(pHash), str(wHash), str(aHash), str(dHash), dominantColor]
-    # print(pHash, wHash, aHash, dHash, dominantColor)
+    return {
+        "aHash": a_hash,
+        "dHash": d_hash,
+        "pHash": p_hash,
+        "wHash": w_hash,
+    }
 
 
 if __name__ == "__main__":
-    [pHash, wHash, aHash, dHash, dominantColor] = main(sys.argv[1])
-    # [pHash, wHash, aHash, dHash, dominantColor] = main('/Users/tony/Playground/bing-wallpaper-robot/docs/thumbs/ddeefc7d40fc3a64cd3b6b28800b5bfa.256.jpg')
-    resultJSON = {
-        'pHash': pHash,
-        'wHash': wHash,
-        'aHash': aHash,
-        'dHash': dHash,
-        'dominantColor': dominantColor
-    }
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "image path required"}))
+        sys.exit(1)
 
-    print(json.dumps(resultJSON, sort_keys=True))
+    try:
+        result = compute_hashes(sys.argv[1])
+        print(json.dumps(result))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)

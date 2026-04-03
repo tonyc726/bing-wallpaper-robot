@@ -109,7 +109,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     }
 
     // [STAGE.2] >> 使用python分析下载的缩率图
-    // 获取`aHash`、`dHash`、`wHash`、`pHash`、`dominantColor`数据
+    // Phase 2-A: 获取`aHash`、`dHash`、`wHash`、`pHash`数据
     console.log(`>>> [STAGE.2] >> 使用python分析下载的缩率图...`);
     let thumbImageAnalytics = null;
     let thumbImageAnalyticsRetryCount = 0;
@@ -117,21 +117,33 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     do {
       try {
         thumbImageAnalytics = await execPython('./crawler/getImageHash.py', thumbTmpImageFilePath);
-
         thumbImageAnalytics = JSON.parse(thumbImageAnalytics);
       } catch (error) {
         thumbImageAnalyticsRetryCount = thumbImageAnalyticsRetryCount + 1;
       }
     } while (thumbImageAnalytics === null && thumbImageAnalyticsRetryCount < 5);
 
-    if (thumbImageAnalytics === null) {
+    // Phase 2-B: 获取`dominantColor`数据
+    let thumbDominantColor = null;
+    let thumbDominantColorRetryCount = 0;
+
+    do {
+      try {
+        thumbDominantColor = await execPython('./crawler/dominantColor.py', thumbTmpImageFilePath);
+        thumbDominantColor = JSON.parse(thumbDominantColor);
+      } catch (error) {
+        thumbDominantColorRetryCount = thumbDominantColorRetryCount + 1;
+      }
+    } while (thumbDominantColor === null && thumbDominantColorRetryCount < 5);
+
+    if (thumbImageAnalytics === null || thumbDominantColor === null) {
       // 删除临时文件
       await pfs.rm(thumbTmpImageFilePath);
       throw new Error(`addOrUpdateWallpaper: get analytics of image(${thumbImageUrl}) use python failed.`);
     }
 
-    // [STAGE.2-B] >> 计算颜色直方图（用于颜色预过滤）
-    console.log(`>>> [STAGE.2-B] >> 计算颜色直方图...`);
+    // [STAGE.2-C] >> 计算颜色直方图（用于颜色预过滤）
+    console.log(`>>> [STAGE.2-C] >> 计算颜色直方图...`);
     let colorHistJson: string | null = null;
     try {
       const colorHistResult = await execPython('./crawler/computeColorHist.py', thumbTmpImageFilePath);
@@ -150,7 +162,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     analytics.dHash = thumbImageAnalytics.dHash;
     analytics.wHash = thumbImageAnalytics.wHash;
     analytics.pHash = thumbImageAnalytics.pHash;
-    analytics.dominantColor = thumbImageAnalytics.dominantColor;
+    analytics.dominantColor = thumbDominantColor.dominantColor;
     if (colorHistJson !== null) {
       analytics.colorHist = colorHistJson;
     }
@@ -423,7 +435,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       }
 
       // [STAGE.3-2] >> 使用python分析下载的缩率图
-      // 获取`aHash`、`dHash`、`wHash`、`pHash`、`dominantColor`数据
+      // 获取`aHash`、`dHash`、`wHash`、`pHash`数据
       console.log(`>>> [STAGE.3-2] >> 使用python分析下载的缩率图...`);
       let thumbImageAnalytics = null;
       let thumbImageAnalyticsRetryCount = 0;
@@ -431,14 +443,26 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       do {
         try {
           thumbImageAnalytics = await execPython('./crawler/getImageHash.py', thumbTmpImageFilePath);
-
           thumbImageAnalytics = JSON.parse(thumbImageAnalytics);
         } catch (error) {
           thumbImageAnalyticsRetryCount = thumbImageAnalyticsRetryCount + 1;
         }
       } while (thumbImageAnalytics === null && thumbImageAnalyticsRetryCount < 5);
 
-      if (thumbImageAnalytics === null) {
+      // Phase 3-2b: 获取`dominantColor`数据
+      let thumbDominantColor = null;
+      let thumbDominantColorRetryCount = 0;
+
+      do {
+        try {
+          thumbDominantColor = await execPython('./crawler/dominantColor.py', thumbTmpImageFilePath);
+          thumbDominantColor = JSON.parse(thumbDominantColor);
+        } catch (error) {
+          thumbDominantColorRetryCount = thumbDominantColorRetryCount + 1;
+        }
+      } while (thumbDominantColor === null && thumbDominantColorRetryCount < 5);
+
+      if (thumbImageAnalytics === null || thumbDominantColor === null) {
         throw new Error(`addOrUpdateWallpaper: get analytics of image(${thumbImageUrl}) use python failed.`);
       }
 
@@ -461,7 +485,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
         dHash: thumbImageAnalytics.dHash,
         wHash: thumbImageAnalytics.wHash,
         pHash: thumbImageAnalytics.pHash,
-        dominantColor: thumbImageAnalytics.dominantColor,
+        dominantColor: thumbDominantColor.dominantColor,
       };
       if (colorHistJson !== null) {
         updateData.colorHist = colorHistJson;

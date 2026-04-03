@@ -32,7 +32,7 @@
     "start": "pnpm run fetch-data && pnpm run build",
     "lint": "eslint crawler --ext .ts --quiet",
     "lint:fix": "eslint crawler --ext .ts --fix",
-    "format": "prettier --write \"crawler/**/*.ts\" \"**/*.md\" \"**/*.json\" && autopep8 --in-place --recursive --aggressive --aggressive crawler/getImageHash.py crawler/getImageDominantColor.py",
+    "format": "prettier --write \"crawler/**/*.ts\" \"**/*.md\" \"**/*.json\" && cd crawler && uv run ruff format . && uv run ruff check . --fix",
     "format:check": "prettier --check \"crawler/**/*.ts\" \"**/*.md\" \"**/*.json\"",
     "format:lint": "pnpm run format && pnpm run lint"
   },
