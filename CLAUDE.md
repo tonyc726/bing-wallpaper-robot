@@ -81,10 +81,22 @@ SQLite DB ←──── python image analysis
   4. Detect similar images + upload to ImageKit (if new)
   5. Create Wallpaper record
 
-**Python Scripts:**
+**Python Scripts (crawler/):**
 
-- `src/getImageHash.py` - Computes perceptual hashes (aHash, dHash, wHash, pHash)
-- `src/getImageDominantColor.py` - Extracts dominant color
+- `crawler/getImageHash.py` - Computes perceptual hashes (aHash, dHash, wHash, pHash)
+- `crawler/dominantColor.py` - Extracts dominant color via k-means clustering
+- `crawler/computeColorHist.py` - 4096-dim RGB color histogram
+- `crawler/ssim-compare.py` - SSIM + MAE structural similarity between 2 images
+
+**Python Environment:**
+
+Managed by [uv](https://github.com/astral-sh/uv):
+
+- ` crawler/pyproject.toml` — project config + dependencies
+- ` crawler/uv.lock` — locked dependency versions
+- Local dev: `cd crawler && uv sync`
+- CI: `uv sync --frozen --project crawler --no-dev`
+- Ruff configured for linting + formatting
 
 **Utilities:**
 
@@ -132,10 +144,9 @@ pnpm exec jest <test-file>
 **Note:**
 
 - This project uses **pnpm** instead of npm for faster installs and disk space efficiency
-- Python 3.9+ is required for image analysis scripts
+- Python 3.12+ is required for image analysis scripts (managed by uv)
 - All commands use `pnpm run` prefix (not `npm run`)
-- Python dependencies are in `requirements.txt` for image analysis
-- Use `pip install -r requirements.txt` to install Python packages
+- Python dependencies are locked in `crawler/uv.lock`; use `cd crawler && uv sync` to install
 - **v3.0+ Architecture:** Split into backend (Node.js) and frontend (React)
 - Frontend located in `website/` directory (NOT `frontend/`) with its own package.json
 - Frontend uses Material-UI (MUI) for components and Emotion for styling
@@ -166,19 +177,23 @@ pnpm exec jest <test-file>
 
 ### Python Environment
 
-Python is required for image analysis:
+Python is managed by [uv](https://github.com/astral-sh/uv) for reproducible builds:
 
 ```bash
-# Install Python dependencies (for dev only)
-pip install -r requirements.txt
+# Install Python dependencies (local dev)
+cd crawler && uv sync
 
-# Or using the requirements.txt in root
+# Run a script with uv
+uv run python getImageHash.py <image_path>
+uv run python dominantColor.py <image_path>
 ```
 
-The project executes Python scripts via `src/utils/exec-python.ts` which calls:
+The project executes Python scripts via `crawler/utils/exec-python.ts` which calls:
 
-- `getImageHash.py` - Computes 4 types of perceptual hashes
-- `getImageDominantColor.py` - Extracts dominant color
+- `crawler/getImageHash.py` - Computes 4 types of perceptual hashes
+- `crawler/dominantColor.py` - Extracts dominant color
+- `crawler/computeColorHist.py` - Computes RGB color histogram
+- `crawler/ssim-compare.py` - SSIM structural similarity
 
 ### Environment Variables
 
@@ -216,9 +231,9 @@ Run migrations with: `pnpm run run-migration`
 **Flow:**
 
 1. Checkout repository
-2. Setup Python 3.12
-3. Setup Node.js 22.x
-4. Install dependencies (`pnpm install`)
+2. Setup uv + install Python deps (`uv sync --frozen --project crawler --no-dev`)
+3. Setup Node.js 22.x + pnpm
+4. Install Node dependencies (`pnpm install --frozen-lockfile`)
 5. Run `pnpm run fetch-data` (fetch Bing wallpaper data)
 6. Run `pnpm run build` (frontend + copy + data)
 7. Publish to NPM (optional)
@@ -301,9 +316,11 @@ pnpm run make-html
 **Debug Python scripts:**
 
 ```bash
-# Test image analysis directly
-python src/getImageHash.py <image_path>
-python src/getImageDominantColor.py <image_path>
+# Test image analysis directly (requires uv)
+cd crawler && uv run python getImageHash.py <image_path>
+cd crawler && uv run python dominantColor.py <image_path>
+cd crawler && uv run python computeColorHist.py <image_path>
+cd crawler && uv run python ssim-compare.py <image_path_a> <image_path_b>
 ```
 
 **Frontend Development:**
