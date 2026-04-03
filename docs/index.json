@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "schemaVersion": 2,
-  "dataVersion": "md5:5d57ff828cb88c20dfabdd1497c35e7c",
-  "generatedAt": "2026-04-02T18:19:25.334Z",
-  "lastModified": "2026-04-02T18:19:25.335Z",
-  "totalWallpapers": 1841,
+  "dataVersion": "md5:4594d288afd01bd44d6fdd66e7be6796",
+  "generatedAt": "2026-04-03T18:15:06.040Z",
+  "lastModified": "2026-04-03T18:15:06.040Z",
+  "totalWallpapers": 1856,
   "chunks": {
     "2020-12": {
       "version": "md5:d5691d9ef07e146bc9529c594f4d7845",
@@ -463,18 +463,26 @@
       "previousHash": "73d7d4076a87e736aa2af954dd17c078"
     },
     "2026-03": {
-      "version": "md5:b1a177d56201a60c7d1364fa440d0d9b",
-      "updatedAt": null,
-      "isChanged": false,
-      "recordCount": 6,
-      "checksum": "md5:ff952cde7d92fd732b9338c0d7eab9d9",
+      "version": "md5:d7d5bb1077d0da7c579a4e1b08b15c8f",
+      "updatedAt": "2026-04-03T18:15:06.030Z",
+      "isChanged": true,
+      "recordCount": 18,
+      "checksum": "md5:04945f3a4bdde1a2a209d85685e80646",
       "previousHash": "b1a177d56201a60c7d1364fa440d0d9b"
+    },
+    "2026-04": {
+      "version": "md5:abe1747d479e630d893390b56b7af1d9",
+      "updatedAt": "2026-04-03T18:15:06.030Z",
+      "isChanged": true,
+      "recordCount": 3,
+      "checksum": "md5:c2f8f1fb6552f2b697fb30964546041d",
+      "previousHash": null
     }
   },
   "stats": {
-    "total": 1841,
-    "changedChunks": 0,
-    "unchangedChunks": 58,
+    "total": 1856,
+    "changedChunks": 2,
+    "unchangedChunks": 57,
     "colors": [
       {
         "name": "010101",
@@ -519,8 +527,12 @@
     ],
     "byMonth": [
       {
+        "month": "2026-04",
+        "count": 3
+      },
+      {
         "month": "2026-03",
-        "count": 6
+        "count": 18
       },
       {
         "month": "2026-02",
@@ -753,6 +765,7 @@
     ]
   },
   "monthList": [
+    "2026-04",
     "2026-03",
     "2026-02",
     "2025-11",
@@ -812,8 +825,8 @@
     "2021-01",
     "2020-12"
   ],
-  "latestMonth": "2026-03",
+  "latestMonth": "2026-04",
   "oldestMonth": "2020-12",
-  "allJsVersion": "md5:fb411d604059f38121ae4d4c03148ca6",
+  "allJsVersion": "md5:3606e055cdbb2746bbd74129f491928d",
   "updateLog": []
 }
