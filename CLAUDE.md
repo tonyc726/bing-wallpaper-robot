@@ -46,9 +46,8 @@ SQLite DB ←──── python image analysis
 
 **Entry Points:**
 
-- `src/index.ts` - Main data fetching pipeline
-- `src/makePreviewHTML.ts` - Legacy: Generates static HTML gallery (deprecated)
-- `src/makePreviewJSON.ts` - ⭐ NEW: Generates JSON data for React frontend
+- `crawler/index.ts` - Main data fetching pipeline
+- `crawler/makePreviewJSON.ts` - Generates JSON data for React frontend
 
 **Frontend Architecture (v3.1+):**
 
@@ -73,8 +72,8 @@ SQLite DB ←──── python image analysis
 
 **Data Flow:**
 
-- `src/utils/get-multiple-bing-wallpaper-info.ts` - Fetches from Bing API (8 regions)
-- `src/utils/add-or-update-wallpaper.ts` - 5-stage pipeline:
+- `crawler/utils/get-multiple-bing-wallpaper-info.ts` - Fetches from Bing API (8 regions)
+- `crawler/utils/add-or-update-wallpaper.ts` - 5-stage pipeline:
   1. Download thumbnail (256px)
   2. Python analysis (hashes + dominant color)
   3. Create Analytics record
@@ -100,10 +99,10 @@ Managed by [uv](https://github.com/astral-sh/uv):
 
 **Utilities:**
 
-- `src/utils/is-similar-image.ts` - Hamming distance comparison for deduplication
-- `src/utils/upload-to-imagekit.ts` - ImageKit SDK integration
-- `src/utils/download-image.ts` - HTTP image downloader
-- `src/utils/transform-filename-*.ts` - Filename/ID transformation helpers
+- `crawler/utils/is-similar-image.ts` - Hamming distance comparison for deduplication
+- `crawler/utils/upload-to-imagekit.ts` - ImageKit SDK integration
+- `crawler/utils/download-image.ts` - HTTP image downloader
+- `crawler/utils/transform-filename-*.ts` - Filename/ID transformation helpers
 
 ## Development
 
@@ -216,11 +215,11 @@ GitHub Secrets (for Actions):
 
 **Location:** `database/bing-wallpaper.sqlite`
 
-**Migrations:** `src/models/migrations/`
+**Migrations:** `crawler/models/migrations/`
 
-Run migrations with: `pnpm run run-migration`
+Run migrations with: `pnpm run migration:run`
 
-**Database Configuration:** `src/database.ts` - TypeORM DataSource config
+**Database Configuration:** `crawler/database.ts` - TypeORM DataSource config
 
 ### GitHub Actions Workflow
 
@@ -280,26 +279,26 @@ The commit triggers Vercel, Netlify, and Cloudflare Pages to rebuild via webhook
 
 **Add a new wallpaper field:**
 
-1. Update entity in `src/models/entities/Wallpaper.ts`
+1. Update entity in `crawler/models/entities/Wallpaper.ts`
 2. Generate migration: `pnpm run migration:generate <MigrationName>`
 3. Run migration: `pnpm run migration:run`
-4. Update transformation logic in `src/utils/add-or-update-wallpaper.ts`
+4. Update transformation logic in `crawler/utils/add-or-update-wallpaper.ts`
 5. Format and lint changes: `pnpm run format:lint`
 
-**Modify HTML output:**
+**Modify frontend output:**
 
-1. Edit template in `src/index.ejs`
-2. Adjust data mapping in `src/makePreviewHTML.ts`
-3. Test HTML generation: `pnpm run make-html`
+1. Edit components in `website/src/components/`
+2. Adjust data mapping in `website/src/App.tsx`
+3. Test: `pnpm run dev`
 
 **Change Bing API parameters:**
 
-- Modify region indices in `src/utils/get-multiple-bing-wallpaper-info.ts:30`
+- Modify region indices in `crawler/utils/get-multiple-bing-wallpaper-info.ts:30`
 - Default: 8 regions (0-7)
 
 **Update ImageKit settings:**
 
-- Change upload folder in `src/utils/upload-to-imagekit.ts:34`
+- Change upload folder in `crawler/utils/upload-to-imagekit.ts:34`
 - Modify URL transformation rules in ImageKit dashboard
 
 **Test the workflow locally:**

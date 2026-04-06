@@ -100,7 +100,7 @@ Scripts communicate with Node.js via **stdout** (one value per line, or structur
 
 ## Node.js Interop
 
-Node.js calls Python through `src/utils/exec-python.ts`:
+Node.js calls Python through `crawler/utils/exec-python.ts`:
 
 ```typescript
 import { exec } from 'child_process';

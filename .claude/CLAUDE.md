@@ -45,4 +45,3 @@ pnpm format:check                              # Check only
 
 - No automated test suite
 - Python scripts lack unit tests
-- Frontend PWA caching issues on SPA navigation (mitigated with navigateFallbackDenylist)

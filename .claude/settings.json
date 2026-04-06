@@ -1,17 +1,22 @@
 {
   "hooks": {
-    "pre-commit": {
-      "commands": [
-        "pnpm format:check",
-        "pnpm lint"
-      ]
-    },
-    "post-startup": {
-      "commands": [
-        "test -d node_modules || echo 'WARNING: Run pnpm install'",
-        "which uv || echo 'WARNING: uv not found — required for Python crawler scripts'",
-        "test -d crawler/.venv || echo 'WARNING: Run cd crawler && uv sync'"
-      ]
-    }
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -d node_modules || echo 'WARNING: Run pnpm install'"
+          },
+          {
+            "type": "command",
+            "command": "which uv || echo 'WARNING: uv not found — required for Python crawler scripts'"
+          },
+          {
+            "type": "command",
+            "command": "test -d crawler/.venv || echo 'WARNING: Run cd crawler && uv sync'"
+          }
+        ]
+      }
+    ]
   }
 }
