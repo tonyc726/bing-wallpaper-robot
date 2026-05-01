@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "schemaVersion": 2,
-  "dataVersion": "md5:bd9eeeeb42080f484bdbd11a088cc38c",
-  "generatedAt": "2026-04-30T18:31:46.952Z",
-  "lastModified": "2026-04-30T18:31:46.952Z",
-  "totalWallpapers": 1883,
+  "dataVersion": "md5:99ed344229d7f03f61e480d7ea8ea1cf",
+  "generatedAt": "2026-05-01T18:25:21.398Z",
+  "lastModified": "2026-05-01T18:25:21.398Z",
+  "totalWallpapers": 1884,
   "chunks": {
     "2020-12": {
       "version": "md5:d5691d9ef07e146bc9529c594f4d7845",
@@ -472,17 +472,25 @@
     },
     "2026-04": {
       "version": "md5:e2b66d42fc3f91f95193ebc9586a82c7",
-      "updatedAt": "2026-04-30T18:31:46.942Z",
-      "isChanged": true,
+      "updatedAt": null,
+      "isChanged": false,
       "recordCount": 30,
       "checksum": "md5:2add3fd4b41f660d8bb9e7c4c2b2338d",
-      "previousHash": "1e9d6b493f01cba967b7a223a656653b"
+      "previousHash": "e2b66d42fc3f91f95193ebc9586a82c7"
+    },
+    "2026-05": {
+      "version": "md5:5c021e28bbaff32bf09f177d943011d0",
+      "updatedAt": "2026-05-01T18:25:21.388Z",
+      "isChanged": true,
+      "recordCount": 1,
+      "checksum": "md5:4b4f89089553dd5dce2e1b0f53a31b8b",
+      "previousHash": null
     }
   },
   "stats": {
-    "total": 1883,
+    "total": 1884,
     "changedChunks": 1,
-    "unchangedChunks": 58,
+    "unchangedChunks": 59,
     "colors": [
       {
         "name": "010101",
@@ -526,6 +534,10 @@
       }
     ],
     "byMonth": [
+      {
+        "month": "2026-05",
+        "count": 1
+      },
       {
         "month": "2026-04",
         "count": 30
@@ -765,6 +777,7 @@
     ]
   },
   "monthList": [
+    "2026-05",
     "2026-04",
     "2026-03",
     "2026-02",
@@ -825,8 +838,8 @@
     "2021-01",
     "2020-12"
   ],
-  "latestMonth": "2026-04",
+  "latestMonth": "2026-05",
   "oldestMonth": "2020-12",
-  "allJsVersion": "md5:dfc1f0211089f5d3d81dd74a5821ce22",
+  "allJsVersion": "md5:be0a147d9ff41ebd3299df84c7b7422c",
   "updateLog": []
 }
