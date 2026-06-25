@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "schemaVersion": 2,
-  "dataVersion": "md5:5d909725de27caee3e2fbd191f71e137",
-  "generatedAt": "2026-04-08T18:27:56.561Z",
-  "lastModified": "2026-04-08T18:27:56.561Z",
-  "totalWallpapers": 1861,
+  "dataVersion": "md5:b98416c889452834e0b2c767044726cb",
+  "generatedAt": "2026-06-25T02:28:49.826Z",
+  "lastModified": "2026-06-25T02:28:49.826Z",
+  "totalWallpapers": 1917,
   "chunks": {
     "2020-12": {
       "version": "md5:d5691d9ef07e146bc9529c594f4d7845",
@@ -471,18 +471,34 @@
       "previousHash": "d7d5bb1077d0da7c579a4e1b08b15c8f"
     },
     "2026-04": {
-      "version": "md5:29f21ffe73112fe66f2f5a4eee6ca997",
-      "updatedAt": "2026-04-08T18:27:56.552Z",
+      "version": "md5:e2b66d42fc3f91f95193ebc9586a82c7",
+      "updatedAt": null,
+      "isChanged": false,
+      "recordCount": 30,
+      "checksum": "md5:2add3fd4b41f660d8bb9e7c4c2b2338d",
+      "previousHash": "e2b66d42fc3f91f95193ebc9586a82c7"
+    },
+    "2026-05": {
+      "version": "md5:778af6b8a32e63bc6a7a0516b6cf685f",
+      "updatedAt": null,
+      "isChanged": false,
+      "recordCount": 19,
+      "checksum": "md5:231453920470eeceb4242cdab89140e7",
+      "previousHash": "778af6b8a32e63bc6a7a0516b6cf685f"
+    },
+    "2026-06": {
+      "version": "md5:f5c94af34cdc7477d5da2259086cbd46",
+      "updatedAt": "2026-06-25T02:28:49.816Z",
       "isChanged": true,
-      "recordCount": 8,
-      "checksum": "md5:7760f33a038fde864d63aeba084a193e",
-      "previousHash": "b1be3cd3344a69e3d6b0cbe57e05d4fe"
+      "recordCount": 15,
+      "checksum": "md5:723f3c31d3261032f36c972957b1991a",
+      "previousHash": null
     }
   },
   "stats": {
-    "total": 1861,
+    "total": 1917,
     "changedChunks": 1,
-    "unchangedChunks": 58,
+    "unchangedChunks": 60,
     "colors": [
       {
         "name": "010101",
@@ -527,8 +543,16 @@
     ],
     "byMonth": [
       {
+        "month": "2026-06",
+        "count": 15
+      },
+      {
+        "month": "2026-05",
+        "count": 19
+      },
+      {
         "month": "2026-04",
-        "count": 8
+        "count": 30
       },
       {
         "month": "2026-03",
@@ -765,6 +789,8 @@
     ]
   },
   "monthList": [
+    "2026-06",
+    "2026-05",
     "2026-04",
     "2026-03",
     "2026-02",
@@ -825,8 +851,8 @@
     "2021-01",
     "2020-12"
   ],
-  "latestMonth": "2026-04",
+  "latestMonth": "2026-06",
   "oldestMonth": "2020-12",
-  "allJsVersion": "md5:bd7162764a51a020634c591adb0836b6",
+  "allJsVersion": "md5:4ccd454cb327fd7117bda5bd89dff454",
   "updateLog": []
 }
