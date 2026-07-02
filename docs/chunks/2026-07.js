@@ -1,1 +1,1 @@
-export default [["OHR.DungeonPark_EN-US2499621341",20260701,"Canada, carved by the Atlantic","Dungeon Provincial Park, Newfoundland and Labrador, Canada (© Kaitlyn McLachlan/Getty Images)","313f1a"]];
+export default [["OHR.DungeonPark_EN-US2499621341",20260701,"Canada, carved by the Atlantic","Dungeon Provincial Park, Newfoundland and Labrador, Canada (© Kaitlyn McLachlan/Getty Images)","313f1a"],["OHR.TempleEsna_EN-US1999215513",20260702,"Inside Esna's sacred universe","Ceiling of the Temple of Esna, Egypt (© Nick Brundle Photography/Getty Images)","9a7c6d"]];
