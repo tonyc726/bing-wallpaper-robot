@@ -18,6 +18,83 @@ import isSimilarImage, { colorHistDist } from './is-similar-image';
 import uploadToImagekit from './upload-to-imagekit';
 import { downloadTo } from './download-thumbnail';
 
+const SSIM_THRESHOLD = 0.85;
+
+/**
+ * 判断两张图的颜色直方图差异是否超过阈值(超过则视为不相似,可提前排除)。
+ * 缺少直方图数据或解析失败时返回 false,即不以颜色作为排除依据。
+ */
+const isColorHistBeyondThreshold = (
+  existingColorHist: string | null | undefined,
+  currentColorHist: string | null | undefined,
+  threshold: number,
+): boolean => {
+  if (!existingColorHist || !currentColorHist) {
+    return false;
+  }
+  try {
+    const histA = JSON.parse(existingColorHist) as number[];
+    const histB = JSON.parse(currentColorHist) as number[];
+    return colorHistDist(histA, histB) > threshold;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * 使用 SSIM 对疑似相似的两张图做精细确认。
+ * 优先复用本地已持久化的缩略图(docs/thumbs/${imagekit.id}.${ext}),
+ * 本地缺失时才回退到从 Bing 重新下载,避免重复下载已有图片。
+ * 任何异常都由调用方兜底,这里正常路径返回 SSIM 判定结果。
+ */
+const confirmSimilarityBySSIM = async (currentThumbPath: string, existingWallpaper: any): Promise<boolean> => {
+  const existingFilename = get(existingWallpaper, ['filename']);
+  if (!existingFilename) {
+    return true;
+  }
+
+  let compareImagePath: string | null = null;
+  let tmpPathToCleanup: string | null = null;
+
+  const existingImagekitId = get(existingWallpaper, ['imagekit', 'id']);
+  const existingExt = get(existingWallpaper, ['ext'], 'jpg');
+  if (existingImagekitId) {
+    const localThumbPath = path.resolve(__dirname, '../../docs/thumbs/', `${existingImagekitId}.${existingExt}`);
+    if (fs.existsSync(localThumbPath)) {
+      compareImagePath = localThumbPath;
+    }
+  }
+
+  if (compareImagePath === null) {
+    const existingThumbUrl = `https://cn.bing.com/th?id=${existingFilename}_UHD.jpg&w=256&c=1`;
+    const tmpPath = `/tmp/ssim-thumb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    await downloadTo(existingThumbUrl, tmpPath);
+    compareImagePath = tmpPath;
+    tmpPathToCleanup = tmpPath;
+  }
+
+  try {
+    const ssimResult = await execPython('./crawler/ssim-compare.py', `${currentThumbPath} ${compareImagePath}`);
+    const ssimData = JSON.parse(ssimResult);
+    if (ssimData.ssim === undefined) {
+      return true;
+    }
+    const confirmed = ssimData.ssim >= SSIM_THRESHOLD;
+    console.log(
+      `>>> [STAGE.4-B] SSIM=${ssimData.ssim.toFixed(3)} MAE=${ssimData.mae.toFixed(1)} confirmed=${confirmed} source=${
+        tmpPathToCleanup ? 'remote' : 'local'
+      }`,
+    );
+    return confirmed;
+  } finally {
+    if (tmpPathToCleanup) {
+      try {
+        fs.unlinkSync(tmpPathToCleanup);
+      } catch {}
+    }
+  }
+};
+
 /**
  * 新增或者更新 Bing壁纸 数据
  * @doc https://typeorm.io/#/repository-api
@@ -187,7 +264,6 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     // 通过汉明距离检测相似图片
     let similarWallpaper: any = null;
     let similarWallpaperImageKit: any = null;
-    const SSIM_THRESHOLD = 0.85;
     const COLOR_HIST_THRESHOLD = 0.3;
 
     if (existingWallpapers.length > 0) {
@@ -228,37 +304,14 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
         }
 
         // ----- Phase 1.5: 颜色直方图过滤 -----
-        if (existingAnalytics.colorHist && analytics.colorHist) {
-          try {
-            const histA = JSON.parse(existingAnalytics.colorHist) as number[];
-            const histB = JSON.parse(analytics.colorHist) as number[];
-            const dist = colorHistDist(histA, histB);
-            if (dist > COLOR_HIST_THRESHOLD) {
-              continue;
-            }
-          } catch {
-            // 解析失败，跳过颜色检查继续
-          }
+        if (isColorHistBeyondThreshold(existingAnalytics.colorHist, analytics.colorHist, COLOR_HIST_THRESHOLD)) {
+          continue;
         }
 
         // ----- Phase 2: SSIM 精细确认 -----
         let ssimConfirmed = true;
         try {
-          const existingFilename = get(existingWallpaper, ['filename']);
-          if (existingFilename) {
-            const existingThumbUrl = `https://cn.bing.com/th?id=${existingFilename}_UHD.jpg&w=256&c=1`;
-            const tmpPath = `/tmp/ssim-thumb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-            await downloadTo(existingThumbUrl, tmpPath);
-            const ssimResult = await execPython('./crawler/ssim-compare.py', `${thumbTmpImageFilePath} ${tmpPath}`);
-            const ssimData = JSON.parse(ssimResult);
-            if (ssimData.ssim !== undefined) {
-              ssimConfirmed = ssimData.ssim >= SSIM_THRESHOLD;
-              console.log(`>>> [STAGE.4-B] SSIM=${ssimData.ssim.toFixed(3)} MAE=${ssimData.mae.toFixed(1)} confirmed=${ssimConfirmed}`);
-            }
-            try {
-              fs.unlinkSync(tmpPath);
-            } catch {}
-          }
+          ssimConfirmed = await confirmSimilarityBySSIM(thumbTmpImageFilePath, existingWallpaper);
         } catch (ssimError) {
           console.log(`>>> [STAGE.4-B] SSIM comparison failed, falling back to hash+color: ${ssimError}`);
           ssimConfirmed = true;
