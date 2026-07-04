@@ -58,5 +58,8 @@
     "ts-node": "^10.9.2",
     "typeorm": "^0.3.30",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "qiniu": "^7.15.2"
   }
 }

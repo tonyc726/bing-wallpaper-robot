@@ -163,6 +163,20 @@ GitHub Actions (每日 18:00 UTC 单次)
 
 ## 4.5 存储迁移决策:ImageKit → Cloudflare R2(2026-07-03 确认)
 
+> 🚫 **本节已被替代(SUPERSEDED,2026-07-04)。**
+> R2「主力迁移 + 双版本」方向已由**七牛云冷备份**方案取代。定位改为:
+> **七牛桶只写不读,仅对冲 Bing 源头失效**;前端默认走 Bing,失效时浏览器侧
+> onError 逐级降级到七牛。免费额度内**月费≈0**,无需迁移主分发、无需 sharp/avif。
+> 落地见 `docs/ai/sessions/2026-07-04-qiniu-backup.md` 与 `crawler/utils/upload-to-qiniu.ts`。
+>
+> ⚠️ **同时更正本节 §3 存量搬运的一处前提**:经 2026-07-04 curl 实测,
+> `https://cn.bing.com/th?id=<OHR>_UHD.jpg` 归档 URL 对**最老壁纸(2017)仍返回
+> 11.5MB 真实 UHD 原图**(HTTP 200,非占位图)——这正是 9 年前端始终可用的原因。
+> 故「不能从 Bing 重拉」不成立于本项目所用的 OHR 归档 URL;七牛回填直接从 Bing
+> server-side fetch 即可(见 `crawler/backfill-qiniu.ts`),无需消耗 ImageKit 额度。
+> (§2.3 所指「历史原图失效」应为 HPImageArchive 的原始 `url` 字段 / npanuhin
+> 2010–2020 归档语境,与 OHR `_UHD.jpg` 归档 URL 无关。)
+
 ### 背景与定位
 - ImageKit 免费层瓶颈是 **3GB DAM 存储**,已用两个账号约 80%(≈4.8GB ≈ 1943 张 UHD 原图 ×2.5MB)。**撞的是存储墙,非带宽墙**。
 - 关键事实:前端图片 URL 直接指向 Bing CDN(`crawler/makePreviewJSON.ts:269-270`,`w=300`/`w=256`),**不走 ImageKit**。ImageKit 在本系统的真实角色是「UHD 原图异地备份仓库」,不是分发 CDN。

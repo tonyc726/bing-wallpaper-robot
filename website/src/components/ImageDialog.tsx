@@ -17,6 +17,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import type { WallpaperData } from '../types';
+import { backupUrl } from '../utils/unpackChunk';
 
 // Bing 图片 API 支持的标准宽度断点
 const BING_WIDTH_BREAKPOINTS = [800, 1366, 1920, 2560, 3840] as const;
@@ -236,8 +237,13 @@ const ImageDialog = ({
     if (!wallpaper || isDownloading) return;
     
     setIsDownloading(true);
+    const backup = backupUrl(wallpaper.id);
     try {
-      const response = await fetch(wallpaper.downloadUrl);
+      let response = await fetch(wallpaper.downloadUrl);
+      // Bing 原图下载失败 → 尝试七牛冷备份（未配置时 backup 为空，跳过）
+      if (!response.ok && backup) {
+        response = await fetch(backup);
+      }
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -257,8 +263,8 @@ const ImageDialog = ({
       setToastMessage('下载已完成');
     } catch (err) {
       console.error('Download error:', err);
-      // Fallback
-      window.open(wallpaper.downloadUrl, '_blank');
+      // 最终兜底：优先七牛备份原图，其次 Bing 原图
+      window.open(backup || wallpaper.downloadUrl, '_blank');
       setToastMessage('直接下载失败，已为您打开原图连接');
     } finally {
       setIsDownloading(false);
@@ -481,14 +487,18 @@ const ImageDialog = ({
                     opacity: imageLoaded ? 1 : 0,
                   }}
                   onError={(e: SyntheticEvent<HTMLImageElement, Event>) => {
-                    // 高清版加载失败时回退到缩略图
+                    // 逐级降级：Bing UHD → Bing 缩略图 → 七牛冷备份 → 主色占位
+                    // 未配置七牛时 backupUrl 返回 ''，被 filter 剔除，行为与今日一致。
                     const target = e.target as HTMLImageElement;
-                    if (target.src !== wallpaper.imageUrl) {
-                      target.src = wallpaper.imageUrl;
-                    } else {
-                      target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || '拾影阁馆藏')}`;
-                      setImageLoaded(true);
+                    const fallbacks = [wallpaper.imageUrl, backupUrl(wallpaper.id)].filter(Boolean);
+                    const step = Number(target.dataset.fallbackStep || '0');
+                    if (step < fallbacks.length) {
+                      target.dataset.fallbackStep = String(step + 1);
+                      target.src = fallbacks[step];
+                      return;
                     }
+                    target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || '拾影阁馆藏')}`;
+                    setImageLoaded(true);
                   }}
                 />
               </Box>

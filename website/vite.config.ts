@@ -156,6 +156,9 @@ export default defineConfig(({ mode }) => {
       })
     ],
     base,
+    // 从仓库根目录读取 .env（与后端共用同一份 .env，单一事实来源）。
+    // 安全性：Vite 仅把 VITE_ 前缀变量暴露给前端，QINIU_SECRET_KEY 等密钥不会进产物。
+    envDir: path.resolve(__dirname, '..'),
     build: {
       outDir: 'dist',
       assetsDir: 'assets',

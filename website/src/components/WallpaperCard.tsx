@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import type { WallpaperData } from '../types';
+import { backupUrl } from '../utils/unpackChunk';
 
 interface Props {
   wallpaper: WallpaperData;
@@ -158,7 +159,16 @@ const WallpaperCard = React.memo(({
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
           onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-            (e.target as HTMLImageElement).style.display = 'none';
+            const img = e.target as HTMLImageElement;
+            const backup = backupUrl(wallpaper.id);
+            // Bing 缩略图失效 → 尝试七牛冷备份兜底（仅一次，dataset 防抖）
+            if (backup && img.dataset.triedBackup !== '1' && img.src !== backup) {
+              img.dataset.triedBackup = '1';
+              img.src = backup;
+              return;
+            }
+            // 无备份或备份也失败 → 维持原行为：隐藏图片，露出主色背景
+            img.style.display = 'none';
             setImageLoaded(true);
           }}
           style={{
