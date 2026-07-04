@@ -17,6 +17,7 @@ import execPython from './exec-python';
 import isSimilarImage, { colorHistDist } from './is-similar-image';
 import uploadToImagekit from './upload-to-imagekit';
 import { downloadTo } from './download-thumbnail';
+import backupToQiniu from './upload-to-qiniu';
 
 const SSIM_THRESHOLD = 0.85;
 
@@ -394,6 +395,22 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
     wallpaper.imagekit = imagekit;
 
     nextWallpaper = await wallpaperRepository.save(wallpaper);
+
+    // [STAGE.6] >> 冷备份 UHD 原图至七牛（best-effort，永不阻断主流程）
+    // 定位：七牛仅"只写"的冷备份仓库。常态下前端走 Bing 源头，七牛零流量；
+    // 仅当源头失效时，浏览器侧 onError 才逐级降级到七牛备份。
+    // backupToQiniu 内部已保证永不 throw；此处 try/catch 仅作双保险。
+    console.log(`>>> [STAGE.6] >> 冷备份 UHD 原图至七牛（best-effort）...`);
+    try {
+      const qiniuResult = await backupToQiniu(wallpaperFilename);
+      if (qiniuResult.status === 'uploaded') {
+        console.log(`>>> [STAGE.6] >> 七牛冷备份完成：${qiniuResult.key}`);
+      } else if (qiniuResult.status === 'error') {
+        console.log(`>>> [STAGE.6] >> 七牛冷备份失败（已忽略）：${qiniuResult.reason}`);
+      }
+    } catch (qiniuError) {
+      console.log(`>>> [STAGE.6] >> 七牛冷备份异常（已忽略）：${qiniuError}`);
+    }
   } else {
     // * ----------------
     // * >>> 更新 <<<

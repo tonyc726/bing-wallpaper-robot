@@ -13,7 +13,7 @@
 
 ---
 
-## 📊 进度看板(截至 2026-07-03)
+## 📊 进度看板(截至 2026-07-04)
 
 | 状态 | 事项 | 备注 |
 | --- | --- | --- |
@@ -25,8 +25,9 @@
 | ⏳ 待办 | **P0-2** 富元数据双源 / **P0-3** 历史回填 | 见方案 §3 |
 | ⏳ 待办 | **P1-3** 数据修复 / **P1-4** cron 冗余 | 见方案 §3 |
 | ⏳ 待办 | **P2** AI 增强(CLIP 检索 + 豆包打标) | 见方案 §4 |
-| 🔴 阻塞 | **R2 双版本备份迁移** | 阻塞于用户准备 R2 账户 |
-| 🔴 待决策 | ImageKit 撞满的**上传失败降级** | 牵涉前端数据流(`makePreviewJSON` 从 imagekit 表出发) |
+| ✅ 已完成 | **七牛冷备份 + 前端降级链**(替代 R2) | `upload-to-qiniu.ts`/`backfill-qiniu.ts`/前端 onError 兜底;**待用户配置七牛凭证后激活** |
+| 🚫 已替代 | ~~R2 双版本备份迁移~~ | 由七牛冷备份替代(见 §4.5 superseded + `sessions/2026-07-04-qiniu-backup.md`) |
+| 🟢 已缓解 | ImageKit 撞满的上传失败降级 | 前端本就不读 ImageKit(走 Bing 源头);七牛作为 Bing 失效时的浏览器侧兜底层 |
 
 ---
 
@@ -35,7 +36,8 @@
 | 文档 | 用途 |
 | --- | --- |
 | [`../../plans/data-collection-optimization.md`](../../plans/data-collection-optimization.md) | **主方案**:现状审计 + 研究结论 + 分级路线图 + R2/AI 决策 |
-| [`sessions/2026-07-03-数据采集优化.md`](sessions/2026-07-03-数据采集优化.md) | 本次会话交接:决策脉络、已完成、下一步 |
+| [`sessions/2026-07-03-数据采集优化.md`](sessions/2026-07-03-数据采集优化.md) | 会话交接:数据采集优化决策脉络 |
+| [`sessions/2026-07-04-qiniu-backup.md`](sessions/2026-07-04-qiniu-backup.md) | 会话交接:七牛冷备份 + 前端降级链(替代 R2) |
 
 ---
 
@@ -56,7 +58,8 @@
 | 采集入口 / 市场循环 | `crawler/utils/get-bing-wallpaper-info.ts`、`get-multiple-bing-wallpaper-info.ts` |
 | 5 阶段入库 + 三阶段去重 | `crawler/utils/add-or-update-wallpaper.ts` |
 | 图片下载(已加固) | `crawler/utils/download-image.ts`、`download-thumbnail.ts` |
-| CDN 上传(待迁 R2) | `crawler/utils/upload-to-imagekit.ts` |
+| CDN 上传 / 冷备份 | `crawler/utils/upload-to-imagekit.ts`(主)、`upload-to-qiniu.ts`(七牛冷备份) |
+| 前端图片降级链 | `website/src/utils/unpackChunk.ts`(`backupUrl`)、`components/{WallpaperCard,ImageDialog}.tsx` |
 | 前端数据生成 | `crawler/makePreviewJSON.ts` |
 | 构建拷贝(保留规则) | `scripts/copy-build.mjs` |
 

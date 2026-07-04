@@ -47,6 +47,11 @@ jobs:
           IMAGEKIT_PUBLIC_KEY: '${{ secrets.IMAGEKIT_PUBLIC_KEY }}'
           IMAGEKIT_PRIVATE_KEY: '${{ secrets.IMAGEKIT_PRIVATE_KEY }}'
           IMAGEKIT_URL_ENDPOINT: '${{ secrets.IMAGEKIT_URL_ENDPOINT }}'
+          # 七牛冷备份（可选）：未配置对应 Secrets 时解析为空 → STAGE.6 优雅跳过，不影响采集
+          QINIU_ACCESS_KEY: '${{ secrets.QINIU_ACCESS_KEY }}'
+          QINIU_SECRET_KEY: '${{ secrets.QINIU_SECRET_KEY }}'
+          QINIU_BUCKET: '${{ secrets.QINIU_BUCKET }}'
+          QINIU_ZONE: '${{ secrets.QINIU_ZONE }}'
         # 根据你老版本的配置，这里你使用的是 npm 或 pnpm 运行 fetch-data
         run: pnpm run fetch-data
 
@@ -55,6 +60,9 @@ jobs:
         # - 根域名部署 (Vercel, Netlify, Cloudflare, 自定义域名)
         # - 子路径部署 (GitHub Pages: /bing-wallpaper-robot/)
         # 不再需要设置 VITE_BASE_URL
+        env:
+          # 七牛备份域名（可选）：未配置时前端降级链静默跳过七牛层，行为与今日一致
+          VITE_QINIU_DOMAIN: '${{ secrets.VITE_QINIU_DOMAIN }}'
         run: pnpm run build
 
       - name: Publish to NPM
