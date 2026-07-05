@@ -13,7 +13,7 @@
 
 ---
 
-## 📊 进度看板(截至 2026-07-04)
+## 📊 进度看板(截至 2026-07-05)
 
 | 状态 | 事项 | 备注 |
 | --- | --- | --- |
@@ -25,7 +25,8 @@
 | ⏳ 待办 | **P0-2** 富元数据双源 / **P0-3** 历史回填 | 见方案 §3 |
 | ⏳ 待办 | **P1-3** 数据修复 / **P1-4** cron 冗余 | 见方案 §3 |
 | ⏳ 待办 | **P2** AI 增强(CLIP 检索 + 豆包打标) | 见方案 §4 |
-| ✅ 已完成 | **七牛冷备份 + 前端降级链**(替代 R2) | `upload-to-qiniu.ts`/`backfill-qiniu.ts`/前端 onError 兜底;**待用户配置七牛凭证后激活** |
+| ✅ 已激活 | **七牛冷备份 + 前端降级链**(替代 R2) | 凭证+HTTPS 域名已配、桶已全量回填(抽查最老→最新全 206)、GitHub Secrets 5 项齐、本地构建验证域名内联成功。详见 `sessions/2026-07-05-qiniu-activate.md` |
+| 🔴 待办 | **部署平台各配 `VITE_QINIU_DOMAIN`** | Vercel/Netlify 各自 `pnpm run build` 重建前端,build-time 变量需在**各平台环境变量**里配一份,否则该平台线上兜底层不激活(netlify.toml 目前只有 VITE_BASE_URL) |
 | 🚫 已替代 | ~~R2 双版本备份迁移~~ | 由七牛冷备份替代(见 §4.5 superseded + `sessions/2026-07-04-qiniu-backup.md`) |
 | 🟢 已缓解 | ImageKit 撞满的上传失败降级 | 前端本就不读 ImageKit(走 Bing 源头);七牛作为 Bing 失效时的浏览器侧兜底层 |
 
@@ -38,6 +39,7 @@
 | [`../../plans/data-collection-optimization.md`](../../plans/data-collection-optimization.md) | **主方案**:现状审计 + 研究结论 + 分级路线图 + R2/AI 决策 |
 | [`sessions/2026-07-03-数据采集优化.md`](sessions/2026-07-03-数据采集优化.md) | 会话交接:数据采集优化决策脉络 |
 | [`sessions/2026-07-04-qiniu-backup.md`](sessions/2026-07-04-qiniu-backup.md) | 会话交接:七牛冷备份 + 前端降级链(替代 R2) |
+| [`sessions/2026-07-05-qiniu-activate.md`](sessions/2026-07-05-qiniu-activate.md) | 会话交接:七牛冷备份**激活核验**(桶已回填、Secrets 齐、遗留部署平台 env) |
 
 ---
 
