@@ -90,7 +90,13 @@ function App() {
   // 主题
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : true;
+    if (saved !== null) return JSON.parse(saved);
+    // 首访(无历史偏好)跟随系统:仅当系统明确偏好亮色时用亮色,
+    // 暗色或无偏好保持产品默认的暗色「影阁」氛围。
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return !window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    return true;
   });
   const currentTheme = darkMode ? darkTheme : lightTheme;
 
