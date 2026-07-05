@@ -852,6 +852,7 @@ const WallpaperGrid: React.FC<Props> = ({
                         >
                           <IconButton
                             size="small"
+                            aria-label="清除搜索"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               setLocalSearch('');
@@ -973,6 +974,7 @@ const WallpaperGrid: React.FC<Props> = ({
             <Tooltip title={darkMode ? '切换到亮色' : '切换到暗色'}>
               <IconButton
                 onClick={() => setDarkMode(!darkMode)}
+                aria-label={darkMode ? '切换到亮色模式' : '切换到暗色模式'}
                 sx={{
                   color: 'text.secondary',
                   '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05), color: 'text.primary' },
@@ -985,6 +987,7 @@ const WallpaperGrid: React.FC<Props> = ({
             <Tooltip title="项目主页">
               <IconButton
                 onClick={() => window.open('https://github.com/tonyc726/bing-wallpaper-robot', '_blank')}
+                aria-label="项目主页(GitHub,新标签打开)"
                 sx={{
                   color: 'text.secondary',
                   '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05), color: 'text.primary' },

@@ -107,8 +107,18 @@ const WallpaperCard = React.memo(({
       <Box
         ref={cardRef}
         className="wallpaper-outer"
+        role="button"
+        tabIndex={0}
+        aria-label={`查看壁纸:${wallpaper.title || wallpaper.copyright || '拾影阁馆藏'} · ${dateDisplay}`}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onKeyDown={(e) => {
+          // 键盘可达:Enter / 空格 打开预览,与鼠标点击等价
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onImageClick(wallpaper);
+          }
+        }}
         sx={{
           position: 'relative',
           width: '100%',
@@ -116,6 +126,12 @@ const WallpaperCard = React.memo(({
           borderRadius: 0,
           overflow: 'hidden',
           cursor: 'pointer',
+          // 键盘焦点可见态(仅键盘触发,不干扰鼠标点击)
+          '&:focus-visible': {
+            outline: '2px solid #fff',
+            outlineOffset: '2px',
+            boxShadow: '0 0 0 4px rgba(0,0,0,0.6), 0 4px 24px rgba(0,0,0,0.4)',
+          },
           backgroundColor: `#${wallpaper.dominantColor}`,
           boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
           // CSS 3D：由 CSS 变量驱动，默认回正值
@@ -216,6 +232,7 @@ const WallpaperCard = React.memo(({
             <Tooltip title="下载原图" placement="left">
               <IconButton
                 size="small"
+                aria-label={`下载原图:${wallpaper.title || wallpaper.copyright || '拾影阁馆藏'}`}
                 sx={{
                   bgcolor: 'rgba(255, 255, 255, 0.1)',
                   backdropFilter: 'blur(8px)',

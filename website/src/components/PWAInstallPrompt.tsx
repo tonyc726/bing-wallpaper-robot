@@ -293,6 +293,7 @@ const PWAInstallPrompt: React.FC = () => {
                   <IconButton
                     size="small"
                     onClick={handleDismiss}
+                    aria-label="暂不安装,关闭提示"
                     sx={{
                       color: 'text.secondary',
                       transition: 'all 0.2s ease',

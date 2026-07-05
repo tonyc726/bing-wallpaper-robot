@@ -88,6 +88,11 @@ const ImageDialog = ({
   const [touchEnd, setTouchEnd] = useState<{x: number, y: number} | null>(null);
   const minSwipeDistance = 50;
 
+  // 无障碍(a11y):对话框根节点 ref + 打开前焦点来源,用于焦点陷阱与关闭时归还焦点
+  const isOpen = wallpaper !== null;
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
   // URL 状态同步 (Deep Linking)
   const [, setSharedId] = useQueryState('id', {
     shallow: true,
@@ -154,6 +159,55 @@ const ImageDialog = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [wallpaper, currentIndex, allWallpapers.length, onClose, onPrevious, onNext]);
+
+  // 无障碍(a11y):焦点陷阱 —— 打开时把焦点移入对话框,Tab 循环限制在内部,关闭时归还焦点来源
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    // 焦点移入对话框(优先关闭按钮),使键盘/读屏用户进入模态上下文
+    const autofocusTarget =
+      dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]') ?? dialogRef.current;
+    autofocusTarget?.focus();
+
+    const getFocusable = () => {
+      if (!dialogRef.current) return [] as HTMLElement[];
+      const nodes = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])'
+      );
+      // offsetParent 为 null 表示元素不可见(display:none / 祖先隐藏),排除出 Tab 序
+      return Array.from(nodes).filter((el) => el.offsetParent !== null);
+    };
+
+    const handleTrap = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !dialogRef.current.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !dialogRef.current.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTrap, true);
+    return () => {
+      document.removeEventListener('keydown', handleTrap, true);
+      // 归还焦点给打开对话框的元素(通常是被点击的壁纸卡片)
+      previouslyFocused.current?.focus?.();
+    };
+  }, [isOpen]);
 
   // 意念式控件：静止 3 秒后自动隐藏 UI (非 Zen Mode 下有效)
   const showUIState = useRef(showUI);
@@ -358,6 +412,12 @@ const ImageDialog = ({
     <AnimatePresence>
       {wallpaper && (
         <Box
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`壁纸预览:${wallpaper.copyright || wallpaper.title || '拾影阁馆藏'}`}
+          tabIndex={-1}
+          onFocusCapture={() => { if (!zenMode && !showUIState.current) setShowUI(true); }}
           sx={{
             position: 'fixed',
             top: 0,
@@ -368,6 +428,7 @@ const ImageDialog = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            outline: 'none',
           }}
         >
           {/* 半透明纯黑电影级沉浸背景层 */}
@@ -431,6 +492,7 @@ const ImageDialog = ({
             >
               {/* [视觉奇观] 全息环境光泛光池 - 性能极速版 (Hardware Accelerated Ambilight) */}
               <Box
+                aria-hidden="true"
                 sx={{
                   position: 'absolute',
                   top: '50%',
@@ -487,7 +549,7 @@ const ImageDialog = ({
                     opacity: imageLoaded ? 1 : 0,
                   }}
                   onError={(e: SyntheticEvent<HTMLImageElement, Event>) => {
-                    // 逐级降级：Bing UHD → Bing 缩略图 → 七牛冷备份 → 主色占位
+                    // 逐级降级：Bing UHD → Bing 缩略图 → 七牛冷备份 → 主色背景
                     // 未配置七牛时 backupUrl 返回 ''，被 filter 剔除，行为与今日一致。
                     const target = e.target as HTMLImageElement;
                     const fallbacks = [wallpaper.imageUrl, backupUrl(wallpaper.id)].filter(Boolean);
@@ -497,7 +559,9 @@ const ImageDialog = ({
                       target.src = fallbacks[step];
                       return;
                     }
-                    target.src = `https://via.placeholder.com/1200x800/${wallpaper.dominantColor}/ffffff?text=${encodeURIComponent(wallpaper.copyright || '拾影阁馆藏')}`;
+                    // 全部降级失败 → 隐藏图片，露出容器主色背景（与 WallpaperCard 一致，
+                    // 不再依赖已下线的第三方占位图服务）。
+                    target.style.display = 'none';
                     setImageLoaded(true);
                   }}
                 />
@@ -536,6 +600,8 @@ const ImageDialog = ({
             >
               <IconButton
                 onClick={handleClose}
+                aria-label="关闭预览"
+                data-autofocus
                 sx={{
                   width: 48,
                   height: 48,
@@ -572,6 +638,7 @@ const ImageDialog = ({
               >
                 <IconButton
                   onClick={(e) => { e.stopPropagation(); onPrevious(); }}
+                  aria-label="上一张"
                   sx={{
                     width: 56,
                     height: 56,
@@ -608,6 +675,7 @@ const ImageDialog = ({
               >
                 <IconButton
                   onClick={(e) => { e.stopPropagation(); onNext(); }}
+                  aria-label="下一张"
                   sx={{
                     width: 56,
                     height: 56,
@@ -724,6 +792,7 @@ const ImageDialog = ({
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
                     <IconButton
                       onClick={handleShare}
+                      aria-label="分享此壁纸"
                       sx={{
                         width: 48,
                         height: 48,
@@ -747,6 +816,8 @@ const ImageDialog = ({
                     <IconButton
                       onClick={handleDownload}
                       disabled={isDownloading}
+                      aria-label={isDownloading ? '正在下载' : '下载原图'}
+                      aria-busy={isDownloading}
                       sx={{
                         width: 48,
                         height: 48,
