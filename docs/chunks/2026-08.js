@@ -1,1 +1,1 @@
-export default [["OHR.HawaiiLava_EN-US4126737972",20260801,"The power of Kīlauea","A series of lava flows spill into the ocean, Big Island, Hawaii (© Ken McCurdy/Getty Images)","867d7f"]];
+export default [["OHR.HawaiiLava_EN-US4126737972",20260801,"The power of Kīlauea","A series of lava flows spill into the ocean, Big Island, Hawaii (© Ken McCurdy/Getty Images)","867d7f"],["OHR.HelsinkiBlue_EN-US4898215906",20260802,"Daughter of the Baltic","Helsinki's shoreline during blue hour, Uusimaa, Finland (© Miemo Penttinen/Getty Images)","1a3b56"]];
