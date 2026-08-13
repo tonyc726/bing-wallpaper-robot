@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
-// @ts-ignore
-import * as ImageKit from 'imagekit';
+import ImageKit from 'imagekit';
 import { isString } from 'lodash';
 
 dotenv.config();

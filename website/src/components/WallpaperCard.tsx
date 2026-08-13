@@ -228,7 +228,7 @@ const WallpaperCard = React.memo(({
             zIndex: 2,
           }}
         >
-          <Box display="flex" justifyContent="flex-end" gap={1}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
             <Tooltip title="下载原图" placement="left">
               <IconButton
                 size="small"

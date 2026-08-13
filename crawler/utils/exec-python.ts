@@ -1,4 +1,4 @@
-import { isString, isNil } from 'lodash';
+import { isString } from 'lodash';
 import { execFile } from 'child_process';
 import * as path from 'path';
 

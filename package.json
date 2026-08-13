@@ -30,8 +30,8 @@
     "build": "pnpm run build:frontend && pnpm run build:copy && pnpm run build:data",
     "dev": "cd website && pnpm run dev",
     "start": "pnpm run fetch-data && pnpm run build",
-    "lint": "eslint crawler --ext .ts --quiet",
-    "lint:fix": "eslint crawler --ext .ts --fix",
+    "lint": "eslint crawler --quiet",
+    "lint:fix": "eslint crawler --fix",
     "format": "prettier --write \"crawler/**/*.ts\" \"**/*.md\" \"**/*.json\" && cd crawler && uv run ruff format . && uv run ruff check . --fix",
     "format:check": "prettier --check \"crawler/**/*.ts\" \"**/*.md\" \"**/*.json\"",
     "format:lint": "pnpm run format && pnpm run lint"
@@ -40,26 +40,31 @@
   "author": "tonyc726<zhujf620@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@actions/core": "^1.11.1",
+    "@actions/core": "^3.0.1",
+    "@eslint/js": "^9.39.5",
     "@types/lodash": "^4.17.24",
     "@types/node": "^24.13.2",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
-    "date-fns": "^2.30.0",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
-    "eslint": "^8.57.1",
-    "eslint-config-alloy": "^5.1.2",
+    "eslint": "^9.39.5",
     "file-type": "^18.7.0",
-    "imagekit": "^4.1.4",
+    "globals": "^16.4.0",
+    "imagekit": "^6.0.0",
     "lodash": "^4.18.1",
     "prettier": "^3.8.4",
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
-    "typeorm": "^0.3.30",
-    "typescript": "^5.9.3"
+    "typeorm": "^0.3.31",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
   },
   "dependencies": {
     "qiniu": "^7.15.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sqlite3"
+    ]
   }
 }
