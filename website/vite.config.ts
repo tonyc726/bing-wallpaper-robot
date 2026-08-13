@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 
 /**
  * Base path strategy (multi-environment):
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
         configureServer(server) {
           server.middlewares.use((req, res, next) => {
             if (req.url && req.url.startsWith('/chunks/')) {
-              const filePath = path.resolve(__dirname, '../docs', req.url.slice(1));
+              const filePath = path.resolve(import.meta.dirname, '../docs', req.url.slice(1));
               if (fs.existsSync(filePath)) {
                 res.setHeader('Content-Type', req.url.endsWith('.js') ? 'application/javascript' : 'application/json');
                 res.end(fs.readFileSync(filePath));
@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
               }
             }
             if (req.url === '/index.json') {
-              const filePath = path.resolve(__dirname, '../docs/index.json');
+              const filePath = path.resolve(import.meta.dirname, '../docs/index.json');
               if (fs.existsSync(filePath)) {
                 res.setHeader('Content-Type', 'application/json');
                 res.end(fs.readFileSync(filePath));
@@ -158,25 +158,27 @@ export default defineConfig(({ mode }) => {
     base,
     // 从仓库根目录读取 .env（与后端共用同一份 .env，单一事实来源）。
     // 安全性：Vite 仅把 VITE_ 前缀变量暴露给前端，QINIU_SECRET_KEY 等密钥不会进产物。
-    envDir: path.resolve(__dirname, '..'),
+    envDir: path.resolve(import.meta.dirname, '..'),
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
       sourcemap: false,
-      minify: 'esbuild',
-      rollupOptions: {
+      minify: true,
+      rolldownOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            mui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-            motion: ['framer-motion'],
+          codeSplitting: {
+            groups: [
+              { name: 'vendor', test: /node_modules\/(?:react|react-dom)\// },
+              { name: 'mui', test: /node_modules\/(?:@mui|@emotion)\// },
+              { name: 'motion', test: /node_modules\/framer-motion\// },
+            ],
           },
         },
       },
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(import.meta.dirname, './src'),
       },
     },
     server: {

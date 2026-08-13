@@ -260,7 +260,7 @@ const PWAInstallPrompt: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ position: 'relative', zIndex: 2 }}>
+              <Stack direction="row" spacing={0.5} sx={{ position: 'relative', zIndex: 2, alignItems: 'center' }}>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     size="small"

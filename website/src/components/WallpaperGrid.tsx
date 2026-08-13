@@ -244,7 +244,7 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           )}
 
           {/* 右侧：超粗字距全大写月份 + 下方微细中文 */}
-          <Box display="flex" flexDirection="column" justifyContent="center">
+          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography
               variant="h4"
               sx={{
@@ -296,13 +296,8 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
 
                 return (
                   <Grid
-                    item
-                    xs={spanXs}
-                    sm={spanSm}
-                    md={spanMd}
-                    lg={spanLg}
-                    xl={spanXl}
                     key={`skeleton-${group.groupMonth}-${i}`}
+                    size={{ xs: spanXs, sm: spanSm, md: spanMd, lg: spanLg, xl: spanXl }}
                   >
                     <Box
                       sx={{
@@ -341,7 +336,10 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
                 const spanXl = isFeatured ? 3 : 1.5;
 
                 return (
-                  <Grid item xs={spanXs} sm={spanSm} md={spanMd} lg={spanLg} xl={spanXl} key={wallpaper.id}>
+                  <Grid
+                    key={wallpaper.id}
+                    size={{ xs: spanXs, sm: spanSm, md: spanMd, lg: spanLg, xl: spanXl }}
+                  >
                     <Box
                       sx={{
                         height: '100%',
@@ -829,7 +827,8 @@ const WallpaperGrid: React.FC<Props> = ({
               onFocus={() => setIsSearchExpanded(true)}
               onBlur={() => setIsSearchExpanded(false)}
               onClick={() => setIsSearchExpanded(true)}
-              InputProps={{
+              slotProps={{
+                input: {
                 startAdornment: (
                   <InputAdornment position="start" sx={{ mr: { xs: 0.5, md: 1 } }}>
                     <SearchIcon
@@ -911,6 +910,7 @@ const WallpaperGrid: React.FC<Props> = ({
                       width: { xs: '100%', md: 240 },
                     },
                   },
+                },
                 },
               }}
               sx={{ flex: 1 }}
