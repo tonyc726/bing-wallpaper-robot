@@ -32,6 +32,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
+    <!-- 与 JS 启动并行预取数据索引,缩短首屏数据等待(LCP 优化) -->
+    <link rel="preload" href="/index.json" as="fetch" crossorigin="anonymous" />
+
     <!-- Google Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -59,21 +62,45 @@
       #root {
         min-height: 100vh;
       }
-      /* Loading spinner */
+      /* Loading splash:品牌大字即首屏最大内容,让 LCP 在 JS 就绪前完成 */
       .app-loading {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 32px;
         min-height: 100vh;
         background-color: #ffffff;
+        color: #111111;
+      }
+      .app-loading-brand {
+        font-size: clamp(3rem, 12vw, 8rem);
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        user-select: none;
       }
       .app-loading-spinner {
-        width: 50px;
-        height: 50px;
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #000000;
+        width: 32px;
+        height: 32px;
+        border: 2px solid rgba(17, 17, 17, 0.12);
+        border-top: 2px solid #111111;
         border-radius: 50%;
         animation: spin 1s linear infinite;
+      }
+      /* 暗色系统下 splash 跟随,避免白闪 */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #000000;
+        }
+        .app-loading {
+          background-color: #000000;
+          color: #f5f5f5;
+        }
+        .app-loading-spinner {
+          border-color: rgba(245, 245, 245, 0.15);
+          border-top-color: #f5f5f5;
+        }
       }
       @keyframes spin {
         0% {
@@ -84,7 +111,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-hwygEr0L.js"></script>
+    <script type="module" crossorigin src="./assets/index-B-PQeoju.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-VRaQyiYk.js">
     <link rel="modulepreload" crossorigin href="./assets/mui-1RDRAlh6.js">
@@ -92,8 +119,9 @@
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root">
-      <!-- Loading state while JS loads -->
+      <!-- Loading state while JS loads(品牌 splash 同时充当首屏 LCP) -->
       <div class="app-loading">
+        <div class="app-loading-brand">拾影阁</div>
         <div class="app-loading-spinner"></div>
       </div>
     </div>
