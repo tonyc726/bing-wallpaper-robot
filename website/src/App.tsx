@@ -630,6 +630,7 @@ function App() {
               >
                 <Typography
                   variant="h6"
+                  component="p" // 加载态提示非标题,避免污染标题大纲
                   sx={{
                     color: 'text.primary',
                     mt: 3,
@@ -944,9 +945,26 @@ function App() {
       <CssBaseline />
 
       {/* 主内容 - 真正的 Edge to Edge (消融边界) */}
-      <Box sx={{ px: 0, py: 0, overflowX: 'hidden' }}>
+      <Box component="main" sx={{ px: 0, py: 0, overflowX: 'hidden' }}>
         {/* ID 埋点用于返回顶部锚点 */}
         <div id="back-to-top-anchor" />
+        {/* 页面唯一 h1:仅对屏幕阅读器/大纲可见,视觉由月份水印承担 */}
+        <Typography
+          component="h1"
+          sx={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        >
+          拾影阁 · Lumina Pavilion
+        </Typography>
         <WallpaperGrid
           data={gridData}
           onImageClick={handleImageClick}

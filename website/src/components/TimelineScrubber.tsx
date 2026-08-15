@@ -299,10 +299,16 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
                   sx={{
                     position: 'absolute',
                     right: 16,
-                    fontWeight: 800, 
+                    fontWeight: 800,
                     fontSize: '0.65rem',
+                    // 实心小底片:年份浮于任意配色的壁纸卡片之上,
+                    // 底色固定为 background.default,保证对比度 ≥ 4.5(a11y 修复)
                     color: theme.palette.text.primary,
-                    opacity: isHovering || isDragging || isActive || isDisplay ? 0 : (isYearStart ? 0.3 : 0),
+                    bgcolor: theme.palette.background.default,
+                    borderRadius: '6px',
+                    px: 0.75,
+                    py: 0.25,
+                    opacity: isHovering || isDragging || isActive || isDisplay ? 0 : (isYearStart ? 0.9 : 0),
                     transition: 'opacity 0.4s ease',
                     userSelect: 'none',
                     letterSpacing: '0.05em',

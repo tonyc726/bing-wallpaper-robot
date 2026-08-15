@@ -724,9 +724,10 @@ const ImageDialog = ({
                 {/* 左侧：画作元数据 (The Art) */}
                 <div style={{ color: 'white', maxWidth: '70%', pointerEvents: 'auto' }}>
                   <motion.div variants={childItemVariants}>
-                    <Typography 
-                      variant="h5" 
-                      sx={{ 
+                    <Typography
+                      variant="h5"
+                      component="p" // 弹窗元信息非页面标题,避免跳级
+                      sx={{
                         fontFamily: '"Times New Roman", Times, serif', // 衬线体复古人文感
                         fontWeight: 400, 
                         letterSpacing: '0.02em',

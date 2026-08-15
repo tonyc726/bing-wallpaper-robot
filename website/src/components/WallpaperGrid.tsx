@@ -190,7 +190,9 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           }}
         >
           <Typography
-            variant="h1" // 使用巨大的 h1
+            variant="h1" // 视觉沿用 h1 样式
+            component="div" // 语义上只是装饰水印 + 滚动锚点，不占标题大纲
+            aria-hidden="true"
             id={`month-${group.groupMonth.replace(/年|月/g, '').replace(/\./g, '-')}`}
             sx={{
               fontWeight: 900,
@@ -247,6 +249,7 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography
               variant="h4"
+              component="h2" // 月份分组标题:页面 h1 之下的第二级
               sx={{
                 fontWeight: 900,
                 letterSpacing: { xs: '0.1em', md: '0.3em' }, // 电影感精髓：拉开巨宽的字间距
@@ -941,6 +944,7 @@ const WallpaperGrid: React.FC<Props> = ({
                 value={sortBy ?? 'date-desc'}
                 onChange={(e) => setSortBy(e.target.value)}
                 IconComponent={SortIcon}
+                inputProps={{ 'aria-label': '排序方式' }}
                 sx={{
                   borderRadius: '100px',
                   bgcolor: 'transparent',
@@ -1024,7 +1028,7 @@ const WallpaperGrid: React.FC<Props> = ({
               </Typography>
             </>
           ) : (
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" component="p" color="text.secondary">
               未找到匹配的馆藏
             </Typography>
           )}

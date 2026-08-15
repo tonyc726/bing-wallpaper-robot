@@ -267,6 +267,7 @@ const WallpaperCard = React.memo(({
             {wallpaper.title && (
               <Typography
                 variant="subtitle1"
+                component="h3" // 作品标题:月份 h2 之下的第三级
                 sx={{
                   color: 'white',
                   fontWeight: 600,
