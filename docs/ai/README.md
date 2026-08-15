@@ -30,6 +30,7 @@
 | 🚫 已替代 | ~~R2 双版本备份迁移~~ | 由七牛冷备份替代(见 §4.5 superseded + `sessions/2026-07-04-qiniu-backup.md`) |
 | 🟢 已缓解 | ImageKit 撞满的上传失败降级 | 前端本就不读 ImageKit(走 Bing 源头);七牛作为 Bing 失效时的浏览器侧兜底层 |
 | ✅ 已修复(待部署) | **线上体检 a11y 4 项**(2026-08-15) | 本地复测 Lighthouse 全绿(100/100/100/100);改动在 `chore/site-audit-2026-08-15` 分支,合入 main 部署后生效。详见 `sessions/2026-08-15-site-audit.md` |
+| ✅ 已完成(待部署) | **P2 三项:chunk 版本校验 / LCP / DOM 瘦身**(2026-08-15) | chunk+all.js 内嵌 `v` 版本、CDN 滞后拒绝+不落 IDB;LCP 1831→266ms(预载 index.json+品牌 splash+首月水印免动画);首屏 DOM 6800→~1000(远场占位块+card content-visibility);深链 CLS 4.89→0.10。同分支待部署。注意:**需等下次 npm publish 后 CDN 链才恢复首发命中**(过渡期走本站源兜底,功能无损) |
 
 ---
 

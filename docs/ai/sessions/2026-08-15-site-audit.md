@@ -54,6 +54,34 @@
 - 根目录 `pnpm run lint` 当前环境损坏(`eslint.config.mjs` 引用的 `typescript-eslint` 未装入 node_modules,cfd47b0 升级遗留),非本次改动引起;`pnpm install` 可恢复,且该 script 只 lint `crawler/` 不覆盖 `website/`。
 - 未提交:工作树含 5 个源码改动 + `docs/` 构建产物更新 + 本文档,待用户确认后合并部署。
 
+---
+
+## P2 优化记录(当日完成,同分支)
+
+### P2-1 chunk `@latest` 版本校验(数据链路风险 → 已修)
+
+- 后端 `makePreviewJSON.ts`:chunk 与 `all.js` 内嵌 `export const v = "md5:..."`(真实内容哈希);chunk 改全量重写(内容不变 git 无 diff,一次性让 63 个 chunk 全部带版本)。
+- 前端 `dataLoader.ts`:CDN 与本站源两侧都校验 `module.v === expectedVersion`;CDN 滞后/无版本 → 拒绝并降级本站;校验不过的数据**只渲染、不写 IndexedDB**,避免旧数据顶新版本号沉淀。
+- 实测:CDN(jsdelivr)旧 chunk 无 `v` 被拒 → 本站源 `v` 匹配 index.json 接受,23 行数据正常。
+- **过渡注意**:npm 上的旧 chunk 永不会通过校验,下次 `npm publish` 前每个旧月份多走一次降级(功能无损,控制台有 elemecdn 404 噪音);publish 后 CDN 链恢复首发命中。
+
+### P2-2 LCP 渲染延迟(1831ms → 266ms 本地实测)
+
+- `index.html`:`<link rel="preload" href="/index.json" as="fetch" crossorigin>` 与 JS 启动并行;静态 splash 加品牌大字「拾影阁」+ `prefers-color-scheme` 暗色适配 —— splash 大字即首屏 LCP,JS 未就绪就完成。
+- `WallpaperGrid`:首月 section 传 `priority`,跳过水印 1.2s 入场动画(opacity-0 起点曾把 LCP 拖到动画结束)。
+- 注:线上月份水印是 `color:transparent` 描边字,本就不计 LCP;splash 品牌字成为稳定 LCP 元素。
+
+### P2-3 DOM 瘦身(首屏 6822 → ~1000 节点)
+
+- **远场占位块**:未接近视口且未加载的月份,用单个按 Grid span 规则装行估算高度的占位块代替 N 个骨架节点(实测估算 vs 真实内容误差 ≤12px)。滚动懒加载、滚动监听、URL 同步全部实测正常。
+- **卡片 `content-visibility: auto`**:屏外卡片跳过子树渲染。**勿加 `containIntrinsicSize`** —— 卡片靠 `aspectRatio: 16/9` 自定高,加固定 intrinsic 尺寸会导致屏外占位虚高、深链 CLS 飙到 4.89(移除后回落 0.10)。这是本次踩的最大坑。
+- `TimelineScrubber` 气泡:`top` 动画 → `transform`(合成层,不再计入 CLS)。
+- 顺手补漏:`PWAInstallPrompt` 的 `subtitle2`(默认渲染 h6)降 `component="p"`。
+
+### 最终验证(本地完整部署形态)
+
+Lighthouse:**A11y 100 / SEO 100**(BP 96 仅因过渡期 CDN 404 噪音);LCP 266ms;CLS 正常加载 0.03 / 深链 0.10(线上旧代码同场景基线 0.00,差异在 splash 换装,可接受);首屏 DOM ~1037;4 次提交在 `chore/site-audit-2026-08-15`,待合并部署。
+
 ## 复用方法
 
 再次体检时:Chrome DevTools MCP → `new_page` → `list_console_messages` + `list_network_requests` → `lighthouse_audit`(desktop+mobile)→ `performance_start_trace`(LCP/CLS/DOM/Reflow)。
