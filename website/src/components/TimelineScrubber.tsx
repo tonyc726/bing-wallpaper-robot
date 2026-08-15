@@ -198,16 +198,18 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
         variant="caption"
         sx={{
           position: 'absolute',
+          top: 0,
           right: { xs: 32, md: 48 }, // 与光点拉开距离
-          // [工学补偿] 移动端大拇指常常遮挡视线，这里将其大幅度推高 60px 避开指腹盲区
-          top: `calc(${bubbleTopPercent}% - ${isMobile ? '60px' : '0px'})`, 
-          transform: 'translateY(-50%)',
+          // 用 transform 代替 top 动画:合成层移动,不触发布局位移
+          // (top 动画会被 CLS 计为布局偏移,且掉帧);容器高 70vh,故 p% = p×0.7vh
+          // [工学补偿] 移动端大拇指常常遮挡视线,这里将其大幅度推高 60px 避开指腹盲区
+          transform: `translateY(calc(${bubbleTopPercent * 0.7}vh - ${isMobile ? '60px' : '0px'} - 50%))`,
           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
           fontWeight: 800, // 极粗
           opacity: isHovering || isDragging ? 0.9 : 0, // 仅交互时可见
-          transition: isDragging 
+          transition: isDragging
             ? 'none' // 拖拽时完全零延迟跟手
-            : 'top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s', // 弹簧动效
+            : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s', // 弹簧动效
           pointerEvents: 'none',
           whiteSpace: 'nowrap',
           zIndex: 1201,

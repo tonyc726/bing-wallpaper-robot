@@ -239,6 +239,7 @@ const PWAInstallPrompt: React.FC = () => {
               <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pr: 1 }}>
                 <Typography
                   variant="subtitle2"
+                  component="p" // 安装提示非页面标题,避免污染标题大纲
                   sx={{
                     fontWeight: 800,
                     letterSpacing: '0.05em',

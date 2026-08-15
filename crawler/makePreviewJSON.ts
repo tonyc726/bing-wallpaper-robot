@@ -445,19 +445,22 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
   await writeFileAsync(path.join(docsDir, 'index.js'), indexJsContent, 'utf-8');
 
   // 写入 NPM 全局数据 all.js (含所有壁纸紧凑信息，专供全局搜索和颜色分类极速拉取)
+  // v 命名导出 = 内容真实版本(allJsVersion)，前端校验 CDN 数据是否滞后于 index.json
   console.log('💾 Writing all.js for global loading...');
-  const allJsContent = `export default ${JSON.stringify(allCompactRows, null, 0)};\n`;
+  const allJsContent = `export const v = "md5:${allJsHash}";\nexport default ${JSON.stringify(allCompactRows, null, 0)};\n`;
   await writeFileAsync(path.join(docsDir, 'all.js'), allJsContent, 'utf-8');
   console.log(`✅ Written all.js (allJsVersion: md5:${allJsHash})`);
 
   console.log('✅ Written indexes, utils, and all.js');
 
-  // 9. 写入发生变更的分块文件
-  console.log(`💾 Writing ${totalChanged} changed chunks...`);
+  // 9. 写入分块文件
+  // 注意:全量重写而非仅写 isChanged 的 —— 内容不变的文件 git 无 diff,零副作用;
+  // 同时保证每个 chunk 都内嵌 v(真实内容版本),供前端校验 CDN 滞后。
+  console.log(`💾 Writing ${wallpapersGroupData.length} chunks (with embedded version)...`);
   const writePromises = wallpapersGroupData
-    .filter(group => chunkMetadata[group.groupMonth].isChanged)
     .map(async (group) => {
       const chunkFile = path.join(chunksDir, `${group.groupMonth}.js`);
+      const chunkVersion = chunkMetadata[group.groupMonth].version;
 
       // 生成紧凑的 NPM JS 格式
       const compactRows = group.wallpapers.map((w: any) => [
@@ -467,13 +470,12 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
         w.copyright || '',
         w.dominantColor
       ]);
-      const jsContent = `export default ${JSON.stringify(compactRows, null, 0)};\n`;
+      const jsContent = `export const v = "${chunkVersion}";\nexport default ${JSON.stringify(compactRows, null, 0)};\n`;
       await writeFileAsync(chunkFile, jsContent, 'utf-8');
-
-      console.log(`   ✅ ${group.groupMonth} (${group.wallpapers.length} records)`);
     });
 
   await Promise.all(writePromises);
+  console.log(`   ✅ ${wallpapersGroupData.length} chunks written`);
 
   // 10. 清理被删除的分块
   if (previousIndex?.chunks) {
