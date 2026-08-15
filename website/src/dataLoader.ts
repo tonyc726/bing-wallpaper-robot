@@ -76,6 +76,8 @@ export async function fetchChunkData(
   }
 
   let chunkData: ChunkData | null = null;
+  // 版本校验不通过时仍可用数据渲染,但禁止写入 IDB,避免过期数据顶着新版本号沉淀
+  let verifiedForCache = true;
   const indexData = await dbManager.getMetadata('index') as IndexData | null;
   const isLatestMonth = indexData ? (indexData.latestMonth === month) : false;
 
@@ -92,6 +94,13 @@ export async function fetchChunkData(
     for (const cdnBase of NPM_CDN_BASES) {
       try {
         module = await import(/* @vite-ignore */ `${cdnBase}/chunks/${month}.js`);
+        // 校验内容真实版本(chunk 内嵌的 v):CDN @latest 滞后于 index.json 时拒绝,
+        // 否则旧数据会被标成新版本写进 IndexedDB,长期不更新
+        if (expectedVersion && module.v !== expectedVersion) {
+          const gotVersion = module.v || 'unversioned';
+          module = undefined;
+          throw new Error(`Stale chunk: got ${gotVersion}, want ${expectedVersion}`);
+        }
         break; // 请求成功，跳出循环
       } catch (err) {
         fallbackError = err;
@@ -131,13 +140,22 @@ export async function fetchChunkData(
       // 这样可以兼容所有部署平台（根域名、子路径等）
       const chunkPath = new URL(`./chunks/${month}.js`, window.location.href).href;
       const module = await import(/* @vite-ignore */ chunkPath);
+      // 本站源与 index.json 同源同批构建,理论必匹配;仍校验一次,撕裂部署(索引新/块旧)时
+      // 数据照常渲染,但不沉淀进 IDB,等下一批构建自愈
+      const originVersion = module.v as string | undefined;
+      if (expectedVersion && originVersion !== expectedVersion) {
+        verifiedForCache = false;
+        console.warn(
+          `[Network] Origin chunk version mismatch for ${month}: got ${originVersion || 'unversioned'}, want ${expectedVersion}. Serving without caching.`
+        );
+      }
       const compactRows = module.default;
       const wallpapers = unpackChunk(compactRows);
-      
+
       chunkData = {
         schemaVersion: 2,
         month,
-        version: expectedVersion || `md5:local-${Date.now()}`,
+        version: originVersion || expectedVersion || `md5:local-${Date.now()}`,
         updatedAt: new Date().toISOString(),
         wallpapers,
         metadata: {
@@ -152,9 +170,11 @@ export async function fetchChunkData(
     }
   }
 
-  // 3. 存储到 IndexedDB（自动处理内存缓存）
+  // 3. 存储到 IndexedDB（自动处理内存缓存）;版本未核验的数据只渲染不落盘
   if (chunkData) {
-    await dbManager.storeChunk(month, chunkData, globalIndexRange);
+    if (verifiedForCache) {
+      await dbManager.storeChunk(month, chunkData, globalIndexRange);
+    }
     return chunkData;
   }
   
@@ -248,6 +268,8 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
 
   // 3. 缓存不命中 → 从 CDN / 本站拉取 all.js
   let wallpapers: WallpaperData[] | null = null;
+  // 版本校验不通过时仍可用数据渲染,但禁止写入 IDB
+  let verifiedForCache = true;
 
   try {
     let module: any;
@@ -257,6 +279,12 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
     for (const cdnBase of NPM_CDN_BASES) {
       try {
         module = await import(/* @vite-ignore */ `${cdnBase}/all.js`);
+        // 校验 all.js 内嵌版本 v 与 index.json 下发的 allJsVersion,拒绝滞后的 CDN 缓存
+        if (serverVersion && module.v !== serverVersion) {
+          const gotVersion = module.v || 'unversioned';
+          module = undefined;
+          throw new Error(`Stale all.js: got ${gotVersion}, want ${serverVersion}`);
+        }
         break;
       } catch (err) {
         fallbackError = err;
@@ -276,6 +304,12 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
       // 使用 URL 构造函数自动解析相对于当前文档位置的路径
       const allPath = new URL('./all.js', window.location.href).href;
       const module = await import(/* @vite-ignore */ allPath);
+      if (serverVersion && module.v !== serverVersion) {
+        verifiedForCache = false;
+        console.warn(
+          `[Network] Origin all.js version mismatch: got ${module.v || 'unversioned'}, want ${serverVersion}. Serving without caching.`
+        );
+      }
       wallpapers = unpackChunk(module.default);
     } catch (fallbackError) {
       console.error(`Failed to download all.js from both sources:`, fallbackError);
@@ -283,8 +317,8 @@ export async function fetchAllData(): Promise<WallpaperData[]> {
     }
   }
 
-  // 4. 写入 IDB 缓存（带 allJsVersion 版本标记）
-  if (wallpapers && serverVersion) {
+  // 4. 写入 IDB 缓存（带 allJsVersion 版本标记）;版本未核验时不落盘
+  if (wallpapers && serverVersion && verifiedForCache) {
     try {
       await dbManager.storeMetadata('allData', {
         version: serverVersion,

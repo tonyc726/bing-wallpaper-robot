@@ -198,16 +198,18 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
         variant="caption"
         sx={{
           position: 'absolute',
+          top: 0,
           right: { xs: 32, md: 48 }, // 与光点拉开距离
-          // [工学补偿] 移动端大拇指常常遮挡视线，这里将其大幅度推高 60px 避开指腹盲区
-          top: `calc(${bubbleTopPercent}% - ${isMobile ? '60px' : '0px'})`, 
-          transform: 'translateY(-50%)',
+          // 用 transform 代替 top 动画:合成层移动,不触发布局位移
+          // (top 动画会被 CLS 计为布局偏移,且掉帧);容器高 70vh,故 p% = p×0.7vh
+          // [工学补偿] 移动端大拇指常常遮挡视线,这里将其大幅度推高 60px 避开指腹盲区
+          transform: `translateY(calc(${bubbleTopPercent * 0.7}vh - ${isMobile ? '60px' : '0px'} - 50%))`,
           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
           fontWeight: 800, // 极粗
           opacity: isHovering || isDragging ? 0.9 : 0, // 仅交互时可见
-          transition: isDragging 
+          transition: isDragging
             ? 'none' // 拖拽时完全零延迟跟手
-            : 'top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s', // 弹簧动效
+            : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s', // 弹簧动效
           pointerEvents: 'none',
           whiteSpace: 'nowrap',
           zIndex: 1201,
@@ -299,10 +301,16 @@ const TimelineScrubber = ({ months, onScrubRequest }: TimelineProps) => {
                   sx={{
                     position: 'absolute',
                     right: 16,
-                    fontWeight: 800, 
+                    fontWeight: 800,
                     fontSize: '0.65rem',
+                    // 实心小底片:年份浮于任意配色的壁纸卡片之上,
+                    // 底色固定为 background.default,保证对比度 ≥ 4.5(a11y 修复)
                     color: theme.palette.text.primary,
-                    opacity: isHovering || isDragging || isActive || isDisplay ? 0 : (isYearStart ? 0.3 : 0),
+                    bgcolor: theme.palette.background.default,
+                    borderRadius: '6px',
+                    px: 0.75,
+                    py: 0.25,
+                    opacity: isHovering || isDragging || isActive || isDisplay ? 0 : (isYearStart ? 0.9 : 0),
                     transition: 'opacity 0.4s ease',
                     userSelect: 'none',
                     letterSpacing: '0.05em',

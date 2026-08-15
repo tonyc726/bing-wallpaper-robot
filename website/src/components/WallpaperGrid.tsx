@@ -44,6 +44,42 @@ interface Props {
 const ITEMS_PER_PAGE = 24;
 const ITEMS_PER_PAGE_NON_TIMELINE = 12; // 非 timeline 模式下使用较少的初始加载
 
+// 与 MonthSection 内 Grid span 规则一致的静态高度估算:
+// 按断点列宽顺序装行,行高 = 行内最宽项 × 9/16(+ md 以上 4px 行距)。
+// 用于远场月份占位块 —— 高度越准,占位换真内容时的布局位移(CLS)越小
+function estimateGridHeight(count: number, containerWidth: number): number {
+  const bp =
+    containerWidth >= 1536 ? 'xl'
+    : containerWidth >= 1200 ? 'lg'
+    : containerWidth >= 900 ? 'md'
+    : containerWidth >= 600 ? 'sm'
+    : 'xs';
+  const spanFor = (i: number): number => {
+    switch (bp) {
+      case 'xl': return i % 7 === 0 ? 3 : 1.5;
+      case 'lg': return i % 7 === 0 ? 4 : 2;
+      case 'md': return i % 7 === 0 ? 6 : 3;
+      case 'sm': return i % 5 === 0 ? 8 : 4;
+      default: return 6;
+    }
+  };
+  const gap = bp === 'xs' || bp === 'sm' ? 0 : 4; // spacing: xs 0 / md+ 0.5(4px)
+  let height = 0;
+  let rowUsed = 0;
+  let rowMaxItem = 0;
+  for (let i = 0; i < count; i++) {
+    const span = spanFor(i);
+    if (rowUsed + span > 12) {
+      height += rowMaxItem + gap;
+      rowUsed = 0;
+      rowMaxItem = 0;
+    }
+    rowUsed += span;
+    rowMaxItem = Math.max(rowMaxItem, (span / 12) * containerWidth * 0.5625);
+  }
+  return Math.round(height + rowMaxItem);
+}
+
 interface MonthSectionProps {
   group: WallpapersGroupData;
   loading: boolean;
@@ -53,10 +89,11 @@ interface MonthSectionProps {
   sortBy?: string | null;
   disableUrlSync?: boolean; // 新增：是否禁用视口滚动时的URL同步
   forceRender?: boolean; // 新增：即使没有进入视口，也强制渲染真实数据（用于搜索过滤结果）
+  priority?: boolean; // 新增：首屏月份 —— 跳过水印入场动画,让 LCP 元素立即绘制
 }
 
 const MonthSection: React.FC<MonthSectionProps> = React.memo(
-  ({ group, loading, loadMonthData, onImageClick, contextWallpapers, disableUrlSync, forceRender }) => {
+  ({ group, loading, loadMonthData, onImageClick, contextWallpapers, disableUrlSync, forceRender, priority }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const theme = useTheme();
     
@@ -109,6 +146,12 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
     // 只要这段区域目前不在屏幕可见范围，那就强行剥夺它渲染这几百个 3D 卡片的资格，维持骨架屏！
     const isSkeleton = group.wallpapers.length === 0 || (!hasIntersected && !forceRender);
     const renderCount = (group.wallpapers.length === 0) ? (group.totalCount || 0) : group.wallpapers.length;
+    // 远场(从未接近视口且未在加载)月份的轻量占位:单个估算高度块代替 renderCount 个骨架节点,
+    // 63 个月份可省 6000+ DOM 节点。高度用与 Grid 规则一致的装行算法精确估算,避免深链跳转/换内容时的布局位移
+    const litePlaceholderHeight = estimateGridHeight(
+      renderCount,
+      typeof document !== 'undefined' ? document.documentElement.clientWidth : 1200
+    );
 
     if (renderCount === 0) return null;
 
@@ -176,7 +219,9 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
         {/* 方案 C (Kinetic Typography 动效排版) - 出血级幽灵水印伴随滚动视差 */}
         <Box
           component={motion.div}
-          initial={{ opacity: 0, y: 100 }}
+          // 首屏月份直接呈现:水印是全页最大文本(LCP 元素),
+          // 1.2s 的 opacity-0 入场动画会把 LCP 推迟到动画结束
+          initial={priority ? { opacity: 1, y: 0 } : { opacity: 0, y: 100 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.1, margin: '200px' }} // 滚动视差进入
           transition={{ duration: 1.2, ease: [0.165, 0.84, 0.44, 1] }}
@@ -190,7 +235,9 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           }}
         >
           <Typography
-            variant="h1" // 使用巨大的 h1
+            variant="h1" // 视觉沿用 h1 样式
+            component="div" // 语义上只是装饰水印 + 滚动锚点，不占标题大纲
+            aria-hidden="true"
             id={`month-${group.groupMonth.replace(/年|月/g, '').replace(/\./g, '-')}`}
             sx={{
               fontWeight: 900,
@@ -247,6 +294,7 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography
               variant="h4"
+              component="h2" // 月份分组标题:页面 h1 之下的第二级
               sx={{
                 fontWeight: 900,
                 letterSpacing: { xs: '0.1em', md: '0.3em' }, // 电影感精髓：拉开巨宽的字间距
@@ -283,7 +331,16 @@ const MonthSection: React.FC<MonthSectionProps> = React.memo(
           sx={{ px: 0, zIndex: 1, position: 'relative' }} // 彻底去除两边 padding
         >
           {/* 骨架屏或内容映射 */}
-          {isSkeleton
+          {isSkeleton && !hasIntersected && !loading ? (
+            // 远场月份:轻量占位(1 个节点),IntersectionObserver 靠近后再换真骨架/真卡片
+            <Box
+              sx={{
+                width: '100%',
+                bgcolor: alpha(theme.palette.text.primary, 0.03),
+                height: litePlaceholderHeight,
+              }}
+            />
+          ) : isSkeleton
             ? Array.from({ length: renderCount }).map((_, i) => {
                 // 骨架屏也遵循不规则排版
                 const isFeatured = i % 7 === 0;
@@ -941,6 +998,7 @@ const WallpaperGrid: React.FC<Props> = ({
                 value={sortBy ?? 'date-desc'}
                 onChange={(e) => setSortBy(e.target.value)}
                 IconComponent={SortIcon}
+                inputProps={{ 'aria-label': '排序方式' }}
                 sx={{
                   borderRadius: '100px',
                   bgcolor: 'transparent',
@@ -1024,7 +1082,7 @@ const WallpaperGrid: React.FC<Props> = ({
               </Typography>
             </>
           ) : (
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" component="p" color="text.secondary">
               未找到匹配的馆藏
             </Typography>
           )}
@@ -1034,10 +1092,11 @@ const WallpaperGrid: React.FC<Props> = ({
           {isTimelineMode ? (
             /* ================= TIMELINE 模式 ================= */
             /* 拥有完整骨架，依靠 IntersectionObserver 按需加载 */
-            timelineData.map((group) => (
+            timelineData.map((group, index) => (
               <MonthSection
                 key={group.groupMonth}
                 group={group}
+                priority={index === 0}
                 loading={loadingMonths.has(group.groupMonth)}
                 loadMonthData={loadMonthData}
                 onImageClick={onImageClick}

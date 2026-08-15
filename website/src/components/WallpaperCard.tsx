@@ -126,6 +126,10 @@ const WallpaperCard = React.memo(({
           borderRadius: 0,
           overflow: 'hidden',
           cursor: 'pointer',
+          // 屏外卡片跳过内部渲染(overlay/Tooltip/图片 glare 等子树),
+          // 削减全站 DOM 的 style/layout/paint 开销。不设 containIntrinsicSize:
+          // 卡片由 aspectRatio 16:9 自身定高,尺寸恒定,屏外跳过不引起布局位移
+          contentVisibility: 'auto',
           // 键盘焦点可见态(仅键盘触发,不干扰鼠标点击)
           '&:focus-visible': {
             outline: '2px solid #fff',
@@ -267,6 +271,7 @@ const WallpaperCard = React.memo(({
             {wallpaper.title && (
               <Typography
                 variant="subtitle1"
+                component="h3" // 作品标题:月份 h2 之下的第三级
                 sx={{
                   color: 'white',
                   fontWeight: 600,
