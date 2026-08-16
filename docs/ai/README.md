@@ -13,36 +13,39 @@
 
 ---
 
-## 📊 进度看板(截至 2026-07-05)
+## 📊 进度看板(截至 2026-08-16)
 
-| 状态 | 事项 | 备注 |
-| --- | --- | --- |
-| ✅ 已完成 | 数据采集改进**深度研究** + 方案文档 | 见 [`plans/`](../../plans/data-collection-optimization.md) |
-| ✅ 已完成 | `.env.example`(占位 + R2 预留) | 已提交(见 `git log`) |
-| ✅ 已完成 | **P1-1** 下载防御加固 | `download-image.ts` / `download-thumbnail.ts` |
-| ✅ 已完成 | **P1-2** SSIM 复用本地缩略图 | `add-or-update-wallpaper.ts` |
-| ⏸️ 暂缓 | **P0-1** 多市场采集 | 会加速 ImageKit 撞满,**待 R2 就绪后再做** |
-| ⏳ 待办 | **P0-2** 富元数据双源 / **P0-3** 历史回填 | 见方案 §3 |
-| ⏳ 待办 | **P1-3** 数据修复 / **P1-4** cron 冗余 | 见方案 §3 |
-| ⏳ 待办 | **P2** AI 增强(CLIP 检索 + 豆包打标) | 见方案 §4 |
-| ✅ 已激活 | **七牛冷备份 + 前端降级链**(替代 R2) | 凭证+HTTPS 域名已配、桶已全量回填(抽查最老→最新全 206)、GitHub Secrets 5 项齐、本地构建验证域名内联成功。详见 `sessions/2026-07-05-qiniu-activate.md` |
-| 🔴 待办 | **部署平台各配 `VITE_QINIU_DOMAIN`** | Vercel/Netlify 各自 `pnpm run build` 重建前端,build-time 变量需在**各平台环境变量**里配一份,否则该平台线上兜底层不激活(netlify.toml 目前只有 VITE_BASE_URL) |
-| 🚫 已替代 | ~~R2 双版本备份迁移~~ | 由七牛冷备份替代(见 §4.5 superseded + `sessions/2026-07-04-qiniu-backup.md`) |
-| 🟢 已缓解 | ImageKit 撞满的上传失败降级 | 前端本就不读 ImageKit(走 Bing 源头);七牛作为 Bing 失效时的浏览器侧兜底层 |
-| ✅ 已修复(待部署) | **线上体检 a11y 4 项**(2026-08-15) | 本地复测 Lighthouse 全绿(100/100/100/100);改动在 `chore/site-audit-2026-08-15` 分支,合入 main 部署后生效。详见 `sessions/2026-08-15-site-audit.md` |
+| 状态              | 事项                                                    | 备注                                                                                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ✅ 已完成         | 数据采集改进**深度研究** + 方案文档                     | 见 [`plans/`](../../plans/data-collection-optimization.md)                                                                                                                                                                                                                                |
+| ✅ 已完成         | `.env.example`(占位 + R2 预留)                          | 已提交(见 `git log`)                                                                                                                                                                                                                                                                      |
+| ✅ 已完成         | **P1-1** 下载防御加固                                   | `download-image.ts` / `download-thumbnail.ts`                                                                                                                                                                                                                                             |
+| ✅ 已完成         | **P1-2** SSIM 复用本地缩略图                            | `add-or-update-wallpaper.ts`                                                                                                                                                                                                                                                              |
+| ⏸️ 暂缓           | **P0-1** 多市场采集                                     | 会加速 ImageKit 撞满,**待 R2 就绪后再做**                                                                                                                                                                                                                                                 |
+| ⏳ 待办           | **P0-2** 富元数据双源 / **P0-3** 历史回填               | 见方案 §3                                                                                                                                                                                                                                                                                 |
+| ⏳ 待办           | **P1-3** 数据修复 / **P1-4** cron 冗余                  | 见方案 §3                                                                                                                                                                                                                                                                                 |
+| ⏳ 待办           | **P2** AI 增强(CLIP 检索 + 豆包打标)                    | 见方案 §4                                                                                                                                                                                                                                                                                 |
+| ✅ 已激活         | **七牛冷备份 + 前端降级链**(替代 R2)                    | 凭证+HTTPS 域名已配、桶已全量回填(抽查最老→最新全 206)、GitHub Secrets 5 项齐、本地构建验证域名内联成功。详见 `sessions/2026-07-05-qiniu-activate.md`                                                                                                                                     |
+| 🔴 待办           | **部署平台各配 `VITE_QINIU_DOMAIN`**                    | Vercel/Netlify 各自 `pnpm run build` 重建前端,build-time 变量需在**各平台环境变量**里配一份,否则该平台线上兜底层不激活(netlify.toml 目前只有 VITE_BASE_URL)                                                                                                                               |
+| 🚫 已替代         | ~~R2 双版本备份迁移~~                                   | 由七牛冷备份替代(见 §4.5 superseded + `sessions/2026-07-04-qiniu-backup.md`)                                                                                                                                                                                                              |
+| 🟢 已缓解         | ImageKit 撞满的上传失败降级                             | 前端本就不读 ImageKit(走 Bing 源头);七牛作为 Bing 失效时的浏览器侧兜底层                                                                                                                                                                                                                  |
+| ✅ 已修复(待部署) | **线上体检 a11y 4 项**(2026-08-15)                      | 本地复测 Lighthouse 全绿(100/100/100/100);改动在 `chore/site-audit-2026-08-15` 分支,合入 main 部署后生效。详见 `sessions/2026-08-15-site-audit.md`                                                                                                                                        |
 | ✅ 已完成(待部署) | **P2 三项:chunk 版本校验 / LCP / DOM 瘦身**(2026-08-15) | chunk+all.js 内嵌 `v` 版本、CDN 滞后拒绝+不落 IDB;LCP 1831→266ms(预载 index.json+品牌 splash+首月水印免动画);首屏 DOM 6800→~1000(远场占位块+card content-visibility);深链 CLS 4.89→0.10。同分支待部署。注意:**需等下次 npm publish 后 CDN 链才恢复首发命中**(过渡期走本站源兜底,功能无损) |
+| ✅ 已完成(待合并) | **首屏片头字标动画**(2026-08-16) | 主标题 LUMINA PAVILION(Marcellus 罗马大写)逐字轮廓勾勒+着墨,附属标「拾影阁」(马善政毛笔)淡入;splash↔React 负延迟无缝接管;黑场淡入/镜头缓推/颗粒/暗角。分支 `feat/wordmark-loading-animation`。详见 `sessions/2026-08-16-wordmark-loading-animation.md` |
 
 ---
 
 ## 🗂️ 文档索引
 
-| 文档 | 用途 |
-| --- | --- |
-| [`../../plans/data-collection-optimization.md`](../../plans/data-collection-optimization.md) | **主方案**:现状审计 + 研究结论 + 分级路线图 + R2/AI 决策 |
-| [`sessions/2026-07-03-数据采集优化.md`](sessions/2026-07-03-数据采集优化.md) | 会话交接:数据采集优化决策脉络 |
-| [`sessions/2026-07-04-qiniu-backup.md`](sessions/2026-07-04-qiniu-backup.md) | 会话交接:七牛冷备份 + 前端降级链(替代 R2) |
-| [`sessions/2026-07-05-qiniu-activate.md`](sessions/2026-07-05-qiniu-activate.md) | 会话交接:七牛冷备份**激活核验**(桶已回填、Secrets 齐、遗留部署平台 env) |
-| [`sessions/2026-08-15-site-audit.md`](sessions/2026-08-15-site-audit.md) | 会话交接:线上站点体检(Lighthouse/性能/数据链路风险) |
+| 文档                                                                                         | 用途                                                                    |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`../../plans/data-collection-optimization.md`](../../plans/data-collection-optimization.md) | **主方案**:现状审计 + 研究结论 + 分级路线图 + R2/AI 决策                |
+| [`sessions/2026-07-03-数据采集优化.md`](sessions/2026-07-03-数据采集优化.md)                 | 会话交接:数据采集优化决策脉络                                           |
+| [`sessions/2026-07-04-qiniu-backup.md`](sessions/2026-07-04-qiniu-backup.md)                 | 会话交接:七牛冷备份 + 前端降级链(替代 R2)                               |
+| [`sessions/2026-07-05-qiniu-activate.md`](sessions/2026-07-05-qiniu-activate.md)             | 会话交接:七牛冷备份**激活核验**(桶已回填、Secrets 齐、遗留部署平台 env) |
+| [`sessions/2026-08-15-site-audit.md`](sessions/2026-08-15-site-audit.md)                     | 会话交接:线上站点体检(Lighthouse/性能/数据链路风险)                     |
+| [`sessions/2026-08-16-actions-core-esm-fix.md`](sessions/2026-08-16-actions-core-esm-fix.md) | 会话交接:@actions/core v3 ESM 不兼容修复(锁定 ^1.11.1)                 |
+| [`sessions/2026-08-16-wordmark-loading-animation.md`](sessions/2026-08-16-wordmark-loading-animation.md) | 会话交接:首屏片头字标动画(设计脉络 + 字体管线 + 内孔镂空坑) |
 
 ---
 
@@ -58,15 +61,15 @@
 
 ## 🗺️ 关键文件地图(数据采集链路)
 
-| 关注点 | 文件 |
-| --- | --- |
-| 采集入口 / 市场循环 | `crawler/utils/get-bing-wallpaper-info.ts`、`get-multiple-bing-wallpaper-info.ts` |
-| 5 阶段入库 + 三阶段去重 | `crawler/utils/add-or-update-wallpaper.ts` |
-| 图片下载(已加固) | `crawler/utils/download-image.ts`、`download-thumbnail.ts` |
-| CDN 上传 / 冷备份 | `crawler/utils/upload-to-imagekit.ts`(主)、`upload-to-qiniu.ts`(七牛冷备份) |
-| 前端图片降级链 | `website/src/utils/unpackChunk.ts`(`backupUrl`)、`components/{WallpaperCard,ImageDialog}.tsx` |
-| 前端数据生成 | `crawler/makePreviewJSON.ts` |
-| 构建拷贝(保留规则) | `scripts/copy-build.mjs` |
+| 关注点                  | 文件                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| 采集入口 / 市场循环     | `crawler/utils/get-bing-wallpaper-info.ts`、`get-multiple-bing-wallpaper-info.ts`             |
+| 5 阶段入库 + 三阶段去重 | `crawler/utils/add-or-update-wallpaper.ts`                                                    |
+| 图片下载(已加固)        | `crawler/utils/download-image.ts`、`download-thumbnail.ts`                                    |
+| CDN 上传 / 冷备份       | `crawler/utils/upload-to-imagekit.ts`(主)、`upload-to-qiniu.ts`(七牛冷备份)                   |
+| 前端图片降级链          | `website/src/utils/unpackChunk.ts`(`backupUrl`)、`components/{WallpaperCard,ImageDialog}.tsx` |
+| 前端数据生成            | `crawler/makePreviewJSON.ts`                                                                  |
+| 构建拷贝(保留规则)      | `scripts/copy-build.mjs`                                                                      |
 
 ---
 
