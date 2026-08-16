@@ -40,7 +40,7 @@
   "author": "tonyc726<zhujf620@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@actions/core": "^3.0.1",
+    "@actions/core": "^1.11.1",
     "@eslint/js": "^9.39.5",
     "@types/lodash": "^4.17.24",
     "@types/node": "^24.13.2",
