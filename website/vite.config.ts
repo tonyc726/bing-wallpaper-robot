@@ -121,6 +121,10 @@ export default defineConfig(({ mode }) => {
             /^\/index\.json/,    // 索引文件
           ],
           globPatterns: ['**/*.{js,css,html,ico,svg,png,jpg,webp,woff2}'],
+          // 清理脚本通过 importScripts 注入即可,无需进入 precache 清单
+          globIgnores: ['sw-cleanup.js'],
+          // 注入遗留 runtime cache 清理逻辑(generateSW 只自动清理 precache)
+          importScripts: ['sw-cleanup.js'],
           runtimeCaching: [
             {
               // index.json and chunk jsons/js (NPM CDN)
@@ -138,13 +142,32 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
+              // 缩略图(w=300):体积小、命中频率高,可适当多缓存。
+              // 注意:必须注册在全尺寸规则之前,Workbox 按注册顺序先匹配先生效。
+              urlPattern: /^https:\/\/cn\.bing\.com\/th\?.*[?&]w=300(&|$)/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'bing-thumbs-cache',
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 30 * 24 * 60 * 60 // 30 Days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              // 全尺寸大图(预览/下载):单张 1~4MB,且跨域 opaque 响应
+              // 在 Chrome Cache Storage 配额统计中会被显著放大(历史约 7MB/条),
+              // 复看率又低,必须严格限量 —— 这是 Cache Storage 膨胀的主因。
               urlPattern: /^https:\/\/cn\.bing\.com\/th\?.*/i,
               handler: 'CacheFirst',
               options: {
                 cacheName: 'bing-images-cache',
                 expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 24 * 60 * 60 // 60 Days
+                  maxEntries: 10,
+                  maxAgeSeconds: 7 * 24 * 60 * 60 // 7 Days
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
