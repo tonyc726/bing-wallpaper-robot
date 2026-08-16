@@ -5,8 +5,6 @@ import {
   Box,
   CssBaseline,
   ThemeProvider,
-  CircularProgress,
-  LinearProgress,
   Fab,
   useScrollTrigger,
   Zoom,
@@ -20,6 +18,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import WallpaperGrid from './components/WallpaperGrid';
 import ImageDialog from './components/ImageDialog';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import LoadingScreen from './components/LoadingScreen';
+import { WORDMARK_TOTAL_MS } from './assets/wordmark';
 import type { IndexData, WallpaperData } from './types';
 import { initDataLoader, fetchIndexData, fetchChunksBatch, getCacheStatus } from './dataLoader';
 import { swRegister } from './utils/swRegister';
@@ -99,6 +99,17 @@ function App() {
     return true;
   });
   const currentTheme = darkMode ? darkTheme : lightTheme;
+
+  // 字标书写动画的最小展示时长:从 index.html 内联脚本记录的页面加载起点算起,
+  // 保证「书写完成 → 退场 → 画廊入场」的演出完整,数据过快返回也不闪切
+  const [minTimePassed, setMinTimePassed] = useState(false);
+  useEffect(() => {
+    const t0 = (window as unknown as { __wmT0?: number }).__wmT0 ?? Date.now();
+    const remaining = Math.max(0, WORDMARK_TOTAL_MS + 400 - (Date.now() - t0));
+    const timer = setTimeout(() => setMinTimePassed(true), remaining);
+    return () => clearTimeout(timer);
+  }, []);
+  const showLoading = initializing || loading || !minTimePassed;
 
   const handleThemeToggle = useCallback((newVal?: boolean) => {
     setDarkMode((prev: boolean) => {
@@ -552,153 +563,8 @@ function App() {
 
   // ========== 渲染 ==========
 
-  // 加载中
-  if (initializing || loading) {
-    return (
-      <ThemeProvider theme={currentTheme}>
-        <CssBaseline />
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh',
-            background: currentTheme.palette.gradients?.overlay?.[currentTheme.palette.mode] ?? (
-              currentTheme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-                : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
-            ),
-            overflow: 'hidden',
-            position: 'relative',
-          }}
-        >
-          {/* 装饰性光晕 */}
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            style={{
-              position: 'absolute',
-              width: 400,
-              height: 400,
-              borderRadius: '50%',
-              background: currentTheme.palette.accent?.main ?? currentTheme.palette.primary.main,
-              filter: 'blur(100px)',
-              top: '30%',
-            }}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Box sx={{ textAlign: 'center' }}>
-              {/* 动画加载图标 */}
-              <motion.div
-                animate={{
-                  rotate: 360,
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              >
-                <CircularProgress
-                  size={60}
-                  sx={{
-                    color: currentTheme.palette.primary.main,
-                    '& .MuiCircularProgress-circle': {
-                      strokeLinecap: 'round',
-                    },
-                  }}
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Typography
-                  variant="h6"
-                  component="p" // 加载态提示非标题,避免污染标题大纲
-                  sx={{
-                    color: 'text.primary',
-                    mt: 3,
-                    fontWeight: 500,
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  正在进入拾影阁…
-                </Typography>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.7 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: 'text.secondary',
-                    mt: 1,
-                  }}
-                >
-                  光影加载中
-                </Typography>
-              </motion.div>
-
-              {loadingProgress > 0 && loadingProgress < 100 && (
-                <motion.div
-                  initial={{ opacity: 0, scaleX: 0 }}
-                  animate={{ opacity: 1, scaleX: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Box sx={{ width: 240, mt: 3 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={loadingProgress}
-                      sx={{
-                        height: 4,
-                        borderRadius: 2,
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        '& .MuiLinearProgress-bar': {
-                          borderRadius: 2,
-                        },
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'text.secondary',
-                        mt: 0.5,
-                        display: 'block',
-                      }}
-                    >
-                      {Math.round(loadingProgress)}%
-                    </Typography>
-                  </Box>
-                </motion.div>
-              )}
-            </Box>
-          </motion.div>
-        </Box>
-      </ThemeProvider>
-    );
-  }
-
-  // 数据不可用
-  if (!indexData) {
+  // 数据不可用(加载态结束后再判定,避免加载中被错误页抢先)
+  if (!showLoading && !indexData) {
     return (
       <ThemeProvider theme={currentTheme}>
         <CssBaseline />
@@ -944,6 +810,17 @@ function App() {
     <ThemeProvider theme={currentTheme}>
       <CssBaseline />
 
+      {/* 加载页 ⇄ 画廊:同一 AnimatePresence 内 cross-fade 转场 */}
+      <AnimatePresence mode="wait">
+        {showLoading ? (
+          <LoadingScreen key="lumina-loading" progress={loadingProgress} />
+        ) : (
+          <motion.div
+            key="lumina-gallery"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          >
       {/* 主内容 - 真正的 Edge to Edge (消融边界) */}
       <Box component="main" sx={{ px: 0, py: 0, overflowX: 'hidden' }}>
         {/* ID 埋点用于返回顶部锚点 */}
@@ -1040,6 +917,9 @@ function App() {
         }
         sx={{ bottom: { xs: 80, md: 24 } }} // 避开返回顶部按钮
       />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ThemeProvider>
   );
 }

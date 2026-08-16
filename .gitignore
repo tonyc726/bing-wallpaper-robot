@@ -648,3 +648,6 @@ xcuserdata/
 # playwright
 .playwright-mcp
 .vercel
+
+# OFL 字体源文件(供 scripts/generate-wordmark.mjs 使用,体积大且可再下载,不入库)
+scripts/fonts/
