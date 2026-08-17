@@ -17,6 +17,7 @@ import {
   alpha,
   useMediaQuery,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -578,7 +579,12 @@ const WallpaperGrid: React.FC<Props> = ({
   }, [deferredFilteredWallpapers, sortBy]);
 
   // === 第四步：截取当前可见数量 (Client Pagination) ===
-  const visibleWallpapers = sortedWallpapers.slice(0, visibleCount);
+  // 必须 memoize:slice 每次渲染都产生新数组引用,
+  // 否则下游 groupedData 的 useMemo 依赖永远失效,每次渲染都全量重算分组
+  const visibleWallpapers = useMemo(
+    () => sortedWallpapers.slice(0, visibleCount),
+    [sortedWallpapers, visibleCount],
+  );
 
   // 判断是否处于纯净的时间线模式（无过滤，支持正序或倒序）
   // 新增：只要本地搜索框有内容（即便还在防抖阶段），立刻退出时间轴模式，直接踢入拥有 24 个数量限制的虚拟分页过滤模式
@@ -723,7 +729,8 @@ const WallpaperGrid: React.FC<Props> = ({
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsSearchExpanded(true);
-        searchInputRef.current?.focus();
+        // 迷你胶囊态下输入框尚未挂载，推迟到下一帧再聚焦
+        requestAnimationFrame(() => searchInputRef.current?.focus());
       }
       // ESC 退出版态
       if (e.key === 'Escape' && isSearchExpanded) {
@@ -735,29 +742,43 @@ const WallpaperGrid: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [isSearchExpanded]);
 
-  // 2. 智能滚动隐藏 (Smart Scroll Hide)
+  // 2. 智能滚动收缩 (Smart Scroll Compact)
+  // 唤醒只走「上滚 / 点击 / ⌘K」三条强意图路径 —— 刻意不做 hover 唤醒:
+  // 光标停留在顶部中央 ≠ 想要工具栏,弱信号与滚动收缩双写同一状态会形成渲染死循环
   const { scrollY } = useScroll();
-  const [isCapsuleVisible, setIsCapsuleVisible] = useState(true);
+  // 桌面端：向下滚动超过阈值时，工具栏收缩为吸顶的迷你胶囊
+  const [isScrolledCompact, setIsScrolledCompact] = useState(false);
   const lastScrollY = useRef(0);
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     const isScrollingDown = latest > lastScrollY.current;
 
-    // 如果正在输入搜索，不隐藏
+    // 正在搜索/输入时永远不收缩
     if (isSearchExpanded || localSearch) {
-      setIsCapsuleVisible(true);
+      setIsScrolledCompact(false);
     }
-    // 往下滚超过 200px 且没有聚焦，则收起胶囊
+    // 往下滚超过 200px 且没有聚焦，则收缩为迷你胶囊
     else if (isScrollingDown && latest > 200) {
-      setIsCapsuleVisible(false);
+      setIsScrolledCompact(true);
     }
-    // 往上滚，立刻唤出胶囊
+    // 往上滚，立刻展开回完整形态
     else if (!isScrollingDown) {
-      setIsCapsuleVisible(true);
+      setIsScrolledCompact(false);
     }
 
     lastScrollY.current = latest;
   });
+
+  // 统一紧凑态：移动端默认 mini（聚焦/有搜索词时展开为完整态），桌面端滚动收缩
+  const isCompact = !isSearchExpanded && !localSearch && (isMobile || isScrolledCompact);
+
+  // 点击/键盘激活迷你胶囊 → 展开完整形态并聚焦搜索框
+  // 聚焦需推迟到下一帧:AnimatePresence 换入完整形态前 input 尚未挂载
+  const expandCapsule = useCallback(() => {
+    setIsScrolledCompact(false);
+    setIsSearchExpanded(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
 
   // 性能优化：给 TimelineScrubber 稳定固定的数据与函数引用
   const scrubberMonths = useMemo(
@@ -774,17 +795,53 @@ const WallpaperGrid: React.FC<Props> = ({
     }
   }, []);
 
+  // 胶囊两形态(迷你/完整)共享的玻璃材质视觉
+  const capsuleVisualSx: SxProps<Theme> = {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'auto',
+    background:
+      theme.palette.mode === 'dark'
+        ? 'linear-gradient(145deg, rgba(30,30,30,0.8) 0%, rgba(20,20,20,0.9) 100%)'
+        : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(240,240,240,0.95) 100%)',
+    backdropFilter: 'blur(40px) saturate(250%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(250%)',
+    border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.1 : 0.05)}`,
+    borderTop: `1px solid ${alpha(theme.palette.common.white, theme.palette.mode === 'dark' ? 0.2 : 0.5)}`, // Glowing edge
+    boxShadow:
+      theme.palette.mode === 'dark'
+        ? `0 20px 40px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)`
+        : `0 20px 40px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)`,
+    overflow: 'hidden',
+    // Noise 材质贴图
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background:
+        "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+      opacity: theme.palette.mode === 'dark' ? 0.04 : 0.02,
+      pointerEvents: 'none',
+      mixBlendMode: 'overlay',
+    },
+  };
+
+  // 形态切换动画:纯 transform/opacity 交叉切换,刻意不做尺寸 layout 补间 ——
+  // 尺寸补间会让 100px 圆角被非等比拉伸成"融化的椭圆"(变形),纯 transform 走 GPU 合成器,数学上不可能变形
+  const capsuleTransition = { type: 'spring', stiffness: 500, damping: 40, mass: 0.8 } as const;
+
   return (
     <Box>
       {/* 沉浸式灵动胶囊过滤栏 (Dynamic Capsule V2) */}
       <Box
         component={motion.div}
         initial={{ y: -100, opacity: 0 }}
-        animate={{
-          y: isCapsuleVisible ? 0 : isMobile ? -10 : -20,
-          scale: isCapsuleVisible ? 1 : 0.75,
-          opacity: isCapsuleVisible ? 1 : 0.25,
-        }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         sx={{
           position: 'sticky',
@@ -798,75 +855,71 @@ const WallpaperGrid: React.FC<Props> = ({
           px: { xs: 2, md: 0 },
         }}
       >
-        <Paper
-          component={motion.div}
-          layout // 开启流体布局动画
-          elevation={0}
-          onHoverStart={() => !isCapsuleVisible && setIsCapsuleVisible(true)}
-          onClickCapture={(e) => {
-            if (!isCapsuleVisible) {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsCapsuleVisible(true);
-            }
-          }}
-          sx={{
-            position: 'relative', // 必须 relative，供内部绝对定位的 overlay 使用
-            cursor: isCapsuleVisible ? 'default' : 'pointer',
-            py: { xs: isSearchExpanded ? 1.5 : 0.75, md: 1 },
-            px: { xs: 1.5, md: 2.5 },
-            display: 'inline-flex',
-            flexDirection: { xs: isSearchExpanded ? 'column' : 'row', md: 'row' },
-            gap: { xs: isSearchExpanded ? 2 : 1, md: 2 },
-            alignItems: 'center',
-            pointerEvents: 'auto',
-            background:
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(145deg, rgba(30,30,30,0.8) 0%, rgba(20,20,20,0.9) 100%)'
-                : 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(240,240,240,0.95) 100%)',
-            backdropFilter: 'blur(40px) saturate(250%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(250%)',
-            border: `1px solid ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.1 : 0.05)}`,
-            borderTop: `1px solid ${alpha(theme.palette.common.white, theme.palette.mode === 'dark' ? 0.2 : 0.5)}`, // Glowing edge
-            borderRadius: { xs: isSearchExpanded ? '24px' : '100px', md: '100px' },
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? `0 20px 40px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)`
-                : `0 20px 40px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)`,
-            width: isMobile && (isSearchExpanded || localSearch) ? '100%' : 'auto',
-            minWidth: { xs: 'auto', md: 'min-content' },
-            overflow: 'hidden',
-            // Noise 材质贴图
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background:
-                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
-              opacity: theme.palette.mode === 'dark' ? 0.04 : 0.02,
-              pointerEvents: 'none',
-              mixBlendMode: 'overlay',
-            },
-          }}
-        >
-          {/* 睡眠态唤醒层 (Ghost Pill Wake Overlay) */}
-          {!isCapsuleVisible && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 10,
-                cursor: 'pointer',
+        <AnimatePresence mode="popLayout" initial={false}>
+          {isCompact ? (
+            /* 迷你胶囊态：只留搜索 + 排序图标，整颗可点击唤醒 */
+            <Paper
+              key="capsule-mini"
+              component={motion.div}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={capsuleTransition}
+              style={{ transformOrigin: 'center top' }}
+              elevation={0}
+              onClick={expandCapsule}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  expandCapsule();
+                }
               }}
-            />
-          )}
-
+              role="button"
+              aria-label="展开搜索工具栏"
+              tabIndex={0}
+              sx={{
+                ...capsuleVisualSx,
+                cursor: 'pointer',
+                py: 0.75,
+                px: 1.5,
+                borderRadius: '100px',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
+                <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                <Box sx={{ width: '1px', height: 16, bgcolor: alpha(theme.palette.text.primary, 0.12) }} />
+                <SortIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+              </Box>
+            </Paper>
+          ) : (
+            /* 完整形态：搜索框 + 操作区 */
+            <Paper
+              key="capsule-full"
+              component={motion.div}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.04 }}
+              transition={capsuleTransition}
+              style={{ transformOrigin: 'center top' }}
+              elevation={0}
+              sx={{
+                ...capsuleVisualSx,
+                py: { xs: isSearchExpanded ? 1.5 : 0.75, md: 1 },
+                px: { xs: 1.5, md: 2.5 },
+                borderRadius: { xs: isSearchExpanded ? '24px' : '100px', md: '100px' },
+                width: isMobile ? '100%' : 'auto',
+                minWidth: { xs: 'auto', md: 'min-content' },
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: isSearchExpanded ? 'column' : 'row', md: 'row' },
+                  gap: { xs: isSearchExpanded ? 2 : 1, md: 2 },
+                  alignItems: 'center',
+                  width: '100%',
+                }}
+              >
           {/* 搜索框区 */}
           <Box sx={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'center' }}>
             <TextField
@@ -952,10 +1005,9 @@ const WallpaperGrid: React.FC<Props> = ({
                   transition: 'all 0.3s ease',
                   width: '100%',
                   '& input': {
-                    width: isMobile && !(isSearchExpanded || localSearch) ? 0 : { xs: '100%', md: 180 },
-                    minWidth: isMobile && !(isSearchExpanded || localSearch) ? 0 : { xs: 100, md: 'auto' },
-                    opacity: isMobile && !(isSearchExpanded || localSearch) ? 0 : 1,
-                    padding: isMobile && !(isSearchExpanded || localSearch) ? '8.5px 0' : '8.5px 8px',
+                    width: { xs: '100%', md: 180 },
+                    minWidth: { xs: 100, md: 'auto' },
+                    padding: '8.5px 8px',
                     transition: 'all 0.3s ease',
                     fontSize: '0.95rem',
                   },
@@ -974,10 +1026,8 @@ const WallpaperGrid: React.FC<Props> = ({
             />
           </Box>
 
-          {/* 右侧操作区 - 支持响应式折叠与流体布局 */}
+          {/* 右侧操作区 - 支持响应式折叠 */}
           <Box
-            component={motion.div}
-            layout
             sx={{
               display: 'flex',
               gap: { xs: 0.5, md: 1 },
@@ -1055,7 +1105,10 @@ const WallpaperGrid: React.FC<Props> = ({
               </IconButton>
             </Tooltip>
           </Box>
-        </Paper>
+              </Box>
+            </Paper>
+          )}
+        </AnimatePresence>
       </Box>
 
       {/* 空状态 */}

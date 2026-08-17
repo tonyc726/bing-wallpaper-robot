@@ -822,7 +822,8 @@ function App() {
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           >
       {/* 主内容 - 真正的 Edge to Edge (消融边界) */}
-      <Box component="main" sx={{ px: 0, py: 0, overflowX: 'hidden' }}>
+      {/* overflowX: clip 而非 hidden —— clip 不会创建滚动容器,否则内部所有 position: sticky 全部失效 */}
+      <Box component="main" sx={{ px: 0, py: 0, overflowX: 'clip' }}>
         {/* ID 埋点用于返回顶部锚点 */}
         <div id="back-to-top-anchor" />
         {/* 页面唯一 h1:仅对屏幕阅读器/大纲可见,视觉由月份水印承担 */}

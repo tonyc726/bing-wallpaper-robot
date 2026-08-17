@@ -32,6 +32,7 @@
 | ✅ 已修复(待部署) | **线上体检 a11y 4 项**(2026-08-15)                      | 本地复测 Lighthouse 全绿(100/100/100/100);改动在 `chore/site-audit-2026-08-15` 分支,合入 main 部署后生效。详见 `sessions/2026-08-15-site-audit.md`                                                                                                                                        |
 | ✅ 已完成(待部署) | **P2 三项:chunk 版本校验 / LCP / DOM 瘦身**(2026-08-15) | chunk+all.js 内嵌 `v` 版本、CDN 滞后拒绝+不落 IDB;LCP 1831→266ms(预载 index.json+品牌 splash+首月水印免动画);首屏 DOM 6800→~1000(远场占位块+card content-visibility);深链 CLS 4.89→0.10。同分支待部署。注意:**需等下次 npm publish 后 CDN 链才恢复首发命中**(过渡期走本站源兜底,功能无损) |
 | ✅ 已完成(待合并) | **首屏片头字标动画**(2026-08-16) | 主标题 LUMINA PAVILION(Marcellus 罗马大写)逐字轮廓勾勒+着墨,附属标「拾影阁」(马善政毛笔)淡入;splash↔React 负延迟无缝接管;黑场淡入/镜头缓推/颗粒/暗角。分支 `feat/wordmark-loading-animation`。详见 `sessions/2026-08-16-wordmark-loading-animation.md` |
+| ✅ 已完成(待合并) | **工具栏吸顶收缩 + 移动端 mini 形态**(2026-08-17) | 统一紧凑态 `isCompact`:桌面下滚收缩为吸顶迷你 pill(上滚/悬停/点击展开),移动端默认 mini、点击展开全宽并聚焦、失焦收回。**顺带修复存量 bug**:`App.tsx` main 的 `overflowX: hidden` 导致全站 sticky 失效,改为 `clip` 后胶囊与月份标题吸顶同时激活。同分支。详见 `sessions/2026-08-17-capsule-compact-sticky.md` |
 
 ---
 
@@ -46,6 +47,7 @@
 | [`sessions/2026-08-15-site-audit.md`](sessions/2026-08-15-site-audit.md)                     | 会话交接:线上站点体检(Lighthouse/性能/数据链路风险)                     |
 | [`sessions/2026-08-16-actions-core-esm-fix.md`](sessions/2026-08-16-actions-core-esm-fix.md) | 会话交接:@actions/core v3 ESM 不兼容修复(锁定 ^1.11.1)                 |
 | [`sessions/2026-08-16-wordmark-loading-animation.md`](sessions/2026-08-16-wordmark-loading-animation.md) | 会话交接:首屏片头字标动画(设计脉络 + 字体管线 + 内孔镂空坑) |
+| [`sessions/2026-08-17-capsule-compact-sticky.md`](sessions/2026-08-17-capsule-compact-sticky.md) | 会话交接:工具栏吸顶收缩 + 移动端 mini 形态(含 `overflowX: clip` 修 sticky 失效) |
 
 ---
 
