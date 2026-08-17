@@ -2,22 +2,15 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
+      "args": ["@playwright/mcp@latest"]
     },
     "chrome-devtools": {
       "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest"
-      ]
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     },
     "Ant Design Components": {
       "command": "npx",
-      "args": [
-        "@jzone-mcp/antd-components-mcp"
-      ]
+      "args": ["@jzone-mcp/antd-components-mcp"]
     }
   }
 }

@@ -45,11 +45,7 @@ interface QiniuRespInfo {
   statusCode: number;
 }
 
-type QiniuCallback = (
-  err: Error | null,
-  respBody: unknown,
-  respInfo: QiniuRespInfo,
-) => void;
+type QiniuCallback = (err: Error | null, respBody: unknown, respInfo: QiniuRespInfo) => void;
 
 interface QiniuBucketManager {
   stat: (bucket: string, key: string, cb: QiniuCallback) => void;
@@ -84,33 +80,25 @@ const QINIU_KEY_PREFIX = 'bing-wallpaper';
  * 由 Bing filename（OHR token）推导备份对象 key。
  * 与前端 unpackChunk.ts 的 backupUrl 保持严格一致。
  */
-export const toQiniuKey = (filename: string): string =>
-  `${QINIU_KEY_PREFIX}/${filename}.jpg`;
+export const toQiniuKey = (filename: string): string => `${QINIU_KEY_PREFIX}/${filename}.jpg`;
 
 /**
  * 由 Bing filename 推导备份来源 URL（与 ImageKit 上传同源，取 UHD 原图）。
  */
-const toBingSourceUrl = (filename: string): string =>
-  `https://cn.bing.com/th?id=${filename}_UHD.jpg`;
+const toBingSourceUrl = (filename: string): string => `https://cn.bing.com/th?id=${filename}_UHD.jpg`;
 
 /**
  * 是否已配置七牛备份（三要素齐全）。未配置则整条备份链路惰性关闭。
  */
 export const isQiniuConfigured = (): boolean =>
-  Boolean(
-    process.env.QINIU_ACCESS_KEY &&
-      process.env.QINIU_SECRET_KEY &&
-      process.env.QINIU_BUCKET,
-  );
+  Boolean(process.env.QINIU_ACCESS_KEY && process.env.QINIU_SECRET_KEY && process.env.QINIU_BUCKET);
 
 // 进程内只提示一次"未配置/未安装"，避免刷屏
 let hasWarnedUnavailable = false;
 const warnOnce = (message: string): void => {
   if (!hasWarnedUnavailable) {
     hasWarnedUnavailable = true;
-    console.log(
-      `>>> [QINIU] ${message}（本次运行仅提示一次，备份将被跳过，不影响主流程）`,
-    );
+    console.log(`>>> [QINIU] ${message}（本次运行仅提示一次，备份将被跳过，不影响主流程）`);
   }
 };
 
@@ -123,10 +111,7 @@ const loadQiniu = async (): Promise<QiniuModule | null> => {
     const packageName = 'qiniu';
     const loaded: unknown = await import(packageName);
     // ESM/CJS 互操作：qiniu 为 CJS，可能被包在 default 上
-    const record =
-      loaded && typeof loaded === 'object'
-        ? (loaded as Record<string, unknown>)
-        : null;
+    const record = loaded && typeof loaded === 'object' ? (loaded as Record<string, unknown>) : null;
     const mod = record && 'default' in record ? record.default : loaded;
     return mod as QiniuModule;
   } catch {
@@ -177,11 +162,7 @@ const getBucketManager = async (): Promise<{
 /**
  * 判断对象是否已存在于备份桶（幂等去重的依据 —— "桶即账本"）。
  */
-const statExists = (
-  bucketManager: QiniuBucketManager,
-  bucket: string,
-  key: string,
-): Promise<boolean> =>
+const statExists = (bucketManager: QiniuBucketManager, bucket: string, key: string): Promise<boolean> =>
   new Promise((resolve) => {
     bucketManager.stat(bucket, key, (err, _body, info) => {
       if (!err && info && info.statusCode === 200) {
@@ -215,9 +196,7 @@ const fetchIntoBucket = (
  * @param filename Bing 的 OHR token（= DB.wallpaper.filename = 前端 chunk.id）
  * @returns 备份结果，供调用方记录日志；调用方无需 try/catch。
  */
-export const backupToQiniu = async (
-  filename: string,
-): Promise<QiniuBackupResult> => {
+export const backupToQiniu = async (filename: string): Promise<QiniuBackupResult> => {
   const key = toQiniuKey(filename);
 
   if (typeof filename !== 'string' || filename.length === 0) {

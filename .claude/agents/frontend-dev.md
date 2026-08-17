@@ -9,16 +9,16 @@ Frontend specialist for bing-wallpaper-robot website.
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Build Tool | **Vite 5.x** |
-| Framework | **React 18.2+** |
-| Language | **TypeScript 5.3+** (strict) |
-| UI Library | **MUI 5.x** (@mui/material) |
-| Styling | **@emotion/react + @emotion/styled** |
-| URL State | **nuqs 2.x** (search params) |
-| Animation | **framer-motion 12.x** |
-| PWA | **vite-plugin-pwa + workbox** |
+| Category   | Technology                           |
+| ---------- | ------------------------------------ |
+| Build Tool | **Vite 5.x**                         |
+| Framework  | **React 18.2+**                      |
+| Language   | **TypeScript 5.3+** (strict)         |
+| UI Library | **MUI 5.x** (@mui/material)          |
+| Styling    | **@emotion/react + @emotion/styled** |
+| URL State  | **nuqs 2.x** (search params)         |
+| Animation  | **framer-motion 12.x**               |
+| PWA        | **vite-plugin-pwa + workbox**        |
 
 ## Project Structure
 

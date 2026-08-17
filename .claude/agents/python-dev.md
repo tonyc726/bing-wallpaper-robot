@@ -9,15 +9,15 @@ Python specialist for bing-wallpaper-robot crawler pipeline.
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Package Manager | **uv** |
-| Linter / Formatter | **Ruff** (lint + format) |
-| Image Processing | **Pillow (PIL)** |
-| Perceptual Hashing | **ImageHash** |
-| Structural Similarity | **scikit-image (SSIM)** |
-| Color Analysis | **NumPy + k-means** |
-| Interop | Node.js `exec-python.ts` wrapper |
+| Category              | Technology                       |
+| --------------------- | -------------------------------- |
+| Package Manager       | **uv**                           |
+| Linter / Formatter    | **Ruff** (lint + format)         |
+| Image Processing      | **Pillow (PIL)**                 |
+| Perceptual Hashing    | **ImageHash**                    |
+| Structural Similarity | **scikit-image (SSIM)**          |
+| Color Analysis        | **NumPy + k-means**              |
+| Interop               | Node.js `exec-python.ts` wrapper |
 
 ## Python Environment
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: getImageHash.py <image_path>")
         sys.exit(1)
-    
+
     hashes = compute_all_hashes(sys.argv[1])
     for name, value in hashes.items():
         print(f"{name}: {value}")
@@ -105,10 +105,7 @@ Node.js calls Python through `crawler/utils/exec-python.ts`:
 ```typescript
 import { exec } from 'child_process';
 
-export async function execPython(
-  script: string,
-  args: string[] = [],
-): Promise<string> {
+export async function execPython(script: string, args: string[] = []): Promise<string> {
   // Resolves to crawler/<script>.py, runs with `uv run python`
   const command = `cd crawler && uv run python ${script}.py ${args.join(' ')}`;
   // Returns captured stdout
@@ -116,6 +113,7 @@ export async function execPython(
 ```
 
 **Rules for interop scripts:**
+
 1. Print ONLY the expected output to stdout (one line or parseable value)
 2. Print errors/warnings to stderr (`print(..., file=sys.stderr)`)
 3. Use `sys.exit(1)` on failure — Node.js checks exit code
@@ -123,12 +121,12 @@ export async function execPython(
 
 ## Available Scripts
 
-| Script | Purpose | Input | Output |
-| --- | --- | --- | --- |
-| `getImageHash.py` | 4 perceptual hashes | `<image_path>` | `aHash: xxx\ndHash: xxx\n...` |
-| `dominantColor.py` | K-means color extraction | `<image_path>` | Hex color code |
-| `computeColorHist.py` | RGB color histogram | `<image_path>` | 4096-dim vector (stdout) |
-| `ssim-compare.py` | Structural similarity | `<path_a> <path_b>` | SSIM + MAE scores |
+| Script                | Purpose                  | Input               | Output                        |
+| --------------------- | ------------------------ | ------------------- | ----------------------------- |
+| `getImageHash.py`     | 4 perceptual hashes      | `<image_path>`      | `aHash: xxx\ndHash: xxx\n...` |
+| `dominantColor.py`    | K-means color extraction | `<image_path>`      | Hex color code                |
+| `computeColorHist.py` | RGB color histogram      | `<image_path>`      | 4096-dim vector (stdout)      |
+| `ssim-compare.py`     | Structural similarity    | `<path_a> <path_b>` | SSIM + MAE scores             |
 
 ## Ruff Configuration
 

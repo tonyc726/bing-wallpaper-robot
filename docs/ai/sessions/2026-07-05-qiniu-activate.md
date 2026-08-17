@@ -6,16 +6,16 @@
 
 ## 核验结论(全绿)
 
-| 项 | 状态 | 证据 |
-| --- | --- | --- |
-| `.env` 凭证 | ✅ | AK/SK/Bucket=`bing-wallpapers`/Zone=`z0` + `VITE_QINIU_DOMAIN` 均已填 |
-| `qiniu` 包 | ✅ | `package.json` `^7.15.2`,`node_modules/qiniu` 在位 |
-| key 契约对齐 | ✅ | 后端 `bing-wallpaper/${filename}.jpg`;前端 `id`==`filename`(makePreviewJSON L263 `id: filename`)→ `backupUrl(id)` 完全对齐 |
-| 桶已全量回填 | ✅ | 抽查「最老 2 条(date ASC)+ 中段 + 最新 3 条」共 7 张,HTTPS Range GET 全 `206` 带真实字节 |
-| HTTPS 公开可读 | ✅ | `Content-Type: image/jpeg`,无 401 / 无混合内容拦截 |
-| 前端 env 读取 | ✅ | `website/vite.config.ts` `envDir` 指向仓库根 → 构建读 `../.env` |
-| 域名内联产物 | ✅ | 本地 `pnpm run build` 后 `website/dist/assets/*.js` 内含 `bing-wallpapers-qiniu.itony.net/bing-wallpaper` |
-| GitHub Secrets | ✅ | `gh secret list`:QINIU_ACCESS_KEY/SECRET_KEY/BUCKET/ZONE + VITE_QINIU_DOMAIN(2026-07-05 03:39 新增)5 项齐 |
+| 项             | 状态 | 证据                                                                                                                       |
+| -------------- | ---- | -------------------------------------------------------------------------------------------------------------------------- |
+| `.env` 凭证    | ✅   | AK/SK/Bucket=`bing-wallpapers`/Zone=`z0` + `VITE_QINIU_DOMAIN` 均已填                                                      |
+| `qiniu` 包     | ✅   | `package.json` `^7.15.2`,`node_modules/qiniu` 在位                                                                         |
+| key 契约对齐   | ✅   | 后端 `bing-wallpaper/${filename}.jpg`;前端 `id`==`filename`(makePreviewJSON L263 `id: filename`)→ `backupUrl(id)` 完全对齐 |
+| 桶已全量回填   | ✅   | 抽查「最老 2 条(date ASC)+ 中段 + 最新 3 条」共 7 张,HTTPS Range GET 全 `206` 带真实字节                                   |
+| HTTPS 公开可读 | ✅   | `Content-Type: image/jpeg`,无 401 / 无混合内容拦截                                                                         |
+| 前端 env 读取  | ✅   | `website/vite.config.ts` `envDir` 指向仓库根 → 构建读 `../.env`                                                            |
+| 域名内联产物   | ✅   | 本地 `pnpm run build` 后 `website/dist/assets/*.js` 内含 `bing-wallpapers-qiniu.itony.net/bing-wallpaper`                  |
+| GitHub Secrets | ✅   | `gh secret list`:QINIU_ACCESS_KEY/SECRET_KEY/BUCKET/ZONE + VITE_QINIU_DOMAIN(2026-07-05 03:39 新增)5 项齐                  |
 
 ## 唯一遗留:部署平台环境变量(🔴 需用户操作)
 

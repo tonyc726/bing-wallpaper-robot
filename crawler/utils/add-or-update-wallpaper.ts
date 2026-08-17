@@ -560,10 +560,7 @@ ${JSON.stringify(wallpaperBingData, null, 2)}
       if (colorHistJson !== null) {
         updateData.colorHist = colorHistJson;
       }
-      await analyticsRepository.update(
-        get(nextWallpaper, ['analytics', 'id']),
-        pickBy(updateData, identity),
-      );
+      await analyticsRepository.update(get(nextWallpaper, ['analytics', 'id']), pickBy(updateData, identity));
 
       // 依据壁纸`imagekit.id`，已经存在时，持久化存储缩略图，否则删除临时图片
       if (isString(get(nextWallpaper, ['imagekit', 'id']))) {

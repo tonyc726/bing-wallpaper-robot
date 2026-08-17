@@ -23,14 +23,14 @@
 
 ## Critical File Quick Reference
 
-| Task | Files |
-| --- | --- |
-| Add wallpaper field | `crawler/database.ts`, entity in `crawler/models/`, migration |
-| Change image analysis | `crawler/*.py` scripts |
-| Modify frontend UI | `website/src/components/`, `website/src/App.tsx` |
-| Change data pipeline | `crawler/index.ts`, `crawler/makePreviewJSON.ts` |
-| Frontend theme | `website/src/theme/index.ts` |
-| URL state/params | `crawler/utils/add-or-update-wallpaper.ts`, `website/` |
+| Task                  | Files                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Add wallpaper field   | `crawler/database.ts`, entity in `crawler/models/`, migration |
+| Change image analysis | `crawler/*.py` scripts                                        |
+| Modify frontend UI    | `website/src/components/`, `website/src/App.tsx`              |
+| Change data pipeline  | `crawler/index.ts`, `crawler/makePreviewJSON.ts`              |
+| Frontend theme        | `website/src/theme/index.ts`                                  |
+| URL state/params      | `crawler/utils/add-or-update-wallpaper.ts`, `website/`        |
 
 ## Common Commands Cheat Sheet
 

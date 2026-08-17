@@ -13,6 +13,7 @@
 ### Task 1: Delete CDA project agents
 
 **Files:**
+
 - Delete: `.claude/agents/frontend-developer.md`
 - Delete: `.claude/agents/typescript-pro.md`
 - Delete: `.claude/agents/git-flow-manager.md`
@@ -34,6 +35,7 @@ git commit -m "chore(claude code): 删除 CDA 项目遗留 agents"
 ### Task 2: Rewrite typescript-dev.md
 
 **Files:**
+
 - Create: `.claude/agents/typescript-dev.md`
 
 ```markdown
@@ -48,59 +50,60 @@ TypeScript specialist for bing-wallpaper-robot crawler pipeline.
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Package Manager | **pnpm** v9+ |
-| Runtime | Node.js 22+ via ts-node |
-| ORM | TypeORM 0.3 + SQLite3 |
-| Linting | ESLint 8 + alloy config |
-| Formatting | Prettier 3 |
-| Target | ES6, CommonJS modules |
-| Decorators | Enabled (TypeORM requirement) |
+| Category        | Technology                    |
+| --------------- | ----------------------------- |
+| Package Manager | **pnpm** v9+                  |
+| Runtime         | Node.js 22+ via ts-node       |
+| ORM             | TypeORM 0.3 + SQLite3         |
+| Linting         | ESLint 8 + alloy config       |
+| Formatting      | Prettier 3                    |
+| Target          | ES6, CommonJS modules         |
+| Decorators      | Enabled (TypeORM requirement) |
 
 ## Code Conventions
 
 ### Type Conventions
 
-| Scenario | Use | Example |
-| --- | --- | --- |
-| Object structures | `interface` | `interface Wallpaper { id: string }` |
-| Unions | `type` | `type Region = 'cn' | 'us' | 'jp'` |
-| Function types | `type` | `type ProcessFn = (path: string) => Promise<void>` |
+| Scenario          | Use         | Example                                            |
+| ----------------- | ----------- | -------------------------------------------------- | ---- | ----- |
+| Object structures | `interface` | `interface Wallpaper { id: string }`               |
+| Unions            | `type`      | `type Region = 'cn'                                | 'us' | 'jp'` |
+| Function types    | `type`      | `type ProcessFn = (path: string) => Promise<void>` |
 
 No `any` — use `unknown` with type guards.
 
 ### Naming
 
-| Category | Convention | Example |
-| --- | --- | --- |
-| Types/Interfaces | PascalCase | `Wallpaper`, `AnalyticsRecord` |
-| Variables/Functions | camelCase | `fetchWallpaper`, `uploadToImageKit` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`, `API_REGIONS` |
-| Boolean props | is/has/can prefix | `isNew`, `hasSimilar` |
+| Category            | Convention        | Example                              |
+| ------------------- | ----------------- | ------------------------------------ |
+| Types/Interfaces    | PascalCase        | `Wallpaper`, `AnalyticsRecord`       |
+| Variables/Functions | camelCase         | `fetchWallpaper`, `uploadToImageKit` |
+| Constants           | UPPER_SNAKE_CASE  | `MAX_RETRY_COUNT`, `API_REGIONS`     |
+| Boolean props       | is/has/can prefix | `isNew`, `hasSimilar`                |
 
 ### Directory Structure
+```
 
-```
 crawler/
-├── index.ts                  # Entry point (fetch pipeline)
-├── makePreviewJSON.ts        # JSON data generator
-├── database.ts               # TypeORM DataSource config
+├── index.ts # Entry point (fetch pipeline)
+├── makePreviewJSON.ts # JSON data generator
+├── database.ts # TypeORM DataSource config
 ├── models/
-│   ├── entities/
-│   │   ├── Wallpaper.ts      # Main entity (UUID PK)
-│   │   ├── Analytics.ts      # Image analysis (hash, color)
-│   │   └── Imagekit.ts       # CDN metadata
-│   └── migrations/           # TypeORM migrations
+│ ├── entities/
+│ │ ├── Wallpaper.ts # Main entity (UUID PK)
+│ │ ├── Analytics.ts # Image analysis (hash, color)
+│ │ └── Imagekit.ts # CDN metadata
+│ └── migrations/ # TypeORM migrations
 ├── utils/
-│   ├── exec-python.ts         # Python script wrapper
-│   ├── is-similar-image.ts    # Hamming distance dedup
-│   ├── upload-to-imagekit.ts  # ImageKit SDK integration
-│   ├── download-image.ts      # HTTP image downloader
-│   └── transform-filename-*.ts
-├── types/                     # TypeScript type definitions
-└── tyorm-run-migration.ts     # Migration runner
-```
+│ ├── exec-python.ts # Python script wrapper
+│ ├── is-similar-image.ts # Hamming distance dedup
+│ ├── upload-to-imagekit.ts # ImageKit SDK integration
+│ ├── download-image.ts # HTTP image downloader
+│ └── transform-filename-\*.ts
+├── types/ # TypeScript type definitions
+└── tyorm-run-migration.ts # Migration runner
+
+````
 
 ### TypeORM Patterns
 
@@ -140,7 +143,7 @@ export class Wallpaper {
 // Repository pattern — use injection
 const wallpaperRepo = dataSource.getRepository(Wallpaper);
 const wallpaper = await wallpaperRepo.findOne({ where: { id } });
-```
+````
 
 ### Migration Workflow
 
@@ -185,7 +188,7 @@ const THUMBNAIL_SIZE = 256;
 const REGIONS = ['zh-CN', 'en-US', 'ja-JP', 'de-DE', 'fr-FR', 'it-IT', 'es-ES'] as const;
 
 // ❌ Wrong: hardcoded
-for (let i = 0; i < 5; i++) { }
+for (let i = 0; i < 5; i++) {}
 const url = `https://...256x256...`;
 ```
 
@@ -197,7 +200,8 @@ const url = `https://...256x256...`;
 - [ ] TypeORM: decorators enabled, `!:` for non-null properties
 - [ ] Error handling with retry logic for network operations
 - [ ] Follow existing patterns in `crawler/`
-```
+
+````
 
 - [ ] **Step 1: Write typescript-dev.md**
 - [ ] **Step 2: Commit**
@@ -205,13 +209,14 @@ const url = `https://...256x256...`;
 ```bash
 git add .claude/agents/typescript-dev.md
 git commit -m "feat(claude code): 新增 typescript-dev agent（crawler/ TS 规范）"
-```
+````
 
 ---
 
 ### Task 3: Rewrite frontend-dev.md
 
 **Files:**
+
 - Create: `.claude/agents/frontend-dev.md`
 
 ```markdown
@@ -226,37 +231,38 @@ Frontend specialist for bing-wallpaper-robot website.
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Build Tool | **Vite 5.x** |
-| Framework | **React 18.2+** |
-| Language | **TypeScript 5.3+** (strict) |
-| UI Library | **MUI 5.x** (@mui/material) |
-| Styling | **@emotion/react + @emotion/styled** |
-| URL State | **nuqs 2.x** (search params) |
-| Animation | **framer-motion 12.x** |
-| PWA | **vite-plugin-pwa + workbox** |
+| Category   | Technology                           |
+| ---------- | ------------------------------------ |
+| Build Tool | **Vite 5.x**                         |
+| Framework  | **React 18.2+**                      |
+| Language   | **TypeScript 5.3+** (strict)         |
+| UI Library | **MUI 5.x** (@mui/material)          |
+| Styling    | **@emotion/react + @emotion/styled** |
+| URL State  | **nuqs 2.x** (search params)         |
+| Animation  | **framer-motion 12.x**               |
+| PWA        | **vite-plugin-pwa + workbox**        |
 
 ## Project Structure
-
 ```
+
 website/
 ├── src/
-│   ├── App.tsx                 # Main application (NuqsAdapter)
-│   ├── main.tsx                # Entry point
-│   ├── components/
-│   │   ├── WallpaperCard.tsx    # Individual wallpaper card
-│   │   ├── WallpaperGrid.tsx    # Masonry grid with search/filter
-│   │   └── ImageDialog.tsx      # Full-screen preview
-│   ├── theme/
-│   │   └── index.ts             # MUI theme configuration
-│   └── types/
-│       └── index.ts             # TypeScript type definitions
+│ ├── App.tsx # Main application (NuqsAdapter)
+│ ├── main.tsx # Entry point
+│ ├── components/
+│ │ ├── WallpaperCard.tsx # Individual wallpaper card
+│ │ ├── WallpaperGrid.tsx # Masonry grid with search/filter
+│ │ └── ImageDialog.tsx # Full-screen preview
+│ ├── theme/
+│ │ └── index.ts # MUI theme configuration
+│ └── types/
+│ └── index.ts # TypeScript type definitions
 ├── public/
-│   └── wallpapers.json          # Static data (generated by makePreviewJSON.ts)
-├── vite.config.ts               # Vite build config (port 3000)
+│ └── wallpapers.json # Static data (generated by makePreviewJSON.ts)
+├── vite.config.ts # Vite build config (port 3000)
 └── package.json
-```
+
+````
 
 ## URL State Management (nuqs)
 
@@ -271,7 +277,7 @@ const [sort, setSort] = useQueryState('sort', { defaultValue: 'date-desc' });
 
 // Year filter: ?year=2025 (all, 2024, 2023...)
 const [year, setYear] = useQueryState('year', { defaultValue: 'all' });
-```
+````
 
 URL state is shareable — filters are preserved in bookmarks and shared links.
 
@@ -339,7 +345,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 - [ ] Framer motion for animations (not CSS keyframes)
 - [ ] PWA navigation rules correct (no index.html fallback for chunks)
 - [ ] Dynamic import paths resolve correctly in all deployments
-```
+
+````
 
 - [ ] **Step 1: Write frontend-dev.md**
 - [ ] **Step 2: Commit**
@@ -347,23 +354,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 ```bash
 git add .claude/agents/frontend-dev.md
 git commit -m "feat(claude code): 新增 frontend-dev agent（website/ 前端规范）"
-```
+````
 
 ---
 
 ### Task 4: Create settings.json with hooks
 
 **Files:**
+
 - Create: `.claude/settings.json`
 
 ```json
 {
   "hooks": {
     "pre-commit": {
-      "commands": [
-        "pnpm format:check",
-        "pnpm lint"
-      ]
+      "commands": ["pnpm format:check", "pnpm lint"]
     },
     "post-startup": {
       "commands": [
@@ -389,19 +394,20 @@ git commit -m "feat(claude code): 添加 hooks 配置（pre-commit + post-startu
 ### Task 5: Add command index and react-component template
 
 **Files:**
+
 - Create: `.claude/commands/_index.md`
 - Create: `.claude/templates/react-component.tsx`
 
-**_index.md content:**
+**\_index.md content:**
 
 ```markdown
 # Slash Commands Index
 
-| Command | Purpose | Key Files |
-| --- | --- | --- |
-| `/deploy` | 验证代码 + 准备提交 | 全项目 |
-| `/fetch-bing` | 手动拉取 Bing 壁纸数据 | crawler/index.ts |
-| `/test-python` | 验证 Python 脚本环境 | crawler/*.py |
+| Command          | Purpose                | Key Files                                             |
+| ---------------- | ---------------------- | ----------------------------------------------------- |
+| `/deploy`        | 验证代码 + 准备提交    | 全项目                                                |
+| `/fetch-bing`    | 手动拉取 Bing 壁纸数据 | crawler/index.ts                                      |
+| `/test-python`   | 验证 Python 脚本环境   | crawler/\*.py                                         |
 | `/new-wallpaper` | 新增壁纸字段到数据流程 | crawler/models/, crawler/makePreviewJSON.ts, website/ |
 ```
 
@@ -475,9 +481,11 @@ git commit -m "feat(claude code): 新增命令索引和 React 组件模板"
 ### Task 6: Clean MCP servers
 
 **Files:**
+
 - Modify: `.claude/settings.local.json` — remove `"Ant Design Components"` from `enabledMcpjsonServers`
 
 Current:
+
 ```json
 "enabledMcpjsonServers": [
   "context7",
@@ -489,6 +497,7 @@ Current:
 ```
 
 Replace with:
+
 ```json
 "enabledMcpjsonServers": [
   "context7",
@@ -513,11 +522,13 @@ git commit -m "chore(claude code): 移除未使用的 Ant Design MCP 服务器"
 - [ ] **Step 1: Verify file structure**
 
 Run:
+
 ```bash
 find .claude/ -type f | sort
 ```
 
 Expected:
+
 ```
 .claude/CLAUDE.md
 .claude/agents/frontend-dev.md
@@ -557,16 +568,16 @@ git status
 
 ## Spec Coverage Check
 
-| Spec Requirement | Covered By Task |
-| --- | --- |
-| Delete 3 CDA agents | Task 1 |
-| Rewrite typescript-dev.md | Task 2 |
-| Rewrite frontend-dev.md | Task 3 |
-| Add settings.json with hooks | Task 4 |
-| Add command index | Task 5 |
-| Add react-component template | Task 5 |
-| Clean MCP servers | Task 6 |
-| Final verification | Task 7 |
+| Spec Requirement             | Covered By Task |
+| ---------------------------- | --------------- |
+| Delete 3 CDA agents          | Task 1          |
+| Rewrite typescript-dev.md    | Task 2          |
+| Rewrite frontend-dev.md      | Task 3          |
+| Add settings.json with hooks | Task 4          |
+| Add command index            | Task 5          |
+| Add react-component template | Task 5          |
+| Clean MCP servers            | Task 6          |
+| Final verification           | Task 7          |
 
 ## Type Consistency Check
 

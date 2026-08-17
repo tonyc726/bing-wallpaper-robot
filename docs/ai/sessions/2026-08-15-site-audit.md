@@ -14,12 +14,12 @@
 
 ### P1 可访问性(4 项,影响屏幕阅读器与弱视力用户)
 
-| 审计项 | 位置 | 问题 |
-| --- | --- | --- |
-| `aria-input-field-name` | `website/src/components/WallpaperGrid.tsx:940` | 排序 `<Select>` 无 accessible name |
-| `color-contrast` | `website/src/components/TimelineScrubber.tsx` | `.month-tick` 文字对比度 1.1~2.48(要求 ≥4.5):橙底橙字、黑底深灰、米色底米色字 |
-| `heading-order` | `WallpaperGrid.tsx:193/249/1027`、`App.tsx:632/748/867` | 标题层级跳跃(h1→h4→h6),且每月分组各用一个 h1 |
-| `landmark-one-main` | `App.tsx` 整体布局 | 页面无 `<main>` landmark |
+| 审计项                  | 位置                                                    | 问题                                                                          |
+| ----------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `aria-input-field-name` | `website/src/components/WallpaperGrid.tsx:940`          | 排序 `<Select>` 无 accessible name                                            |
+| `color-contrast`        | `website/src/components/TimelineScrubber.tsx`           | `.month-tick` 文字对比度 1.1~2.48(要求 ≥4.5):橙底橙字、黑底深灰、米色底米色字 |
+| `heading-order`         | `WallpaperGrid.tsx:193/249/1027`、`App.tsx:632/748/867` | 标题层级跳跃(h1→h4→h6),且每月分组各用一个 h1                                  |
+| `landmark-one-main`     | `App.tsx` 整体布局                                      | 页面无 `<main>` landmark                                                      |
 
 ### P2 性能
 
@@ -40,16 +40,17 @@
 
 ## 修复记录(当日完成,分支 `chore/site-audit-2026-08-15`)
 
-| 问题 | 修法 | 文件 |
-| --- | --- | --- |
-| Select 无名 | `inputProps={{ 'aria-label': '排序方式' }}` | `WallpaperGrid.tsx` |
-| 时间轴对比度 | 年份标签加实心小底片(`bgcolor: background.default`),idle 透明度 0.3→0.9 | `TimelineScrubber.tsx` |
-| 标题层级 | 水印 h1→装饰 `div`(aria-hidden,保留锚点 id);月份标题 `component="h2"`;卡片标题 `component="h3"`;加载/空态/弹窗/404 标题降 `component="p"`;新增视觉隐藏的页面唯一 h1 | `WallpaperGrid.tsx`、`WallpaperCard.tsx`、`App.tsx`、`ImageDialog.tsx` |
-| 缺 main 地标 | 主内容 `<Box component="main">` | `App.tsx` |
+| 问题         | 修法                                                                                                                                                                | 文件                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Select 无名  | `inputProps={{ 'aria-label': '排序方式' }}`                                                                                                                         | `WallpaperGrid.tsx`                                                    |
+| 时间轴对比度 | 年份标签加实心小底片(`bgcolor: background.default`),idle 透明度 0.3→0.9                                                                                             | `TimelineScrubber.tsx`                                                 |
+| 标题层级     | 水印 h1→装饰 `div`(aria-hidden,保留锚点 id);月份标题 `component="h2"`;卡片标题 `component="h3"`;加载/空态/弹窗/404 标题降 `component="p"`;新增视觉隐藏的页面唯一 h1 | `WallpaperGrid.tsx`、`WallpaperCard.tsx`、`App.tsx`、`ImageDialog.tsx` |
+| 缺 main 地标 | 主内容 `<Box component="main">`                                                                                                                                     | `App.tsx`                                                              |
 
 **验证**:`pnpm run build:frontend` + `build:copy` → 本地 serve `docs/` → Lighthouse 复测 **A11y/BP/SEO/Agentic 全部 100,0 失败**;标题大纲实测 `h1→h2→h3×N` 顺序正确;截图确认年份底片视觉正常。
 
 **注意事项**:
+
 - 本地验证时发现 vite preview 对缺失的 `index.json` 会 SPA 兜底返回 200 + HTML,导致 App 进入 404 页 —— 体检本地构建必须先 `build:copy` 再 serve `docs/`。
 - 根目录 `pnpm run lint` 当前环境损坏(`eslint.config.mjs` 引用的 `typescript-eslint` 未装入 node_modules,cfd47b0 升级遗留),非本次改动引起;`pnpm install` 可恢复,且该 script 只 lint `crawler/` 不覆盖 `website/`。
 - 未提交:工作树含 5 个源码改动 + `docs/` 构建产物更新 + 本文档,待用户确认后合并部署。

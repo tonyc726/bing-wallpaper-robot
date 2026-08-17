@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { map, get, find, filter, sortBy, isString, reduce } from 'lodash';
 
-
 const writeFileAsync = util.promisify(fs.writeFile);
 const readFileAsync = util.promisify(fs.readFile);
 const mkdirAsync = util.promisify(fs.mkdir);
@@ -17,20 +16,20 @@ import { Imagekit } from './models';
 // 新的数据类型（v3.0+ 优化版）
 export interface WallpaperData {
   // === 核心数据 ===
-  id: string;                          // 壁纸ID（来自filename）
-  date: number;                        // 日期（YYYYMMDD，数字格式）
-  dateFmt: string;                     // 格式化日期（YYYY-MM-DD）
+  id: string; // 壁纸ID（来自filename）
+  date: number; // 日期（YYYYMMDD，数字格式）
+  dateFmt: string; // 格式化日期（YYYY-MM-DD）
 
   // === 文本信息 ===
-  title: string | null;                // 标题
-  copyright: string | null;            // 版权信息
+  title: string | null; // 标题
+  copyright: string | null; // 版权信息
 
   // === 视觉特征 ===
-  dominantColor: string;               // 主色调（hex）
+  dominantColor: string; // 主色调（hex）
 
   // === URL（CDN）===
-  imageUrl: string;                    // 缩略图URL
-  downloadUrl: string;                 // 下载URL
+  imageUrl: string; // 缩略图URL
+  downloadUrl: string; // 下载URL
 }
 
 export interface WallpapersGroupData {
@@ -46,21 +45,21 @@ export interface WallpapersGroupData {
  */
 interface ChunkMetadata {
   // === 版本信息 ===
-  version: string;                     // md5:abc123...（内容哈希）
-  updatedAt: string | null;            // 更新时间（null = 未更改）
+  version: string; // md5:abc123...（内容哈希）
+  updatedAt: string | null; // 更新时间（null = 未更改）
 
   // === 数据状态 ===
-  isChanged: boolean;                  // 是否发生内容变更
-  recordCount: number;                 // 记录数（当月总数）
+  isChanged: boolean; // 是否发生内容变更
+  recordCount: number; // 记录数（当月总数）
 
   // === 校验数据 ===
-  checksum: string;                    // md5:...（数据校验）
-  previousHash: string | null;         // 上次内容哈希
+  checksum: string; // md5:...（数据校验）
+  previousHash: string | null; // 上次内容哈希
 
   // === 存储信息（可选）===
-  fileSize?: number;                   // 文件大小（字节）
-  compressionRatio?: number;           // 压缩比（0-1）
-  lastAccessed?: string;               // 最后访问时间
+  fileSize?: number; // 文件大小（字节）
+  compressionRatio?: number; // 压缩比（0-1）
+  lastAccessed?: string; // 最后访问时间
 }
 
 /**
@@ -70,56 +69,56 @@ interface ChunkMetadata {
  */
 interface IndexData {
   // === 版本信息 ===
-  version: '2.0';                      // 数据版本
-  schemaVersion: 2;                    // 架构版本
-  dataVersion: string;                 // 整体数据MD5哈希（ETag）
-  generatedAt: string;                 // 生成时间 ISO 8601
-  lastModified: string;                // 最后修改时间
+  version: '2.0'; // 数据版本
+  schemaVersion: 2; // 架构版本
+  dataVersion: string; // 整体数据MD5哈希（ETag）
+  generatedAt: string; // 生成时间 ISO 8601
+  lastModified: string; // 最后修改时间
 
   // === 统计信息 ===
-  totalWallpapers: number;             // 总壁纸数
+  totalWallpapers: number; // 总壁纸数
 
   // === 分块数据（核心） ===
   chunks: {
-    [month: string]: ChunkMetadata;    // 月份 -> 元数据
+    [month: string]: ChunkMetadata; // 月份 -> 元数据
   };
 
   // === 统计数据 ===
   stats: {
-    total: number;                     // 总记录数
-    changedChunks: number;             // 发生变更的分块数
-    unchangedChunks: number;           // 未变更的分块数
+    total: number; // 总记录数
+    changedChunks: number; // 发生变更的分块数
+    unchangedChunks: number; // 未变更的分块数
 
     // 颜色统计（Top 10）
     colors: Array<{
-      name: string;                    // 颜色名称（hex）
-      count: number;                   // 使用次数
+      name: string; // 颜色名称（hex）
+      count: number; // 使用次数
     }>;
 
     // 按月统计
     byMonth: Array<{
-      month: string;                   // YYYY-MM
-      count: number;                   // 记录数
+      month: string; // YYYY-MM
+      count: number; // 记录数
     }>;
   };
 
   // === 更新日志（最近30天） ===
   updateLog: Array<{
-    date: string;                      // YYYY-MM-DD
+    date: string; // YYYY-MM-DD
     action: 'add' | 'update' | 'delete';
-    count: number;                     // 变更记录数
-    description: string;               // 描述
-    chunksChanged?: string[];          // 涉及的分块
-    impactedUsers?: number;            // 影响用户数（预估）
+    count: number; // 变更记录数
+    description: string; // 描述
+    chunksChanged?: string[]; // 涉及的分块
+    impactedUsers?: number; // 影响用户数（预估）
   }>;
 
   // === 索引信息 ===
-  monthList: string[];                 // 所有月份列表（降序）
-  latestMonth: string;                 // 最新月份（YYYY-MM）
-  oldestMonth: string;                 // 最老月份（YYYY-MM）
+  monthList: string[]; // 所有月份列表（降序）
+  latestMonth: string; // 最新月份（YYYY-MM）
+  oldestMonth: string; // 最老月份（YYYY-MM）
 
   // === all.js 版本控制 ===
-  allJsVersion: string;                // all.js 内容 MD5，客户端缓存失效判断
+  allJsVersion: string; // all.js 内容 MD5，客户端缓存失效判断
 }
 
 /**
@@ -137,19 +136,16 @@ interface IndexData {
 function calculateContentHash(data: any, excludeKeys: string[] = []): string {
   // 1. 递归排序键
   const sortedKeys = Object.keys(data)
-    .filter(key => !excludeKeys.includes(key))  // 排除缓存字段
+    .filter((key) => !excludeKeys.includes(key)) // 排除缓存字段
     .sort();
 
   const sortedObject: any = {};
 
-  sortedKeys.forEach(key => {
+  sortedKeys.forEach((key) => {
     const value = data[key];
 
     // 递归处理对象（排除undefined）
-    if (typeof value === 'object' &&
-        value !== null &&
-        !Array.isArray(value) &&
-        value.constructor === Object) {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor === Object) {
       sortedObject[key] = calculateContentHash(value, excludeKeys);
     }
     // 保持数组（不用排序）
@@ -221,7 +217,7 @@ const main = async () => {
   const previousIndex = await readPreviousIndex();
   const previousChunks = previousIndex?.chunks || {};
   const previousHashes = new Map(
-    Object.entries(previousChunks).map(([month, meta]) => [month, meta.version?.replace('md5:', '') || ''])
+    Object.entries(previousChunks).map(([month, meta]) => [month, meta.version?.replace('md5:', '') || '']),
   );
 
   // 3. 获取数据
@@ -248,7 +244,7 @@ const main = async () => {
         const dominantColor = get(
           zhCNData,
           ['analytics', 'dominantColor'],
-          get(enUSData, ['analytics', 'dominantColor'])
+          get(enUSData, ['analytics', 'dominantColor']),
         );
 
         // 格式化日期（YYYYMMDD -> YYYY-MM-DD）
@@ -262,7 +258,7 @@ const main = async () => {
         return {
           id: filename,
           date: dateNum,
-          dateFmt: dateFmt,  // 新增：格式化日期
+          dateFmt: dateFmt, // 新增：格式化日期
           title: get(zhCNData, ['title'], get(enUSData, ['title'])),
           copyright: get(zhCNData, ['copyright'], get(enUSData, ['copyright'])),
           dominantColor: dominantColor || 'cccccc',
@@ -272,7 +268,7 @@ const main = async () => {
       }),
       (wallpaper) => wallpaper && isString(wallpaper.id) && wallpaper.id.length > 0,
     ),
-    [(a: any) => a.date],  // 按日期升序
+    [(a: any) => a.date], // 按日期升序
   );
   console.log(`✅ Processed ${cleanWallpapers.length} wallpapers`);
 
@@ -308,13 +304,13 @@ const main = async () => {
   const chunkMetadata: { [month: string]: ChunkMetadata } = {};
   let totalChanged = 0;
   let totalUnchanged = 0;
-  let totalBytesSaved = 0;  // 预估节省字节
+  let totalBytesSaved = 0; // 预估节省字节
 
   for (const group of wallpapersGroupData) {
     // 6.1 构建分块内容
     const currentContent = {
       month: group.groupMonth,
-      wallpapers: group.wallpapers
+      wallpapers: group.wallpapers,
     };
     const currentHash = calculateContentHash(currentContent);
 
@@ -342,7 +338,7 @@ const main = async () => {
       isChanged,
       recordCount: group.wallpapers.length,
       checksum: `md5:${wallpapersChecksum}`,
-      previousHash: previousHash
+      previousHash: previousHash,
     };
   }
 
@@ -356,7 +352,7 @@ const main = async () => {
 
   // 颜色统计（Top 10）
   const colorCounts: Record<string, number> = {};
-  cleanWallpapers.forEach(w => {
+  cleanWallpapers.forEach((w) => {
     const color = w.dominantColor;
     colorCounts[color] = (colorCounts[color] || 0) + 1;
   });
@@ -367,7 +363,7 @@ const main = async () => {
 
   // 按月统计
   const monthCounts: Record<string, number> = {};
-  wallpapersGroupData.forEach(group => {
+  wallpapersGroupData.forEach((group) => {
     monthCounts[group.groupMonth] = group.wallpapers.length;
   });
   const byMonth = Object.entries(monthCounts)
@@ -389,11 +385,11 @@ const main = async () => {
       colors,
       byMonth,
     },
-    monthList: wallpapersGroupData.map(g => g.groupMonth).sort((a, b) => b.localeCompare(a)),
+    monthList: wallpapersGroupData.map((g) => g.groupMonth).sort((a, b) => b.localeCompare(a)),
     // wallpapersGroupData 按 date 升序排列：[0] 是最旧月份，[length-1] 是最新月份
     latestMonth: wallpapersGroupData[wallpapersGroupData.length - 1]?.groupMonth || '',
     oldestMonth: wallpapersGroupData[0]?.groupMonth || '',
-    allJsVersion: '',  // 占位，将在下方计算 allJsHash 后覆盖
+    allJsVersion: '', // 占位，将在下方计算 allJsHash 后覆盖
     // TODO: 未来版本添加 updateLog
     updateLog: [],
   };
@@ -404,7 +400,7 @@ const main = async () => {
     w.date,
     w.title || '',
     w.copyright || '',
-    w.dominantColor
+    w.dominantColor,
   ]);
   const allJsHash = crypto.createHash('md5').update(JSON.stringify(allCompactRows)).digest('hex');
   indexData.allJsVersion = `md5:${allJsHash}`;
@@ -417,10 +413,7 @@ const main = async () => {
   console.log('💾 Writing index.json & NPM utils.js...');
   await mkdirAsync(chunksDir, { recursive: true });
 
-  await writeFileAsync(
-    path.join(docsDir, 'index.json'),
-    JSON.stringify(indexData, null, 2)
-  );
+  await writeFileAsync(path.join(docsDir, 'index.json'), JSON.stringify(indexData, null, 2));
 
   // 写入 NPM 辅助工具 utils.js
   const utilsJsContent = `const BASE = "https://cn.bing.com/th?id=";
@@ -439,7 +432,7 @@ export const dateFmt = (date) => {
 export const dataVersion = "md5:${calculateContentHash(chunkMetadata)}";
 export const generatedAt = "${new Date().toISOString()}";
 export const totalWallpapers = ${cleanWallpapers.length};
-export const monthList = ${JSON.stringify(wallpapersGroupData.map(g => g.groupMonth).sort((a,b)=>b.localeCompare(a)))};
+export const monthList = ${JSON.stringify(wallpapersGroupData.map((g) => g.groupMonth).sort((a, b) => b.localeCompare(a)))};
 export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1]?.groupMonth || ''}";
 `;
   await writeFileAsync(path.join(docsDir, 'index.js'), indexJsContent, 'utf-8');
@@ -457,34 +450,32 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
   // 注意:全量重写而非仅写 isChanged 的 —— 内容不变的文件 git 无 diff,零副作用;
   // 同时保证每个 chunk 都内嵌 v(真实内容版本),供前端校验 CDN 滞后。
   console.log(`💾 Writing ${wallpapersGroupData.length} chunks (with embedded version)...`);
-  const writePromises = wallpapersGroupData
-    .map(async (group) => {
-      const chunkFile = path.join(chunksDir, `${group.groupMonth}.js`);
-      const chunkVersion = chunkMetadata[group.groupMonth].version;
+  const writePromises = wallpapersGroupData.map(async (group) => {
+    const chunkFile = path.join(chunksDir, `${group.groupMonth}.js`);
+    const chunkVersion = chunkMetadata[group.groupMonth].version;
 
-      // 生成紧凑的 NPM JS 格式
-      const compactRows = group.wallpapers.map((w: any) => [
-        w.id,
-        w.date,
-        w.title || '',
-        w.copyright || '',
-        w.dominantColor
-      ]);
-      const jsContent = `export const v = "${chunkVersion}";\nexport default ${JSON.stringify(compactRows, null, 0)};\n`;
-      await writeFileAsync(chunkFile, jsContent, 'utf-8');
-    });
+    // 生成紧凑的 NPM JS 格式
+    const compactRows = group.wallpapers.map((w: any) => [
+      w.id,
+      w.date,
+      w.title || '',
+      w.copyright || '',
+      w.dominantColor,
+    ]);
+    const jsContent = `export const v = "${chunkVersion}";\nexport default ${JSON.stringify(compactRows, null, 0)};\n`;
+    await writeFileAsync(chunkFile, jsContent, 'utf-8');
+  });
 
   await Promise.all(writePromises);
   console.log(`   ✅ ${wallpapersGroupData.length} chunks written`);
 
   // 10. 清理被删除的分块
   if (previousIndex?.chunks) {
-    const deletedMonths = Object.keys(previousIndex.chunks)
-      .filter(month => !chunkMetadata[month]);
+    const deletedMonths = Object.keys(previousIndex.chunks).filter((month) => !chunkMetadata[month]);
 
     if (deletedMonths.length > 0) {
       console.log(`🗑️  Cleaning up ${deletedMonths.length} deleted chunks...`);
-      deletedMonths.forEach(month => {
+      deletedMonths.forEach((month) => {
         const jsChunkFile = path.join(chunksDir, `${month}.js`);
         if (fs.existsSync(jsChunkFile)) {
           fs.unlinkSync(jsChunkFile);
@@ -502,7 +493,7 @@ export const latestMonth = "${wallpapersGroupData[wallpapersGroupData.length - 1
       deprecated: true,
       version: '3.0+',
       message: 'This file is deprecated. Use index.json + chunks/ instead.',
-      redirectTo: 'index.json'
+      redirectTo: 'index.json',
     };
     await writeFileAsync(legacyWallpapersPath, JSON.stringify(legacyData, null, 2));
     console.log('⚠️  Legacy wallpapers.json marked as deprecated');

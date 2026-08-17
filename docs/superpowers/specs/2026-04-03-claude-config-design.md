@@ -6,6 +6,7 @@
 ## Context
 
 项目 `.claude/` 配置存在 3 个严重问题：
+
 1. 3 个 agents 是 CDA（色谱分析）项目遗留，与当前项目完全不匹配
 2. hooks 是纯文档，无真实可执行配置
 3. MCP 服务器列表包含未使用的 Ant Design（当前项目用 MUI）
@@ -14,13 +15,14 @@
 
 ### Agents (3 total, by directory responsibility)
 
-| Agent | Scope | Key Tech |
-| --- | --- | --- |
-| typescript-dev | `crawler/**/*.ts` | TypeORM, SQLite, pnpm, ESLint, Prettier |
-| frontend-dev | `website/` | Vite + MUI + React 18 + nuqs + framer-motion |
-| python-dev | `crawler/*.py` | uv + Ruff + Pillow/ImageHash/scikit-image |
+| Agent          | Scope             | Key Tech                                     |
+| -------------- | ----------------- | -------------------------------------------- |
+| typescript-dev | `crawler/**/*.ts` | TypeORM, SQLite, pnpm, ESLint, Prettier      |
+| frontend-dev   | `website/`        | Vite + MUI + React 18 + nuqs + framer-motion |
+| python-dev     | `crawler/*.py`    | uv + Ruff + Pillow/ImageHash/scikit-image    |
 
 Each agent file contains:
+
 - Frontmatter: name, description, tools (minimal), model
 - Project-specific patterns (not generic knowledge)
 - Code templates and naming conventions
@@ -28,23 +30,23 @@ Each agent file contains:
 
 ### Hooks (2 hooks via settings.json)
 
-| Hook | Commands | Purpose |
-| --- | --- | --- |
-| pre-commit | `pnpm format:check` + `pnpm lint` | 防止提交格式错误代码 |
-| post-startup | 检查 `node_modules/` + `uv` | 提醒缺失环境依赖 |
+| Hook         | Commands                          | Purpose              |
+| ------------ | --------------------------------- | -------------------- |
+| pre-commit   | `pnpm format:check` + `pnpm lint` | 防止提交格式错误代码 |
+| post-startup | 检查 `node_modules/` + `uv`       | 提醒缺失环境依赖     |
 
 Configuration lives in `.claude/settings.json`, committed to git for team sharing.
 Sensitive config (API keys, model selection) stays in `.settings.local.json`, git-ignored.
 
 ### Commands (4 + 1 index)
 
-| Command | Purpose |
-| --- | --- |
-| /deploy | 验证代码 + 准备提交 |
-| /fetch-bing | 手动拉取 Bing 数据 |
-| /test-python | 验证 Python 环境 |
-| /new-wallpaper | 新增壁纸字段流程 |
-| _index.md | 所有命令速查索引 |
+| Command        | Purpose             |
+| -------------- | ------------------- |
+| /deploy        | 验证代码 + 准备提交 |
+| /fetch-bing    | 手动拉取 Bing 数据  |
+| /test-python   | 验证 Python 环境    |
+| /new-wallpaper | 新增壁纸字段流程    |
+| \_index.md     | 所有命令速查索引    |
 
 ### MCP Servers (cleanup)
 
@@ -63,7 +65,7 @@ Keep: context7, playwright, chrome-devtools, sequential-thinking
 2. Rewrite typescript-dev.md
 3. Rewrite frontend-dev.md
 4. Add react-component.tsx template
-5. Add command _index.md
+5. Add command \_index.md
 6. Create .claude/settings.json with hooks
 7. Clean up hooks docs (remove "executable" claims)
 8. Update .gitignore for settings.json (or remove if should be committed)

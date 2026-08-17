@@ -74,6 +74,7 @@ cd crawler && uv run python dominantColor.py <image_path>
 ### Python 脚本
 
 `crawler/` 下的 4 个脚本通过 `uv run python` 执行：
+
 - `getImageHash.py` — 计算 4 种感知哈希 (aHash, dHash, wHash, pHash)
 - `dominantColor.py` — k-means 提取主色
 - `computeColorHist.py` — 4096 维 RGB 颜色直方图

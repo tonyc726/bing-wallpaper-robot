@@ -68,11 +68,7 @@ export interface ImageHashData {
  * @param {number} [similarityHammingDistance=5] - 图片相似度汉明距离临界值，默认为5
  * @returns {boolean}
  */
-export default (
-  a: ImageHashData,
-  b: ImageHashData,
-  similarityHammingDistance = 5,
-): boolean => {
+export default (a: ImageHashData, b: ImageHashData, similarityHammingDistance = 5): boolean => {
   const allHashHammingDistance: number[] = [];
 
   const hashKeys = ['pHash', 'wHash', 'aHash', 'dHash'] as const;

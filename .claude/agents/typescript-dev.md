@@ -9,36 +9,36 @@ TypeScript specialist for bing-wallpaper-robot crawler pipeline.
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Package Manager | **pnpm** v9+ |
-| Runtime | Node.js 22+ via ts-node |
-| ORM | TypeORM 0.3 + SQLite3 |
-| Linting | ESLint 8 + alloy config |
-| Formatting | Prettier 3 |
-| Target | ES6, CommonJS modules |
-| Decorators | Enabled (TypeORM requirement) |
+| Category        | Technology                    |
+| --------------- | ----------------------------- |
+| Package Manager | **pnpm** v9+                  |
+| Runtime         | Node.js 22+ via ts-node       |
+| ORM             | TypeORM 0.3 + SQLite3         |
+| Linting         | ESLint 8 + alloy config       |
+| Formatting      | Prettier 3                    |
+| Target          | ES6, CommonJS modules         |
+| Decorators      | Enabled (TypeORM requirement) |
 
 ## Code Conventions
 
 ### Type Conventions
 
-| Scenario | Use | Example |
-| --- | --- | --- |
-| Object structures | `interface` | `interface Wallpaper { id: string }` |
-| Unions | `type` | `type Region = 'cn' | 'us' | 'jp'` |
-| Function types | `type` | `type ProcessFn = (path: string) => Promise<void>` |
+| Scenario          | Use         | Example                                            |
+| ----------------- | ----------- | -------------------------------------------------- | ---- | ----- |
+| Object structures | `interface` | `interface Wallpaper { id: string }`               |
+| Unions            | `type`      | `type Region = 'cn'                                | 'us' | 'jp'` |
+| Function types    | `type`      | `type ProcessFn = (path: string) => Promise<void>` |
 
 No `any` — use `unknown` with type guards.
 
 ### Naming
 
-| Category | Convention | Example |
-| --- | --- | --- |
-| Types/Interfaces | PascalCase | `Wallpaper`, `AnalyticsRecord` |
-| Variables/Functions | camelCase | `fetchWallpaper`, `uploadToImageKit` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`, `API_REGIONS` |
-| Boolean props | is/has/can prefix | `isNew`, `hasSimilar` |
+| Category            | Convention        | Example                              |
+| ------------------- | ----------------- | ------------------------------------ |
+| Types/Interfaces    | PascalCase        | `Wallpaper`, `AnalyticsRecord`       |
+| Variables/Functions | camelCase         | `fetchWallpaper`, `uploadToImageKit` |
+| Constants           | UPPER_SNAKE_CASE  | `MAX_RETRY_COUNT`, `API_REGIONS`     |
+| Boolean props       | is/has/can prefix | `isNew`, `hasSimilar`                |
 
 ### Directory Structure
 
@@ -121,7 +121,7 @@ const MAX_RETRY_COUNT = 5;
 const THUMBNAIL_SIZE = 256;
 
 // ✅ Correct
-for (let i = 0; i < MAX_RETRY_COUNT; i++) { }
+for (let i = 0; i < MAX_RETRY_COUNT; i++) {}
 const url = `https://...${THUMBNAIL_SIZE}x${THUMBNAIL_SIZE}...`;
 ```
 

@@ -122,7 +122,10 @@ const main = async (retry = 1) => {
     );
   } else {
     // 【修改点 2】如果没有获取到数据，也给 Action 抛出一个明确的兜底信息
-    githubActionCore.setOutput('COMMIT_MESSAGE', `:robot: >> [${format(new Date(), 'dd/MM/yyyy')}] No new wallpapers today.`);
+    githubActionCore.setOutput(
+      'COMMIT_MESSAGE',
+      `:robot: >> [${format(new Date(), 'dd/MM/yyyy')}] No new wallpapers today.`,
+    );
   }
 };
 

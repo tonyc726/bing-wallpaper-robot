@@ -47,17 +47,13 @@ async function runPool<T>(
       await worker(items[current], current);
     }
   };
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, () =>
-    runNext(),
-  );
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, () => runNext());
   await Promise.all(runners);
 }
 
 async function main(): Promise<void> {
   if (!isQiniuConfigured()) {
-    console.error(
-      '❌ 未配置七牛环境变量（QINIU_ACCESS_KEY / QINIU_SECRET_KEY / QINIU_BUCKET）。',
-    );
+    console.error('❌ 未配置七牛环境变量（QINIU_ACCESS_KEY / QINIU_SECRET_KEY / QINIU_BUCKET）。');
     console.error('   请先在 .env 中填写后再运行本回填脚本。');
     process.exitCode = 1;
     return;
@@ -74,13 +70,10 @@ async function main(): Promise<void> {
     const limitEnv = process.env.BACKFILL_LIMIT;
     const limit = limitEnv ? Number(limitEnv) : 0;
     const targets = (limit > 0 ? wallpapers.slice(0, limit) : wallpapers).filter(
-      (wallpaper) =>
-        typeof wallpaper.filename === 'string' && wallpaper.filename.length > 0,
+      (wallpaper) => typeof wallpaper.filename === 'string' && wallpaper.filename.length > 0,
     );
 
-    console.log(
-      `🚀 七牛冷备份回填开始：共 ${targets.length} 张待处理（并发 ${CONCURRENCY}）...`,
-    );
+    console.log(`🚀 七牛冷备份回填开始：共 ${targets.length} 张待处理（并发 ${CONCURRENCY}）...`);
 
     const stats: BackfillStats = { uploaded: 0, exists: 0, skipped: 0, error: 0 };
     let processed = 0;
@@ -93,9 +86,7 @@ async function main(): Promise<void> {
       if (result.status === 'uploaded') {
         console.log(`  ✅ [${processed}/${targets.length}] 已备份 ${result.key}`);
       } else if (result.status === 'error') {
-        console.log(
-          `  ⚠️  [${processed}/${targets.length}] 失败 ${result.key} — ${result.reason}`,
-        );
+        console.log(`  ⚠️  [${processed}/${targets.length}] 失败 ${result.key} — ${result.reason}`);
       } else if (processed % 100 === 0) {
         // exists/skipped 静默，仅每 100 张打一次进度心跳
         console.log(`  … 进度 ${processed}/${targets.length}`);
