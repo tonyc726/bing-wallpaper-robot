@@ -1,2 +1,2 @@
-export const v = "md5:65adc0f03aff89069c43cd3f1bf89704";
-export default [["OHR.HorseHairShroom_EN-US3885857486",20260901,"A world beneath your feet","Horsehair parachute fungus, Belarus (© Máté/Nature Picture Library)","7eae02"]];
+export const v = "md5:6ea6e3e2875dd30de556ce4b963c6c84";
+export default [["OHR.HorseHairShroom_EN-US3885857486",20260901,"A world beneath your feet","Horsehair parachute fungus, Belarus (© Máté/Nature Picture Library)","7eae02"],["OHR.SuffolkHuts_EN-US3987062531",20260902,"Painted along the shore","Traditional beach huts, Southwold, Suffolk Heritage Coast, England (© stevendocwra/Getty Images)","a1805d"]];
