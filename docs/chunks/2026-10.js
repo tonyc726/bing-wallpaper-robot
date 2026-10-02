@@ -1,2 +1,2 @@
-export const v = "md5:3b595829720b09db3cb64f224ea02efa";
-export default [["OHR.OlmstedPoint_EN-US0964858045",20261001,"Reading time in granite","Sunset from Olmsted Point, Yosemite National Park, California, USA (© Robb Hirsch/Tandem Stills + Motion)","f3aa96"]];
+export const v = "md5:f568020704d95909777e24d484b1fbcb";
+export default [["OHR.OlmstedPoint_EN-US0964858045",20261001,"Reading time in granite","Sunset from Olmsted Point, Yosemite National Park, California, USA (© Robb Hirsch/Tandem Stills + Motion)","f3aa96"],["OHR.ChattoogaRiver_EN-US5042787453",20261002,"A river worth protecting","Chattooga River in the Appalachian Mountains, North Carolina (© mtilghma/Getty Images)","423a25"]];
