@@ -42,81 +42,17 @@
     />
 
     <!-- Prevent FOUC (Flash of Unstyled Content) -->
-    <style>
-      body {
-        margin: 0;
-        font-family:
-          'Inter',
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          'PingFang SC',
-          'Hiragino Sans GB',
-          'Microsoft YaHei',
-          'Helvetica Neue',
-          Helvetica,
-          Arial,
-          sans-serif;
-        background-color: #f5f5f5;
-      }
-      #root {
-        min-height: 100vh;
-      }
-      /* 暗色系统下 splash 跟随,避免白闪 */
-      @media (prefers-color-scheme: dark) {
-        body {
-          background-color: #000000;
-        }
-      }
-    </style>
+    <style>body{background-color:#f5f5f5;margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif}#root{min-height:100vh}@media (prefers-color-scheme:dark){body{background-color:#000}}</style>
 
     <!-- wm:style:start -->
       <script>window.__wmT0 = window.__wmT0 || Date.now();try{var __wmSaved = localStorage.getItem('darkMode');var __wmDark = __wmSaved !== null ? JSON.parse(__wmSaved) : !window.matchMedia('(prefers-color-scheme: light)').matches;if (__wmDark) document.documentElement.classList.add('wm-dark');}catch(e){}</script>
-      <style>
-.app-loading{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;min-height:100vh;background:radial-gradient(ellipse 130% 100% at 50% 45%,#fdfdfc 0%,#f2f0ec 100%);color:#111;--wm-line-track:rgba(17,17,17,.1);--wm-vignette:rgba(93,78,55,.12)}
-html.wm-dark .app-loading{background:radial-gradient(ellipse 130% 100% at 50% 45%,#101010 0%,#000 78%);color:#f5f5f5;--wm-line-track:rgba(245,245,245,.14);--wm-vignette:rgba(0,0,0,.55)}
-.wm-title{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,3vw,20px);animation:wm-emerge .9s ease-out both,wm-pushin 8s cubic-bezier(.22,1,.36,1) both}
-.wm-main{display:block;width:clamp(240px,64vw,520px);height:auto}
-.wm-sub{display:block;width:clamp(88px,22vw,132px);height:auto;opacity:0;animation:wm-sub-in 800ms ease-out both}
-.wm-sub path{fill:currentColor;fill-rule:evenodd}
-.wm-trace path{fill:none;stroke:currentColor;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation-name:wm-draw,wm-traceout;animation-timing-function:cubic-bezier(.45,.05,.35,1),ease;animation-fill-mode:forwards,forwards}
-.wm-fill path{fill:currentColor;fill-rule:evenodd;opacity:0;animation:wm-fillin 650ms ease-out both}
-@keyframes wm-emerge{from{opacity:0}to{opacity:1}}
-@keyframes wm-pushin{from{transform:scale(1)}to{transform:scale(1.045)}}
-@keyframes wm-sub-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes wm-draw{to{stroke-dashoffset:0}}
-@keyframes wm-traceout{to{stroke-opacity:0}}
-@keyframes wm-fillin{to{opacity:1}}
-.wm-line{position:relative;width:min(220px,52vw);height:2px;border-radius:1px;overflow:hidden;background:var(--wm-line-track,rgba(17,17,17,.1));color:inherit;animation:wm-emerge .9s ease-out .35s both}
-.wm-line-bar{display:block;height:100%;background:currentColor;border-radius:1px}
-.wm-line-indeterminate{width:40%;animation:wm-slide 1.1s cubic-bezier(.45,.05,.55,.95) infinite}
-.wm-line-determinate{width:100%;transform-origin:left center;transform:scaleX(var(--wm-p,0));transition:transform .3s ease}
-@keyframes wm-slide{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
-.wm-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 45%,transparent 55%,var(--wm-vignette,rgba(93,78,55,.12)) 100%)}
-.wm-grain{position:absolute;top:-50%;left:-50%;width:200%;height:200%;pointer-events:none;opacity:.055;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:wm-grain-jitter .9s steps(8) infinite}
-@keyframes wm-grain-jitter{0%{transform:translate(0,0)}12.5%{transform:translate(-2%,1%)}25%{transform:translate(1%,-2%)}37.5%{transform:translate(-1%,2%)}50%{transform:translate(2%,1%)}62.5%{transform:translate(-2%,-1%)}75%{transform:translate(1%,2%)}87.5%{transform:translate(2%,-2%)}100%{transform:translate(0,0)}}
-/* 等宽小字注脚:呼应画廊 mono 标签语言(ERROR_CODE / 2026 竖排) */
-.wm-progress{display:flex;flex-direction:column;align-items:center;gap:12px}
-.wm-caption{font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:.35em;text-transform:uppercase;opacity:0;animation:wm-caption-in 1.2s ease-out 1.2s forwards}
-@keyframes wm-caption-in{to{opacity:.5}}
-@media (prefers-reduced-motion:reduce){
-.wm-title{animation:none}
-.wm-sub{animation:none;opacity:1}
-.wm-trace path{animation:none;stroke-dashoffset:0;stroke-opacity:0}
-.wm-fill path{animation:none;opacity:1}
-.wm-line{animation:none}
-.wm-line-indeterminate{animation-duration:2.4s}
-.wm-line-determinate{transition:none}
-.wm-grain{animation:none}
-.wm-caption{animation:none;opacity:.5}
-}
-      </style>
+      <style>.app-loading{color:#111;--wm-line-track:#1111111a;--wm-vignette:#5d4e371f;background:radial-gradient(130% 100% at 50% 45%,#fdfdfc 0%,#f2f0ec 100%);flex-direction:column;justify-content:center;align-items:center;gap:40px;min-height:100vh;display:flex;position:relative;overflow:hidden}html.wm-dark .app-loading{color:#f5f5f5;--wm-line-track:#f5f5f524;--wm-vignette:#0000008c;background:radial-gradient(130% 100% at 50% 45%,#101010 0%,#000 78%)}.wm-title{flex-direction:column;align-items:center;gap:clamp(12px,3vw,20px);animation:.9s ease-out both wm-emerge,8s cubic-bezier(.22,1,.36,1) both wm-pushin;display:flex}.wm-main{width:clamp(240px,64vw,520px);height:auto;display:block}.wm-sub{opacity:0;width:clamp(88px,22vw,132px);height:auto;animation:.8s ease-out both wm-sub-in;display:block}.wm-sub path{fill:currentColor;fill-rule:evenodd}.wm-trace path{fill:none;stroke:currentColor;stroke-width:7px;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1px;animation-name:wm-draw,wm-traceout;animation-timing-function:cubic-bezier(.45,.05,.35,1),ease;animation-fill-mode:forwards,forwards}.wm-fill path{fill:currentColor;fill-rule:evenodd;opacity:0;animation:.65s ease-out both wm-fillin}@keyframes wm-emerge{0%{opacity:0}to{opacity:1}}@keyframes wm-pushin{0%{transform:scale(1)}to{transform:scale(1.045)}}@keyframes wm-sub-in{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes wm-draw{to{stroke-dashoffset:0}}@keyframes wm-traceout{to{stroke-opacity:0}}@keyframes wm-fillin{to{opacity:1}}.wm-line{background:var(--wm-line-track,#1111111a);width:min(220px,52vw);height:2px;color:inherit;border-radius:1px;animation:.9s ease-out .35s both wm-emerge;position:relative;overflow:hidden}.wm-line-bar{background:currentColor;border-radius:1px;height:100%;display:block}.wm-line-indeterminate{width:40%;animation:1.1s cubic-bezier(.45,.05,.55,.95) infinite wm-slide}.wm-line-determinate{transform-origin:0;width:100%;transform:scaleX(var(--wm-p,0));transition:transform .3s}@keyframes wm-slide{0%{transform:translate(-100%)}to{transform:translate(260%)}}.wm-vignette{pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 45%,transparent 55%,var(--wm-vignette,#5d4e371f) 100%);position:absolute;inset:0}.wm-grain{pointer-events:none;opacity:.055;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");width:200%;height:200%;animation:.9s steps(8,end) infinite wm-grain-jitter;position:absolute;top:-50%;left:-50%}@keyframes wm-grain-jitter{0%{transform:translate(0)}12.5%{transform:translate(-2%,1%)}25%{transform:translate(1%,-2%)}37.5%{transform:translate(-1%,2%)}50%{transform:translate(2%,1%)}62.5%{transform:translate(-2%,-1%)}75%{transform:translate(1%,2%)}87.5%{transform:translate(2%,-2%)}to{transform:translate(0)}}.wm-progress{flex-direction:column;align-items:center;gap:12px;display:flex}.wm-caption{letter-spacing:.35em;text-transform:uppercase;opacity:0;font-family:JetBrains Mono,Courier New,monospace;font-size:10px;animation:1.2s ease-out 1.2s forwards wm-caption-in}@keyframes wm-caption-in{to{opacity:.5}}@media (prefers-reduced-motion:reduce){.wm-title{animation:none}.wm-sub{opacity:1;animation:none}.wm-trace path{stroke-dashoffset:0;stroke-opacity:0;animation:none}.wm-fill path{opacity:1;animation:none}.wm-line{animation:none}.wm-line-indeterminate{animation-duration:2.4s}.wm-line-determinate{transition:none}.wm-grain{animation:none}.wm-caption{opacity:.5;animation:none}}</style>
       <!-- wm:style:end -->
-    <script type="module" crossorigin src="./assets/index-DO170lkJ.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-VRaQyiYk.js">
-    <link rel="modulepreload" crossorigin href="./assets/mui-BvEy-IQi.js">
-    <link rel="modulepreload" crossorigin href="./assets/motion-D-pYCg-m.js">
+    <script type="module" crossorigin src="./assets/index-BKZdoXSx.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-BWaJ3C7D.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-BdbByH-4.js">
+    <link rel="modulepreload" crossorigin href="./assets/mui-kZhxq3ci.js">
+    <link rel="modulepreload" crossorigin href="./assets/motion-DW_wHG-I.js">
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root">
